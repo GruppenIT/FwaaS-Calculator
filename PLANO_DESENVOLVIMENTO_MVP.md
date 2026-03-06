@@ -31,7 +31,7 @@
 **Tagline:** A sua causa, no seu escritório.
 **Versão alvo deste plano:** MVP v0.1 → v1.0
 **Desenvolvedor principal:** Rodrigo S. da Rocha (com Claude Code)
-**Validação jurídica:** Michele Fagundes
+**Validação jurídica:** Cristina Oliveira
 **Validação de UX/mercado:** Diana Rocha
 **Identidade visual:** ver `CAUSA_identidade_visual.md`
 
@@ -488,7 +488,7 @@ A cada X minutos (configurável, padrão: 30min):
 - [ ] **1.3.5** — Serviço Windows: instalação, start/stop, schedule configurável
 - [ ] **1.3.6** — API REST local (localhost): status do serviço, logs, fila de execução
 - [ ] **1.3.7** — UI de status dos conectores: última execução, erros, progresso
-- [ ] **1.3.8** — Testes dos conectores com processos reais de Michele Fagundes
+- [ ] **1.3.8** — Testes dos conectores com processos reais de Cristina Oliveira
 
 #### Módulo 1.4 — Instalador
 
