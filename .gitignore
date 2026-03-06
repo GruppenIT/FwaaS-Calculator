@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Database files (local dev)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Certificates (NEVER commit)
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Electron
+packages/app-desktop/dist/
+packages/app-desktop/release/
+
+# Installer output
+packages/installer/output/
+
+# Coverage
+coverage/

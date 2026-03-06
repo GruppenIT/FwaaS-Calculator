@@ -1,0 +1,9 @@
+{
+  "name": "@causa/installer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Installer build - NSIS - not yet configured'"
+  }
+}

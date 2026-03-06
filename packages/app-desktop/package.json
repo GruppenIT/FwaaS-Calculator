@@ -1,0 +1,17 @@
+{
+  "name": "@causa/app-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.ts",
+  "scripts": {
+    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@causa/shared": "workspace:*",
+    "@causa/database": "workspace:*"
+  }
+}
