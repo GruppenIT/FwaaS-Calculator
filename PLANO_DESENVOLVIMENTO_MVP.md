@@ -27,15 +27,19 @@
 
 ## 1. Visão Geral do Produto
 
-**Nome provisório:** JurisLocal  
-**Versão alvo deste plano:** MVP v0.1 → v1.0  
-**Desenvolvedor principal:** Rodrigo S. da Rocha (com Claude Code)  
-**Validação jurídica:** Michele Fagundes  
-**Validação de UX/mercado:** Diana Rocha  
+**Nome do produto:** CAUSA
+**Tagline:** A sua causa, no seu escritório.
+**Versão alvo deste plano:** MVP v0.1 → v1.0
+**Desenvolvedor principal:** Rodrigo S. da Rocha (com Claude Code)
+**Validação jurídica:** Michele Fagundes
+**Validação de UX/mercado:** Diana Rocha
+**Identidade visual:** ver `CAUSA_identidade_visual.md`
 
 ### Proposta central
 
 ERP jurídico instalado **na máquina do escritório** — sem dados trafegando para servidores de terceiros. Com automação de consulta e peticionamento nos principais tribunais brasileiros (PJe, e-SAJ, eProc), rodando via serviço Windows no computador do advogado responsável por cada processo.
+
+> **Regras de naming:** O nome do produto é sempre **CAUSA** (caixa alta). Os planos são **CAUSA Solo**, **CAUSA Escritório** e **CAUSA Equipe**. O add-on de IA é **CAUSA + IA**. Consultar `CAUSA_identidade_visual.md` para diretrizes completas.
 
 ---
 
@@ -43,7 +47,7 @@ ERP jurídico instalado **na máquina do escritório** — sem dados trafegando 
 
 O sistema deve suportar **duas topologias** escolhidas no momento da instalação, sem necessidade de mudança de software:
 
-### Topologia A — Solo (Notebook Único)
+### Topologia A — CAUSA Solo (Notebook Único)
 
 ```
 ┌─────────────────────────────────────┐
@@ -65,9 +69,9 @@ O sistema deve suportar **duas topologias** escolhidas no momento da instalaçã
 - Banco de dados: **SQLite** (arquivo único em pasta de dados da aplicação)
 - Sem dependência de rede local
 - Portátil por natureza — backup = copiar o arquivo `.db`
-- Ideal para: advogado autônomo, sócio único
+- Ideal para: advogado autônomo, sócio único (plano **CAUSA Solo**)
 
-### Topologia B — Escritório (Rede Local / Multi-Usuário)
+### Topologia B — CAUSA Escritório (Rede Local / Multi-Usuário)
 
 ```
 ┌──────────────────────┐     ┌──────────────────────┐
@@ -100,7 +104,7 @@ O sistema deve suportar **duas topologias** escolhidas no momento da instalaçã
 - Cada advogado instala o App Desktop + Serviço Windows no seu notebook
 - O **Serviço de Conectores** roda **apenas na máquina do advogado responsável** pelo processo
 - Todos os dados gravados/lidos do PostgreSQL central são acessíveis por qualquer usuário autorizado
-- Ideal para: escritórios de 2 a 20 advogados
+- Ideal para: escritórios de 2 a 20 advogados (plano **CAUSA Escritório**)
 
 ### Regra Crítica de Execução de Conectores
 
@@ -286,7 +290,7 @@ connector_logs
 licencas
 ├── id (uuid)
 ├── chave_licenca        # hash assinado verificado pelo update-service
-├── plano                # solo, escritorio, equipe
+├── plano                # causa_solo, causa_escritorio, causa_equipe
 ├── seats_contratados
 ├── validade_ate
 └── features_ativas      # jsonb: lista de módulos liberados
@@ -329,6 +333,7 @@ O RBAC segue o modelo **Role → Permissions** com granularidade por `recurso + 
 | `licenca:gerenciar` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | `relatorios:financeiros` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
 | `agenda:gerenciar_todos` | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+| `tema:alternar` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ### 5.4 Regras de Negócio RBAC
 
@@ -425,12 +430,12 @@ A cada X minutos (configurável, padrão: 30min):
 - [ ] **F0.3** — Configurar TypeScript estrito em todos os pacotes (`strict: true`, `noImplicitAny`, `exactOptionalPropertyTypes`)
 - [ ] **F0.4** — Configurar ESLint + Prettier com regras unificadas
 - [ ] **F0.5** — Configurar Vitest para testes unitários
-- [ ] **F0.6** — Decisão de stack desktop: **prototipar conector PJe em Electron E Tauri** — Rodrigo decide com base no resultado real de acesso a certificado A1
+- [ ] **F0.6** — Decisão de stack desktop: **prototipar conector PJe em Electron E Tauri** — Rodrigo decide com base no resultado real de acesso a certificado A1. Título da janela: `CAUSA — [Nome do Escritório]` (ver identidade visual)
 - [ ] **F0.7** — Definir schema inicial Drizzle ORM (entidades da Seção 4)
 - [ ] **F0.8** — Criar primeira migration para SQLite (modo solo)
 - [ ] **F0.9** — Criar primeira migration para PostgreSQL (modo escritório)
 - [ ] **F0.10** — Seed de dados: papéis e permissões padrão (Seção 5)
-- [ ] **F0.11** — Protótipo de UI: tela de setup inicial (escolha de topologia)
+- [ ] **F0.11** — Protótipo de UI: tela de setup inicial (escolha de topologia) — seguir tokens CSS e componentes definidos em `CAUSA_identidade_visual.md`
 - [ ] **F0.12** — Configurar CI (GitHub Actions): lint + testes a cada push
 
 #### Entregáveis
@@ -438,7 +443,7 @@ A cada X minutos (configurável, padrão: 30min):
 - Repositório GitHub com README, estrutura de pastas e CI funcionando
 - Schema de banco documentado e migrations funcionando (SQLite + PostgreSQL)
 - Decisão de Electron vs Tauri documentada em `docs/decisoes/ADR-001-framework-desktop.md`
-- Primeiro protótipo de tela (setup wizard)
+- Primeiro protótipo de tela (setup wizard) com identidade visual CAUSA aplicada
 
 #### Validações
 
@@ -461,6 +466,7 @@ A cada X minutos (configurável, padrão: 30min):
 - [ ] **1.1.6** — Tela de gestão de papéis e permissões (admin)
 - [ ] **1.1.7** — Setup wizard: criação do primeiro usuário admin
 - [ ] **1.1.8** — Audit log: registrar todas as ações sensíveis
+- [ ] **1.1.9** — Implementar tokens CSS e suporte a modo escuro conforme `CAUSA_identidade_visual.md` (cores, tipografia, componentes base)
 
 #### Módulo 1.2 — ERP Core
 
@@ -487,13 +493,13 @@ A cada X minutos (configurável, padrão: 30min):
 #### Módulo 1.4 — Instalador
 
 - [ ] **1.4.1** — Instalador NSIS para Windows (modo solo)
-- [ ] **1.4.2** — Setup wizard de topologia (solo vs escritório)
+- [ ] **1.4.2** — Setup wizard de topologia (CAUSA Solo vs CAUSA Escritório)
 - [ ] **1.4.3** — Criação automática do serviço Windows no modo solo
 - [ ] **1.4.4** — Desinstalador limpo (remove serviço, mantém dados)
 
 #### Entregáveis da Fase 1
 
-- Aplicativo instalável no Windows em modo solo
+- CAUSA instalável no Windows em modo CAUSA Solo
 - 2 conectores P1 funcionando em condições reais
 - RBAC completo com os 6 papéis padrão
 - 10 escritórios beta instalados e usando
@@ -543,7 +549,7 @@ A cada X minutos (configurável, padrão: 30min):
 
 #### Entregáveis da Fase 2
 
-- Instalador Windows para modo escritório
+- Instalador Windows para modo CAUSA Escritório
 - Conector trabalhista (TRT) ativo
 - Módulo de documentos completo
 - Update service funcionando
@@ -555,7 +561,7 @@ A cada X minutos (configurável, padrão: 30min):
 ### FASE 3 — v1.5 Expansão (Semanas 23–28)
 
 - Conectores P2: TJRS, TJSC, TJPR, TJMG
-- Módulo de IA (opt-in, chave própria do escritório)
+- CAUSA + IA (opt-in, chave própria do escritório)
 - Suporte a certificado A3 (PKCS#11)
 - Backup criptografado opcional
 - Relatórios financeiros avançados
@@ -594,7 +600,7 @@ A cada X minutos (configurável, padrão: 30min):
 
 ### 9.1 Regras Inegociáveis
 
-1. **Nenhum dado de processo ou cliente sai da rede local** — exceto quando o usuário aciona IA opt-in com sua própria chave, com consentimento explícito por sessão.
+1. **Nenhum dado de processo ou cliente sai da rede local** — exceto quando o usuário aciona CAUSA + IA (opt-in) com sua própria chave, com consentimento explícito por sessão.
 
 2. **Senhas nunca em texto plano** — bcrypt com custo ≥ 12. Nunca em log, nunca em arquivo de config.
 
@@ -616,7 +622,7 @@ A cada X minutos (configurável, padrão: 30min):
 
 - O `admin` do escritório é o **operador** dos dados; o escritório é o **controlador**.
 - Nenhum dado pessoal de clientes do escritório é processado pela empresa desenvolvedora.
-- O módulo de IA exibe aviso de consentimento a cada sessão até o usuário optar por não exibir novamente.
+- O módulo CAUSA + IA exibe aviso de consentimento a cada sessão até o usuário optar por não exibir novamente.
 - Funcionalidade futura: exportação de dados por cliente (direito de acesso, Art. 18 LGPD).
 
 ---
@@ -624,7 +630,7 @@ A cada X minutos (configurável, padrão: 30min):
 ## 10. Estrutura do Repositório
 
 ```
-jurislocal/                          # raiz do monorepo
+causa/                               # raiz do monorepo
 │
 ├── .github/
 │   └── workflows/
@@ -723,6 +729,7 @@ jurislocal/                          # raiz do monorepo
 ├── pnpm-workspace.yaml
 ├── package.json                     # root: scripts globais
 ├── tsconfig.base.json               # config TS base compartilhada
+├── CAUSA_identidade_visual.md       # guia de naming e identidade visual
 └── PLANO_DESENVOLVIMENTO_MVP.md     # este documento
 ```
 
@@ -758,7 +765,7 @@ jurislocal/                          # raiz do monorepo
 
 | # | Decisão | Opções | Prazo | Responsável |
 |---|---|---|---|---|
-| D1 | Framework desktop: Electron vs Tauri | Prototipar ambos com conector PJe | Semana 3 | Rodrigo |
+| D1 | Framework desktop: Electron vs Tauri | Prototipar ambos com conector PJe. Ambos devem usar identidade visual CAUSA | Semana 3 | Rodrigo |
 | D2 | Gerenciador de estado React: Zustand vs Jotai vs TanStack Query | Avaliar complexidade real do estado | Semana 5 | Rodrigo |
 | D3 | Comunicação app ↔ serviço Windows: REST localhost vs IPC nativo vs Named Pipes | Avaliar latência e facilidade de debug | Semana 6 | Rodrigo |
 | D4 | Estratégia de licenciamento offline: JWT assinado local vs fingerprint de hardware | Avaliar UX em caso de troca de máquina | Semana 8 | Rodrigo + Diana |
@@ -770,7 +777,7 @@ jurislocal/                          # raiz do monorepo
 
 ```
 Semana 1:
-  - [ ] Criar repositório GitHub: github.com/[org]/jurislocal
+  - [ ] Criar repositório GitHub: github.com/[org]/causa
   - [ ] Fazer commit deste arquivo como PLANO_DESENVOLVIMENTO_MVP.md
   - [ ] Configurar pnpm workspaces com a estrutura de packages
   - [ ] Configurar TypeScript base + ESLint + Prettier
