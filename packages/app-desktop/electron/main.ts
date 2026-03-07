@@ -28,6 +28,7 @@ function getInstallConfig(): { topologia: 'solo' | 'escritorio'; postgresUrl?: s
 }
 
 let mainWindow: BrowserWindow | null = null;
+let splashWindow: BrowserWindow | null = null;
 let apiServer: http.Server | null = null;
 
 async function startApi() {
@@ -43,6 +44,31 @@ async function startApi() {
   console.log(`[CAUSA] API iniciada. Dados em: ${dataDir}`);
 }
 
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 480,
+    height: 380,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  splashWindow.loadFile(path.join(__dirname, 'splash', 'splash.html'));
+  splashWindow.once('ready-to-show', () => {
+    splashWindow?.show();
+  });
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
 function createWindow() {
   const installConfig = getInstallConfig();
 
@@ -51,6 +77,7 @@ function createWindow() {
     height: 800,
     minWidth: 1024,
     minHeight: 600,
+    show: false,
     title: `CAUSA — ${installConfig.topologia === 'solo' ? 'Solo' : 'Escritório'}`,
     webPreferences: {
       nodeIntegration: false,
@@ -66,10 +93,25 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  // Quando a janela principal estiver pronta, fecha o splash
+  mainWindow.once('ready-to-show', () => {
+    // Garante um tempo mínimo de exibição do splash (1.5s)
+    const MIN_SPLASH_MS = 1500;
+    const elapsed = Date.now() - splashStartTime;
+    const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+
+    setTimeout(() => {
+      splashWindow?.close();
+      mainWindow?.show();
+    }, remaining);
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
+
+let splashStartTime = 0;
 
 // IPC: expor config do instalador para o renderer
 ipcMain.handle('get-install-config', () => {
@@ -77,11 +119,16 @@ ipcMain.handle('get-install-config', () => {
 });
 
 app.whenReady().then(async () => {
+  // Exibe splash enquanto carrega
+  createSplashWindow();
+  splashStartTime = Date.now();
+
   try {
     await startApi();
   } catch (err) {
     console.error('[CAUSA] Falha ao iniciar API:', err);
   }
+
   createWindow();
   if (mainWindow) {
     setupAutoUpdater(mainWindow);

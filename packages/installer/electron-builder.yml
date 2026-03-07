@@ -10,6 +10,7 @@ directories:
 files:
   - "dist/**/*"
   - "electron/**/*.js"
+  - "electron/splash/**/*"
   - "package.json"
 
 asar: false
