@@ -1,0 +1,155 @@
+@import 'tailwindcss';
+
+/*
+ * CAUSA — Tokens de Identidade Visual
+ * Fonte: CAUSA_identidade_visual.md (Seção 8)
+ */
+
+@theme {
+  /* Cores primárias */
+  --color-causa-primary: #2563A8;
+  --color-causa-primary-hover: #1D4E8F;
+  --color-causa-primary-light: oklch(from #2563A8 l c h / 0.08);
+  --color-causa-bg: #F7F6F3;
+  --color-causa-surface: #FFFFFF;
+  --color-causa-surface-alt: #F3F4F6;
+
+  /* Cores de estado */
+  --color-causa-success: #2A9D8F;
+  --color-causa-warning: #E9A800;
+  --color-causa-danger: #DC2626;
+
+  /* Texto */
+  --color-causa-text: #1E1E2E;
+  --color-causa-text-muted: #6B7280;
+
+  /* Bordas */
+  --color-causa-border: #E5E7EB;
+
+  /* Tipografia */
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-brand: 'Lora', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* Raios */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.08);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.10);
+
+  /* Sidebar */
+  --sidebar-width: 240px;
+}
+
+/*
+ * Variáveis CSS customizadas (modo claro e escuro)
+ * Usadas diretamente em componentes via var()
+ */
+:root {
+  --color-bg: #F7F6F3;
+  --color-surface: #FFFFFF;
+  --color-text: #1E1E2E;
+  --color-text-muted: #6B7280;
+  --color-border: #E5E7EB;
+  --color-primary: #2563A8;
+  --color-primary-hover: #1D4E8F;
+
+  color-scheme: light;
+}
+
+.dark {
+  --color-bg: #0F0F1A;
+  --color-surface: #1A1A2E;
+  --color-text: #E8E8F0;
+  --color-text-muted: #9CA3AF;
+  --color-border: #2D2D42;
+  --color-primary: #3B82F6;
+  --color-primary-hover: #2563A8;
+
+  color-scheme: dark;
+}
+
+/*
+ * Reset e estilos globais
+ */
+html {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Nunca usar preto puro — regra da identidade visual */
+* {
+  border-color: var(--color-border);
+}
+
+/*
+ * Escala tipográfica CAUSA
+ */
+@utility text-xs-causa {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+@utility text-sm-causa {
+  font-size: 13px;
+  font-weight: 400;
+}
+
+@utility text-base-causa {
+  font-size: 15px;
+  font-weight: 400;
+}
+
+@utility text-md-causa {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+@utility text-lg-causa {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+@utility text-xl-causa {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+@utility text-2xl-causa {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/*
+ * Foco acessível — padrão CAUSA
+ */
+@utility focus-causa {
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px oklch(from #2563A8 l c h / 0.15);
+    border-color: var(--color-primary);
+  }
+}
+
+/*
+ * Transições — conforme identidade visual
+ * Nenhuma animação puramente decorativa.
+ */
+@utility transition-causa {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
+}

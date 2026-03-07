@@ -1,0 +1,36 @@
+{
+  "name": "@causa/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && cp -r src/migrations dist/migrations && cp -r src/migrations-pg dist/migrations-pg",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "generate": "drizzle-kit generate",
+    "generate:pg": "drizzle-kit generate --config ../../drizzle-pg.config.ts",
+    "migrate": "tsx src/migrate.ts",
+    "seed": "tsx src/seeds/run.ts",
+    "dev:api": "tsx src/api-server.ts"
+  },
+  "dependencies": {
+    "@causa/shared": "workspace:*",
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^11.0.0",
+    "drizzle-orm": "^0.39.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.13.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.11.0",
+    "@types/uuid": "^10.0.0",
+    "drizzle-kit": "^0.30.0",
+    "tsx": "^4.19.0"
+  }
+}

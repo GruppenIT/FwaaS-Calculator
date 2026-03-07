@@ -1,0 +1,29 @@
+CAUSA — ERP Jurídico On-Premise
+
+Licença de Uso
+
+Este software é propriedade de seus desenvolvedores e é licenciado, não vendido.
+Ao instalar e utilizar este software, você concorda com os termos desta licença.
+
+1. CONCESSÃO DE LICENÇA
+   O licenciante concede ao licenciado uma licença não exclusiva e intransferível
+   para instalar e utilizar o software CAUSA em conformidade com o plano contratado.
+
+2. RESTRIÇÕES
+   O licenciado não poderá: (a) sublicenciar, vender ou redistribuir o software;
+   (b) modificar, descompilar ou realizar engenharia reversa; (c) remover
+   notificações de direitos autorais.
+
+3. PRIVACIDADE E DADOS
+   O CAUSA opera 100% on-premise. Nenhum dado do escritório é enviado para
+   servidores externos. Todo o armazenamento é local (SQLite) ou em servidor
+   PostgreSQL na rede local do escritório.
+
+4. SUPORTE
+   O suporte técnico está disponível conforme o plano contratado.
+
+5. LIMITAÇÃO DE RESPONSABILIDADE
+   O software é fornecido "como está". Os desenvolvedores não se responsabilizam
+   por danos diretos ou indiretos decorrentes do uso do software.
+
+© 2026 CAUSA. Todos os direitos reservados.
