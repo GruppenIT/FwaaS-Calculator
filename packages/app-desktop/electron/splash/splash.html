@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CAUSA</title>
   <style>
-    /* Fontes locais — Inter e Lora (woff2 no bundle) */
+    /* Fontes locais — Inter e Lora (ttf ou woff2 no bundle) */
     @font-face {
       font-family: 'Lora';
       font-weight: 600;
       font-style: normal;
       font-display: swap;
-      src: url('fonts/Lora-SemiBold.woff2') format('woff2');
+      src: url('fonts/Lora-SemiBold.woff2') format('woff2'),
+           url('fonts/Lora-SemiBold.ttf') format('truetype');
     }
 
     @font-face {
@@ -19,7 +20,8 @@
       font-weight: 400;
       font-style: normal;
       font-display: swap;
-      src: url('fonts/Inter-Regular.woff2') format('woff2');
+      src: url('fonts/Inter-Regular.woff2') format('woff2'),
+           url('fonts/Inter-Regular.ttf') format('truetype');
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
