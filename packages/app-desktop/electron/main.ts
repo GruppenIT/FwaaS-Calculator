@@ -32,8 +32,16 @@ let splashWindow: BrowserWindow | null = null;
 let apiServer: http.Server | null = null;
 
 async function startApi() {
-  const { startServer } = await import('@causa/database');
+  const { startServer, logger } = await import('@causa/database');
   const dataDir = app.getPath('userData');
+
+  logger.info('Electron', 'Iniciando API...', {
+    dataDir,
+    exePath: app.getPath('exe'),
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+  });
 
   // Garantir que o diretório de dados existe
   if (!fs.existsSync(dataDir)) {
@@ -41,7 +49,21 @@ async function startApi() {
   }
 
   apiServer = await startServer({ cwd: dataDir, port: 3456 });
-  console.log(`[CAUSA] API iniciada. Dados em: ${dataDir}`);
+  logger.info('Electron', `API iniciada. Dados em: ${dataDir}`);
+
+  // Capturar erros não tratados no processo para diagnóstico
+  process.on('uncaughtException', (err) => {
+    logger.error('Electron', 'Exceção não capturada', {
+      error: err.message,
+      stack: err.stack,
+    });
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    logger.error('Electron', 'Promise rejection não tratada', {
+      reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : String(reason),
+    });
+  });
 }
 
 function createSplashWindow() {

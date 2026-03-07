@@ -27,10 +27,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (networkErr) {
+    // "Failed to fetch" — o servidor não respondeu (crash, timeout, não iniciado)
+    throw new Error(
+      `Não foi possível conectar ao servidor (${path}). Verifique se o serviço CAUSA está rodando. Detalhes: ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`,
+    );
+  }
 
   if (res.status === 401 && refreshToken) {
     // Try to refresh
@@ -78,7 +86,8 @@ export function checkHealth() {
 }
 
 // === Setup ===
-export function setupSystem(data: {
+// O setup pode demorar (migrations, bcrypt, seed) — retry em caso de falha de rede
+export async function setupSystem(data: {
   topologia: 'solo' | 'escritorio';
   postgresUrl?: string;
   admin: {
@@ -88,11 +97,40 @@ export function setupSystem(data: {
     oabNumero?: string;
     oabSeccional?: string;
   };
-}) {
-  return request<{ ok: boolean; adminId: string }>('/api/setup', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+}): Promise<{ ok: boolean; adminId: string }> {
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY_MS = 2000;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await request<{ ok: boolean; adminId: string }>('/api/setup', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      const isNetworkError =
+        err instanceof Error &&
+        (err.message.includes('Não foi possível conectar') ||
+          err.message.includes('Failed to fetch'));
+      const isAlreadyConfigured =
+        err instanceof Error && err.message.includes('já configurado');
+
+      // Se já foi configurado, significa que o setup anterior deu certo (a resposta é que se perdeu)
+      if (isAlreadyConfigured) {
+        return { ok: true, adminId: '' };
+      }
+
+      // Retry apenas para erros de rede, não erros de negócio
+      if (isNetworkError && attempt < MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  throw new Error('Falha ao configurar sistema após múltiplas tentativas.');
 }
 
 // === Auth ===

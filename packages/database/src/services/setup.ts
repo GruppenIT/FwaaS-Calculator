@@ -24,6 +24,7 @@ import {
 import { SYSTEM_ROLES, DEFAULT_PERMISSIONS, type PermissionKey } from '@causa/shared';
 import { v4 as uuid } from 'uuid';
 import crypto from 'node:crypto';
+import { logger } from '../logger';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '../migrations');
@@ -162,44 +163,95 @@ async function setupPgSeed(
  * e criação do primeiro usuário admin.
  */
 export async function setupDatabase(input: SetupInput): Promise<SetupResult> {
-  // 1. Criar banco e aplicar migrations
-  const db = createDatabase({
+  logger.info('Setup', 'Iniciando setupDatabase', {
     topologia: input.topologia,
-    sqlitePath: input.dbPath ?? 'causa.db',
-    ...(input.postgresUrl ? { postgresUrl: input.postgresUrl } : {}),
+    dbPath: input.dbPath,
+    hasPostgresUrl: !!input.postgresUrl,
+    adminEmail: input.admin.email,
   });
+
+  // 1. Criar banco e aplicar migrations
+  let db: CausaDatabase;
+  try {
+    logger.debug('Setup', 'Criando conexão com banco de dados...');
+    db = createDatabase({
+      topologia: input.topologia,
+      sqlitePath: input.dbPath ?? 'causa.db',
+      ...(input.postgresUrl ? { postgresUrl: input.postgresUrl } : {}),
+    });
+    logger.info('Setup', 'Conexão com banco criada com sucesso');
+  } catch (err) {
+    logger.error('Setup', 'Falha ao criar conexão com banco', {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    throw err;
+  }
 
   // 2. Migrations + seed por topologia
   const roleMap = new Map<string, string>();
   const permissionMap = new Map<PermissionKey, string>();
 
-  if (input.topologia === 'solo') {
-    const sqliteDb = db as SqliteDatabase;
-    migrateSqlite(sqliteDb, { migrationsFolder: MIGRATIONS_DIR });
-    setupSqliteSeed(sqliteDb, roleMap, permissionMap);
-  } else {
-    const pgDb = db as PgDatabase;
-    await migratePg(pgDb, { migrationsFolder: MIGRATIONS_PG_DIR });
-    await setupPgSeed(pgDb, roleMap, permissionMap);
+  try {
+    if (input.topologia === 'solo') {
+      const sqliteDb = db as SqliteDatabase;
+      logger.debug('Setup', 'Executando migrations SQLite...', { folder: MIGRATIONS_DIR });
+      migrateSqlite(sqliteDb, { migrationsFolder: MIGRATIONS_DIR });
+      logger.info('Setup', 'Migrations SQLite executadas com sucesso');
+
+      logger.debug('Setup', 'Executando seed de papéis e permissões (SQLite)...');
+      setupSqliteSeed(sqliteDb, roleMap, permissionMap);
+      logger.info('Setup', 'Seed SQLite concluído', { roles: roleMap.size, permissions: permissionMap.size });
+    } else {
+      const pgDb = db as PgDatabase;
+      logger.debug('Setup', 'Executando migrations PostgreSQL...', { folder: MIGRATIONS_PG_DIR });
+      await migratePg(pgDb, { migrationsFolder: MIGRATIONS_PG_DIR });
+      logger.info('Setup', 'Migrations PostgreSQL executadas com sucesso');
+
+      logger.debug('Setup', 'Executando seed de papéis e permissões (PostgreSQL)...');
+      await setupPgSeed(pgDb, roleMap, permissionMap);
+      logger.info('Setup', 'Seed PostgreSQL concluído', { roles: roleMap.size, permissions: permissionMap.size });
+    }
+  } catch (err) {
+    logger.error('Setup', 'Falha em migrations/seed', {
+      topologia: input.topologia,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    throw err;
   }
 
   // 3. Gerar JWT secret
   const jwtSecret = crypto.randomBytes(64).toString('hex');
+  logger.debug('Setup', 'JWT secret gerado');
 
   // 4. Criar primeiro admin
   const adminRoleId = roleMap.get('admin');
-  if (!adminRoleId) throw new Error('Papel admin não encontrado após seed.');
+  if (!adminRoleId) {
+    logger.error('Setup', 'Papel admin não encontrado após seed', { roleMap: Object.fromEntries(roleMap) });
+    throw new Error('Papel admin não encontrado após seed.');
+  }
 
-  const schema = getSchema(input.topologia);
-  const auth = new AuthService(db, jwtSecret, schema);
-  const adminId = await auth.createUser({
-    nome: input.admin.nome,
-    email: input.admin.email,
-    senha: input.admin.senha,
-    ...(input.admin.oabNumero !== undefined ? { oabNumero: input.admin.oabNumero } : {}),
-    ...(input.admin.oabSeccional !== undefined ? { oabSeccional: input.admin.oabSeccional } : {}),
-    roleId: adminRoleId,
-  });
+  try {
+    logger.debug('Setup', 'Criando usuário admin...');
+    const schema = getSchema(input.topologia);
+    const auth = new AuthService(db, jwtSecret, schema);
+    const adminId = await auth.createUser({
+      nome: input.admin.nome,
+      email: input.admin.email,
+      senha: input.admin.senha,
+      ...(input.admin.oabNumero !== undefined ? { oabNumero: input.admin.oabNumero } : {}),
+      ...(input.admin.oabSeccional !== undefined ? { oabSeccional: input.admin.oabSeccional } : {}),
+      roleId: adminRoleId,
+    });
+    logger.info('Setup', 'Usuário admin criado com sucesso', { adminId });
 
-  return { db, jwtSecret, adminId };
+    return { db, jwtSecret, adminId };
+  } catch (err) {
+    logger.error('Setup', 'Falha ao criar usuário admin', {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    throw err;
+  }
 }

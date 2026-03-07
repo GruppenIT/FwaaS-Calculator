@@ -38,7 +38,9 @@ export function StepConclusao({ data, onBack }: Props) {
       setConfigured();
       navigate('/login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao configurar sistema.');
+      const message = err instanceof Error ? err.message : 'Erro ao configurar sistema.';
+      console.error('[CAUSA Setup]', message);
+      setError(message);
     } finally {
       setLoading(false);
     }
