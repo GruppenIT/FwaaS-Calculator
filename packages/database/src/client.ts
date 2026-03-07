@@ -19,20 +19,15 @@ export type SqliteDatabase = ReturnType<typeof createSqliteDatabase>;
 export type PgDatabase = ReturnType<typeof createPgDatabase>;
 export type CausaDatabase = SqliteDatabase | PgDatabase;
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /** Minimal query-builder interface shared by both SQLite and PG Drizzle instances. */
-export interface QueryResult {
-  where(condition: unknown): QueryResult;
-  leftJoin(table: unknown, condition: unknown): QueryResult;
-  then: Promise<unknown[]>['then'];
-  [Symbol.asyncIterator](): AsyncIterator<unknown>;
-}
-
 export interface DatabaseQueryBuilder {
-  insert(table: unknown): { values(data: unknown): unknown };
-  select(fields?: unknown): { from(table: unknown): QueryResult };
-  update(table: unknown): { set(data: unknown): { where(condition: unknown): unknown } };
-  delete(table: unknown): { where(condition: unknown): unknown };
+  insert(table: any): { values(data: any): any };
+  select(fields?: any): { from(table: any): any };
+  update(table: any): { set(data: any): { where(condition: any): any } };
+  delete(table: any): { where(condition: any): any };
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 function createSqliteDatabase(dbPath: string) {
   const sqlite = new Database(dbPath);
