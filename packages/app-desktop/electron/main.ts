@@ -105,6 +105,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 600,
     show: false,
+    icon: path.join(__dirname, 'icon.ico'),
     title: `CAUSA — ${installConfig.topologia === 'solo' ? 'Solo' : 'Escritório'}`,
     webPreferences: {
       nodeIntegration: false,

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../lib/auth-context';
+import { CausaLogo } from '../ui/causa-logo';
 
 interface NavItem {
   to: string;
@@ -59,13 +60,8 @@ export function Sidebar() {
   return (
     <aside className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
       {/* Logo */}
-      <div className="px-5 py-4 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--color-primary)] flex items-center justify-center">
-          <span className="text-white font-bold text-sm font-[var(--font-brand)]">C</span>
-        </div>
-        <span className="text-lg-causa text-[var(--color-text)] font-[var(--font-brand)]">
-          CAUSA
-        </span>
+      <div className="px-5 py-4">
+        <CausaLogo size={32} />
       </div>
 
       {/* Nav */}
