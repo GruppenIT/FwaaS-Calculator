@@ -1,8 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import type { CausaDatabase } from '../client';
-import { agenda } from '../schema/agenda';
-import { processos } from '../schema/processos';
+import type { CausaSchema } from '../schema-provider';
 
 export interface CreateAgendaInput {
   titulo: string;
@@ -15,12 +14,18 @@ export interface CreateAgendaInput {
 }
 
 export class AgendaService {
-  constructor(private db: CausaDatabase) {}
+  private agenda;
+  private processos;
 
-  criar(input: CreateAgendaInput): string {
+  constructor(private db: CausaDatabase, schema: CausaSchema) {
+    this.agenda = schema.agenda;
+    this.processos = schema.processos;
+  }
+
+  async criar(input: CreateAgendaInput): Promise<string> {
     const id = uuid();
-    this.db
-      .insert(agenda)
+    await (this.db as any)
+      .insert(this.agenda)
       .values({
         id,
         titulo: input.titulo,
@@ -30,65 +35,64 @@ export class AgendaService {
         processoId: input.processoId ?? null,
         participantes: input.participantes ?? null,
         local: input.local ?? null,
-      })
-      .run();
+      });
     return id;
   }
 
-  listar(filtros?: { inicio?: string; fim?: string }) {
+  async listar(filtros?: { inicio?: string; fim?: string }) {
     const conditions = [];
     if (filtros?.inicio) {
-      conditions.push(gte(agenda.dataHoraInicio, filtros.inicio));
+      conditions.push(gte(this.agenda.dataHoraInicio, filtros.inicio));
     }
     if (filtros?.fim) {
-      conditions.push(lte(agenda.dataHoraInicio, filtros.fim));
+      conditions.push(lte(this.agenda.dataHoraInicio, filtros.fim));
     }
 
-    const query = this.db
+    const query = (this.db as any)
       .select({
-        id: agenda.id,
-        titulo: agenda.titulo,
-        tipo: agenda.tipo,
-        dataHoraInicio: agenda.dataHoraInicio,
-        dataHoraFim: agenda.dataHoraFim,
-        processoId: agenda.processoId,
-        numeroCnj: processos.numeroCnj,
-        participantes: agenda.participantes,
-        local: agenda.local,
-        createdAt: agenda.createdAt,
+        id: this.agenda.id,
+        titulo: this.agenda.titulo,
+        tipo: this.agenda.tipo,
+        dataHoraInicio: this.agenda.dataHoraInicio,
+        dataHoraFim: this.agenda.dataHoraFim,
+        processoId: this.agenda.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        participantes: this.agenda.participantes,
+        local: this.agenda.local,
+        createdAt: this.agenda.createdAt,
       })
-      .from(agenda)
-      .leftJoin(processos, eq(agenda.processoId, processos.id));
+      .from(this.agenda)
+      .leftJoin(this.processos, eq(this.agenda.processoId, this.processos.id));
 
     if (conditions.length > 0) {
-      return query.where(and(...conditions)).all();
+      return query.where(and(...conditions));
     }
-    return query.all();
+    return query;
   }
 
-  obterPorId(id: string) {
-    return this.db
+  async obterPorId(id: string) {
+    const [row] = await (this.db as any)
       .select({
-        id: agenda.id,
-        titulo: agenda.titulo,
-        tipo: agenda.tipo,
-        dataHoraInicio: agenda.dataHoraInicio,
-        dataHoraFim: agenda.dataHoraFim,
-        processoId: agenda.processoId,
-        numeroCnj: processos.numeroCnj,
-        participantes: agenda.participantes,
-        local: agenda.local,
-        createdAt: agenda.createdAt,
+        id: this.agenda.id,
+        titulo: this.agenda.titulo,
+        tipo: this.agenda.tipo,
+        dataHoraInicio: this.agenda.dataHoraInicio,
+        dataHoraFim: this.agenda.dataHoraFim,
+        processoId: this.agenda.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        participantes: this.agenda.participantes,
+        local: this.agenda.local,
+        createdAt: this.agenda.createdAt,
       })
-      .from(agenda)
-      .leftJoin(processos, eq(agenda.processoId, processos.id))
-      .where(eq(agenda.id, id))
-      .get();
+      .from(this.agenda)
+      .leftJoin(this.processos, eq(this.agenda.processoId, this.processos.id))
+      .where(eq(this.agenda.id, id));
+    return row ?? undefined;
   }
 
-  atualizar(id: string, input: Partial<CreateAgendaInput>) {
-    this.db
-      .update(agenda)
+  async atualizar(id: string, input: Partial<CreateAgendaInput>) {
+    await (this.db as any)
+      .update(this.agenda)
       .set({
         ...(input.titulo !== undefined ? { titulo: input.titulo } : {}),
         ...(input.tipo !== undefined ? { tipo: input.tipo } : {}),
@@ -98,11 +102,10 @@ export class AgendaService {
         ...(input.participantes !== undefined ? { participantes: input.participantes ?? null } : {}),
         ...(input.local !== undefined ? { local: input.local ?? null } : {}),
       })
-      .where(eq(agenda.id, id))
-      .run();
+      .where(eq(this.agenda.id, id));
   }
 
-  excluir(id: string) {
-    this.db.delete(agenda).where(eq(agenda.id, id)).run();
+  async excluir(id: string) {
+    await (this.db as any).delete(this.agenda).where(eq(this.agenda.id, id));
   }
 }

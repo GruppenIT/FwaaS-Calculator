@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import type { CausaDatabase } from '../client';
-import { auditLog } from '../schema/audit-log';
+import type { CausaSchema } from '../schema-provider';
 
 export interface AuditEntry {
   userId: string;
@@ -11,15 +11,19 @@ export interface AuditEntry {
 }
 
 export class AuditService {
-  constructor(private db: CausaDatabase) {}
+  private auditLog;
+
+  constructor(private db: CausaDatabase, schema: CausaSchema) {
+    this.auditLog = schema.auditLog;
+  }
 
   /**
    * Registra uma ação sensível no audit log.
    * O audit log é append-only — sem UPDATE ou DELETE.
    */
-  registrar(entry: AuditEntry): void {
-    this.db
-      .insert(auditLog)
+  async registrar(entry: AuditEntry): Promise<void> {
+    await (this.db as any)
+      .insert(this.auditLog)
       .values({
         id: uuid(),
         userId: entry.userId,
@@ -27,7 +31,6 @@ export class AuditService {
         recurso: entry.recurso,
         recursoId: entry.recursoId ?? null,
         payloadAnterior: entry.payloadAnterior ?? null,
-      })
-      .run();
+      });
   }
 }

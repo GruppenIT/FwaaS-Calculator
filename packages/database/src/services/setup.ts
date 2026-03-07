@@ -3,6 +3,7 @@ import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDatabase, type CausaDatabase, type SqliteDatabase, type PgDatabase, type Topologia } from '../client';
+import { getSchema } from '../schema-provider';
 import { AuthService } from './auth';
 import { roles as sqliteRoles, permissions as sqlitePermissions, rolePermissions as sqliteRolePermissions } from '../schema/rbac';
 import { roles as pgRoles, permissions as pgPermissions, rolePermissions as pgRolePermissions } from '../schema-pg/rbac';
@@ -170,7 +171,8 @@ export async function setupDatabase(input: SetupInput): Promise<SetupResult> {
   const adminRoleId = roleMap.get('admin');
   if (!adminRoleId) throw new Error('Papel admin não encontrado após seed.');
 
-  const auth = new AuthService(db, jwtSecret);
+  const schema = getSchema(input.topologia);
+  const auth = new AuthService(db, jwtSecret, schema);
   const adminId = await auth.createUser({
     nome: input.admin.nome,
     email: input.admin.email,

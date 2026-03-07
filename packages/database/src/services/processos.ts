@@ -1,18 +1,28 @@
 import { v4 as uuid } from 'uuid';
 import { eq, like, or, and } from 'drizzle-orm';
 import type { CausaDatabase } from '../client';
-import { processos, movimentacoes, prazos } from '../schema/processos';
-import { clientes } from '../schema/clientes';
-import { users } from '../schema/usuarios';
+import type { CausaSchema } from '../schema-provider';
 import type { CreateProcessoInput } from '@causa/shared';
 
 export class ProcessoService {
-  constructor(private db: CausaDatabase) {}
+  private processos;
+  private movimentacoes;
+  private prazos;
+  private clientes;
+  private users;
 
-  criar(input: CreateProcessoInput): string {
+  constructor(private db: CausaDatabase, schema: CausaSchema) {
+    this.processos = schema.processos;
+    this.movimentacoes = schema.movimentacoes;
+    this.prazos = schema.prazos;
+    this.clientes = schema.clientes;
+    this.users = schema.users;
+  }
+
+  async criar(input: CreateProcessoInput): Promise<string> {
     const id = uuid();
-    this.db
-      .insert(processos)
+    await (this.db as any)
+      .insert(this.processos)
       .values({
         id,
         numeroCnj: input.numeroCnj,
@@ -26,101 +36,97 @@ export class ProcessoService {
         valorCausa: input.valorCausa ?? null,
         poloAtivo: input.poloAtivo ?? null,
         poloPassivo: input.poloPassivo ?? null,
-      })
-      .run();
+      });
     return id;
   }
 
-  listar(filtros?: { advogadoId?: string; status?: string }) {
+  async listar(filtros?: { advogadoId?: string; status?: string }) {
     const conditions = [];
     if (filtros?.advogadoId) {
-      conditions.push(eq(processos.advogadoResponsavelId, filtros.advogadoId));
+      conditions.push(eq(this.processos.advogadoResponsavelId, filtros.advogadoId));
     }
     if (filtros?.status) {
-      conditions.push(eq(processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'));
+      conditions.push(eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'));
     }
 
-    const query = this.db
+    const query = (this.db as any)
       .select({
-        id: processos.id,
-        numeroCnj: processos.numeroCnj,
-        clienteNome: clientes.nome,
-        advogadoNome: users.nome,
-        tribunalSigla: processos.tribunalSigla,
-        plataforma: processos.plataforma,
-        area: processos.area,
-        fase: processos.fase,
-        status: processos.status,
-        valorCausa: processos.valorCausa,
-        ultimoSyncAt: processos.ultimoSyncAt,
-        createdAt: processos.createdAt,
+        id: this.processos.id,
+        numeroCnj: this.processos.numeroCnj,
+        clienteNome: this.clientes.nome,
+        advogadoNome: this.users.nome,
+        tribunalSigla: this.processos.tribunalSigla,
+        plataforma: this.processos.plataforma,
+        area: this.processos.area,
+        fase: this.processos.fase,
+        status: this.processos.status,
+        valorCausa: this.processos.valorCausa,
+        ultimoSyncAt: this.processos.ultimoSyncAt,
+        createdAt: this.processos.createdAt,
       })
-      .from(processos)
-      .leftJoin(clientes, eq(processos.clienteId, clientes.id))
-      .leftJoin(users, eq(processos.advogadoResponsavelId, users.id));
+      .from(this.processos)
+      .leftJoin(this.clientes, eq(this.processos.clienteId, this.clientes.id))
+      .leftJoin(this.users, eq(this.processos.advogadoResponsavelId, this.users.id));
 
     if (conditions.length > 0) {
-      return query.where(and(...conditions)).all();
+      return query.where(and(...conditions));
     }
-    return query.all();
+    return query;
   }
 
-  buscar(termo: string) {
+  async buscar(termo: string) {
     const pattern = `%${termo}%`;
-    return this.db
+    return (this.db as any)
       .select({
-        id: processos.id,
-        numeroCnj: processos.numeroCnj,
-        clienteNome: clientes.nome,
-        advogadoNome: users.nome,
-        tribunalSigla: processos.tribunalSigla,
-        plataforma: processos.plataforma,
-        area: processos.area,
-        fase: processos.fase,
-        status: processos.status,
-        valorCausa: processos.valorCausa,
-        ultimoSyncAt: processos.ultimoSyncAt,
-        createdAt: processos.createdAt,
+        id: this.processos.id,
+        numeroCnj: this.processos.numeroCnj,
+        clienteNome: this.clientes.nome,
+        advogadoNome: this.users.nome,
+        tribunalSigla: this.processos.tribunalSigla,
+        plataforma: this.processos.plataforma,
+        area: this.processos.area,
+        fase: this.processos.fase,
+        status: this.processos.status,
+        valorCausa: this.processos.valorCausa,
+        ultimoSyncAt: this.processos.ultimoSyncAt,
+        createdAt: this.processos.createdAt,
       })
-      .from(processos)
-      .leftJoin(clientes, eq(processos.clienteId, clientes.id))
-      .leftJoin(users, eq(processos.advogadoResponsavelId, users.id))
+      .from(this.processos)
+      .leftJoin(this.clientes, eq(this.processos.clienteId, this.clientes.id))
+      .leftJoin(this.users, eq(this.processos.advogadoResponsavelId, this.users.id))
       .where(
         or(
-          like(processos.numeroCnj, pattern),
-          like(clientes.nome, pattern),
+          like(this.processos.numeroCnj, pattern),
+          like(this.clientes.nome, pattern),
         ),
-      )
-      .all();
+      );
   }
 
-  obterPorId(id: string) {
-    return this.db
+  async obterPorId(id: string) {
+    const [row] = await (this.db as any)
       .select()
-      .from(processos)
-      .where(eq(processos.id, id))
-      .get();
+      .from(this.processos)
+      .where(eq(this.processos.id, id));
+    return row ?? undefined;
   }
 
-  listarMovimentacoes(processoId: string) {
-    return this.db
+  async listarMovimentacoes(processoId: string) {
+    return (this.db as any)
       .select()
-      .from(movimentacoes)
-      .where(eq(movimentacoes.processoId, processoId))
-      .all();
+      .from(this.movimentacoes)
+      .where(eq(this.movimentacoes.processoId, processoId));
   }
 
-  listarPrazos(processoId: string) {
-    return this.db
+  async listarPrazos(processoId: string) {
+    return (this.db as any)
       .select()
-      .from(prazos)
-      .where(eq(prazos.processoId, processoId))
-      .all();
+      .from(this.prazos)
+      .where(eq(this.prazos.processoId, processoId));
   }
 
-  atualizar(id: string, input: Partial<CreateProcessoInput> & { status?: 'ativo' | 'arquivado' | 'encerrado' }) {
-    this.db
-      .update(processos)
+  async atualizar(id: string, input: Partial<CreateProcessoInput> & { status?: 'ativo' | 'arquivado' | 'encerrado' }) {
+    await (this.db as any)
+      .update(this.processos)
       .set({
         ...(input.numeroCnj !== undefined ? { numeroCnj: input.numeroCnj } : {}),
         ...(input.clienteId !== undefined ? { clienteId: input.clienteId } : {}),
@@ -134,11 +140,10 @@ export class ProcessoService {
         ...(input.poloAtivo !== undefined ? { poloAtivo: input.poloAtivo ?? null } : {}),
         ...(input.poloPassivo !== undefined ? { poloPassivo: input.poloPassivo ?? null } : {}),
       })
-      .where(eq(processos.id, id))
-      .run();
+      .where(eq(this.processos.id, id));
   }
 
-  excluir(id: string) {
-    this.db.delete(processos).where(eq(processos.id, id)).run();
+  async excluir(id: string) {
+    await (this.db as any).delete(this.processos).where(eq(this.processos.id, id));
   }
 }

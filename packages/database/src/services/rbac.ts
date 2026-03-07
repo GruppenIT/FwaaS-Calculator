@@ -16,32 +16,32 @@ export class RbacService {
    * Verifica se o usuário tem a permissão especificada.
    * Resultado é cacheado por sessão para evitar queries repetidas.
    */
-  checkPermission(user: AuthenticatedUser, permission: PermissionKey): boolean {
-    const perms = this.getUserPermissionSet(user.id);
+  async checkPermission(user: AuthenticatedUser, permission: PermissionKey): Promise<boolean> {
+    const perms = await this.getUserPermissionSet(user.id);
     return perms.has(permission);
   }
 
   /**
    * Verifica se o usuário tem TODAS as permissões listadas.
    */
-  checkAllPermissions(user: AuthenticatedUser, requiredPermissions: PermissionKey[]): boolean {
-    const perms = this.getUserPermissionSet(user.id);
+  async checkAllPermissions(user: AuthenticatedUser, requiredPermissions: PermissionKey[]): Promise<boolean> {
+    const perms = await this.getUserPermissionSet(user.id);
     return requiredPermissions.every((p) => perms.has(p));
   }
 
   /**
    * Verifica se o usuário tem PELO MENOS UMA das permissões listadas.
    */
-  checkAnyPermission(user: AuthenticatedUser, requiredPermissions: PermissionKey[]): boolean {
-    const perms = this.getUserPermissionSet(user.id);
+  async checkAnyPermission(user: AuthenticatedUser, requiredPermissions: PermissionKey[]): Promise<boolean> {
+    const perms = await this.getUserPermissionSet(user.id);
     return requiredPermissions.some((p) => perms.has(p));
   }
 
   /**
    * Retorna todas as permissões do usuário como array.
    */
-  listPermissions(user: AuthenticatedUser): string[] {
-    return Array.from(this.getUserPermissionSet(user.id));
+  async listPermissions(user: AuthenticatedUser): Promise<string[]> {
+    return Array.from(await this.getUserPermissionSet(user.id));
   }
 
   /**
@@ -55,11 +55,11 @@ export class RbacService {
     }
   }
 
-  private getUserPermissionSet(userId: string): Set<string> {
+  private async getUserPermissionSet(userId: string): Promise<Set<string>> {
     const cached = this.permissionCache.get(userId);
     if (cached) return cached;
 
-    const perms = new Set(this.authService.getUserPermissions(userId));
+    const perms = new Set(await this.authService.getUserPermissions(userId));
     this.permissionCache.set(userId, perms);
     return perms;
   }

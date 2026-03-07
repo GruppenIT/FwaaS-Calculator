@@ -10,6 +10,7 @@ import { AgendaService } from './agenda';
 import { PrazoService } from './prazos';
 import { FinanceiroService } from './financeiro';
 import type { CausaDatabase } from '../client';
+import { getSchema } from '../schema-provider';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_DB = path.resolve(__dirname, '../../test-integration.db');
@@ -25,6 +26,7 @@ describe('Integração: setup → login → CRUD', () => {
   let prazoService: PrazoService;
   let financeiroService: FinanceiroService;
   let accessToken: string;
+  const schema = getSchema('solo');
 
   beforeAll(async () => {
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
@@ -45,12 +47,12 @@ describe('Integração: setup → login → CRUD', () => {
     db = result.db;
     jwtSecret = result.jwtSecret;
     adminId = result.adminId;
-    auth = new AuthService(db, jwtSecret);
-    clienteService = new ClienteService(db);
-    processoService = new ProcessoService(db);
-    agendaService = new AgendaService(db);
-    prazoService = new PrazoService(db);
-    financeiroService = new FinanceiroService(db);
+    auth = new AuthService(db, jwtSecret, schema);
+    clienteService = new ClienteService(db, schema);
+    processoService = new ProcessoService(db, schema);
+    agendaService = new AgendaService(db, schema);
+    prazoService = new PrazoService(db, schema);
+    financeiroService = new FinanceiroService(db, schema);
   });
 
   afterAll(() => {
@@ -78,8 +80,8 @@ describe('Integração: setup → login → CRUD', () => {
     expect(payload.role).toBe('admin');
   });
 
-  it('admin tem todas as permissões', () => {
-    const perms = auth.getUserPermissions(adminId);
+  it('admin tem todas as permissões', async () => {
+    const perms = await auth.getUserPermissions(adminId);
     expect(perms.length).toBeGreaterThan(0);
     expect(perms).toContain('processos:criar');
     expect(perms).toContain('financeiro:ler_todos');
@@ -88,9 +90,8 @@ describe('Integração: setup → login → CRUD', () => {
 
   it('cria um segundo usuário (advogado)', async () => {
     // Precisamos do roleId do advogado
-    const { roles } = await import('../schema/rbac');
     const { eq } = await import('drizzle-orm');
-    const advRole = db.select().from(roles).where(eq(roles.nome, 'advogado')).get();
+    const [advRole] = await (db as any).select().from(schema.roles).where(eq(schema.roles.nome, 'advogado'));
     expect(advRole).toBeDefined();
 
     const userId = await auth.createUser({
@@ -113,8 +114,8 @@ describe('Integração: setup → login → CRUD', () => {
   // --- CRUD Clientes ---
   let clienteId: string;
 
-  it('cria cliente PF', () => {
-    clienteId = clienteService.criar(
+  it('cria cliente PF', async () => {
+    clienteId = await clienteService.criar(
       {
         tipo: 'PF',
         nome: 'João da Silva',
@@ -126,34 +127,34 @@ describe('Integração: setup → login → CRUD', () => {
     expect(clienteId).toBeDefined();
   });
 
-  it('lista clientes', () => {
-    const lista = clienteService.listar();
+  it('lista clientes', async () => {
+    const lista = await clienteService.listar();
     expect(lista.length).toBe(1);
     expect(lista[0]!.nome).toBe('João da Silva');
   });
 
-  it('busca cliente por nome', () => {
-    const resultados = clienteService.buscar('João');
+  it('busca cliente por nome', async () => {
+    const resultados = await clienteService.buscar('João');
     expect(resultados.length).toBe(1);
   });
 
-  it('obtém cliente por ID', () => {
-    const cliente = clienteService.obterPorId(clienteId);
+  it('obtém cliente por ID', async () => {
+    const cliente = await clienteService.obterPorId(clienteId);
     expect(cliente).toBeDefined();
     expect(cliente!.email).toBe('joao@email.com');
   });
 
-  it('atualiza cliente', () => {
-    clienteService.atualizar(clienteId, { telefone: '11999990000' });
-    const updated = clienteService.obterPorId(clienteId);
+  it('atualiza cliente', async () => {
+    await clienteService.atualizar(clienteId, { telefone: '11999990000' });
+    const updated = await clienteService.obterPorId(clienteId);
     expect(updated!.telefone).toBe('11999990000');
   });
 
   // --- CRUD Processos ---
   let processoId: string;
 
-  it('cria processo', () => {
-    processoId = processoService.criar({
+  it('cria processo', async () => {
+    processoId = await processoService.criar({
       numeroCnj: '0001234-56.2024.8.26.0100',
       clienteId,
       advogadoResponsavelId: adminId,
@@ -166,28 +167,28 @@ describe('Integração: setup → login → CRUD', () => {
     expect(processoId).toBeDefined();
   });
 
-  it('lista processos com JOINs', () => {
-    const lista = processoService.listar();
+  it('lista processos com JOINs', async () => {
+    const lista = await processoService.listar();
     expect(lista.length).toBe(1);
     expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
     expect(lista[0]!.clienteNome).toBe('João da Silva');
     expect(lista[0]!.advogadoNome).toBe('Admin Teste');
   });
 
-  it('busca processo por CNJ', () => {
-    const resultados = processoService.buscar('0001234');
+  it('busca processo por CNJ', async () => {
+    const resultados = await processoService.buscar('0001234');
     expect(resultados.length).toBe(1);
   });
 
-  it('obtém processo por ID', () => {
-    const processo = processoService.obterPorId(processoId);
+  it('obtém processo por ID', async () => {
+    const processo = await processoService.obterPorId(processoId);
     expect(processo).toBeDefined();
     expect(processo!.valorCausa).toBe(50000);
   });
 
-  it('atualiza processo (fase e status)', () => {
-    processoService.atualizar(processoId, { fase: 'recursal', status: 'ativo', valorCausa: 75000 });
-    const updated = processoService.obterPorId(processoId);
+  it('atualiza processo (fase e status)', async () => {
+    await processoService.atualizar(processoId, { fase: 'recursal', status: 'ativo', valorCausa: 75000 });
+    const updated = await processoService.obterPorId(processoId);
     expect(updated!.fase).toBe('recursal');
     expect(updated!.valorCausa).toBe(75000);
   });
@@ -195,8 +196,8 @@ describe('Integração: setup → login → CRUD', () => {
   // --- CRUD Agenda ---
   let eventoId: string;
 
-  it('cria evento na agenda', () => {
-    eventoId = agendaService.criar({
+  it('cria evento na agenda', async () => {
+    eventoId = await agendaService.criar({
       titulo: 'Audiência de conciliação',
       tipo: 'audiencia',
       dataHoraInicio: '2026-04-15T14:00:00',
@@ -207,30 +208,30 @@ describe('Integração: setup → login → CRUD', () => {
     expect(eventoId).toBeDefined();
   });
 
-  it('lista eventos da agenda', () => {
-    const lista = agendaService.listar();
+  it('lista eventos da agenda', async () => {
+    const lista = await agendaService.listar();
     expect(lista.length).toBe(1);
     expect(lista[0]!.titulo).toBe('Audiência de conciliação');
     expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
   });
 
-  it('filtra agenda por intervalo de datas', () => {
-    const lista = agendaService.listar({ inicio: '2026-04-01', fim: '2026-04-30' });
+  it('filtra agenda por intervalo de datas', async () => {
+    const lista = await agendaService.listar({ inicio: '2026-04-01', fim: '2026-04-30' });
     expect(lista.length).toBe(1);
 
-    const vazio = agendaService.listar({ inicio: '2025-01-01', fim: '2025-01-31' });
+    const vazio = await agendaService.listar({ inicio: '2025-01-01', fim: '2025-01-31' });
     expect(vazio.length).toBe(0);
   });
 
-  it('atualiza evento da agenda', () => {
-    agendaService.atualizar(eventoId, { titulo: 'Audiência de instrução', local: 'Fórum Central - Sala 10' });
-    const updated = agendaService.obterPorId(eventoId);
+  it('atualiza evento da agenda', async () => {
+    await agendaService.atualizar(eventoId, { titulo: 'Audiência de instrução', local: 'Fórum Central - Sala 10' });
+    const updated = await agendaService.obterPorId(eventoId);
     expect(updated!.titulo).toBe('Audiência de instrução');
     expect(updated!.local).toBe('Fórum Central - Sala 10');
   });
 
-  it('obtém evento por ID', () => {
-    const evento = agendaService.obterPorId(eventoId);
+  it('obtém evento por ID', async () => {
+    const evento = await agendaService.obterPorId(eventoId);
     expect(evento).toBeDefined();
     expect(evento!.tipo).toBe('audiencia');
   });
@@ -238,8 +239,8 @@ describe('Integração: setup → login → CRUD', () => {
   // --- CRUD Prazos ---
   let prazoId: string;
 
-  it('cria prazo', () => {
-    prazoId = prazoService.criar({
+  it('cria prazo', async () => {
+    prazoId = await prazoService.criar({
       processoId,
       descricao: 'Contestação',
       dataFatal: '2026-05-01',
@@ -249,41 +250,41 @@ describe('Integração: setup → login → CRUD', () => {
     expect(prazoId).toBeDefined();
   });
 
-  it('lista prazos', () => {
-    const lista = prazoService.listar();
+  it('lista prazos', async () => {
+    const lista = await prazoService.listar();
     expect(lista.length).toBe(1);
     expect(lista[0]!.descricao).toBe('Contestação');
     expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
     expect(lista[0]!.responsavelNome).toBe('Admin Teste');
   });
 
-  it('filtra prazos por status', () => {
-    const pendentes = prazoService.listar({ status: 'pendente' });
+  it('filtra prazos por status', async () => {
+    const pendentes = await prazoService.listar({ status: 'pendente' });
     expect(pendentes.length).toBe(1);
 
-    const cumpridos = prazoService.listar({ status: 'cumprido' });
+    const cumpridos = await prazoService.listar({ status: 'cumprido' });
     expect(cumpridos.length).toBe(0);
   });
 
-  it('filtra prazos por responsável', () => {
-    const lista = prazoService.listar({ responsavelId: adminId });
+  it('filtra prazos por responsável', async () => {
+    const lista = await prazoService.listar({ responsavelId: adminId });
     expect(lista.length).toBe(1);
 
-    const vazio = prazoService.listar({ responsavelId: 'id-inexistente' });
+    const vazio = await prazoService.listar({ responsavelId: 'id-inexistente' });
     expect(vazio.length).toBe(0);
   });
 
-  it('atualiza status do prazo', () => {
-    prazoService.atualizarStatus(prazoId, 'cumprido');
-    const updated = prazoService.obterPorId(prazoId);
+  it('atualiza status do prazo', async () => {
+    await prazoService.atualizarStatus(prazoId, 'cumprido');
+    const updated = await prazoService.obterPorId(prazoId);
     expect(updated!.status).toBe('cumprido');
   });
 
   // --- CRUD Honorários ---
   let honorarioId: string;
 
-  it('cria honorário', () => {
-    honorarioId = financeiroService.criar({
+  it('cria honorário', async () => {
+    honorarioId = await financeiroService.criar({
       processoId,
       clienteId,
       tipo: 'fixo',
@@ -293,8 +294,8 @@ describe('Integração: setup → login → CRUD', () => {
     expect(honorarioId).toBeDefined();
   });
 
-  it('lista honorários com JOINs', () => {
-    const lista = financeiroService.listar();
+  it('lista honorários com JOINs', async () => {
+    const lista = await financeiroService.listar();
     expect(lista.length).toBe(1);
     expect(lista[0]!.valor).toBe(5000);
     expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
@@ -302,60 +303,60 @@ describe('Integração: setup → login → CRUD', () => {
     expect(lista[0]!.status).toBe('pendente');
   });
 
-  it('obtém honorário por ID', () => {
-    const h = financeiroService.obterPorId(honorarioId);
+  it('obtém honorário por ID', async () => {
+    const h = await financeiroService.obterPorId(honorarioId);
     expect(h).toBeDefined();
     expect(h!.tipo).toBe('fixo');
     expect(h!.vencimento).toBe('2026-04-30');
   });
 
-  it('atualiza status do honorário', () => {
-    financeiroService.atualizarStatus(honorarioId, 'recebido');
-    const updated = financeiroService.obterPorId(honorarioId);
+  it('atualiza status do honorário', async () => {
+    await financeiroService.atualizarStatus(honorarioId, 'recebido');
+    const updated = await financeiroService.obterPorId(honorarioId);
     expect(updated!.status).toBe('recebido');
   });
 
-  it('cria honorário de êxito com percentual', () => {
-    const id = financeiroService.criar({
+  it('cria honorário de êxito com percentual', async () => {
+    const id = await financeiroService.criar({
       processoId,
       tipo: 'exito',
       valor: 100000,
       percentualExito: 30,
     });
-    const h = financeiroService.obterPorId(id);
+    const h = await financeiroService.obterPorId(id);
     expect(h!.tipo).toBe('exito');
     expect(h!.percentualExito).toBe(30);
-    financeiroService.excluir(id);
+    await financeiroService.excluir(id);
   });
 
   // --- Cleanup ---
-  it('exclui honorário', () => {
-    financeiroService.excluir(honorarioId);
-    const lista = financeiroService.listar();
+  it('exclui honorário', async () => {
+    await financeiroService.excluir(honorarioId);
+    const lista = await financeiroService.listar();
     expect(lista.length).toBe(0);
   });
 
-  it('exclui prazo', () => {
-    prazoService.excluir(prazoId);
-    const lista = prazoService.listar();
+  it('exclui prazo', async () => {
+    await prazoService.excluir(prazoId);
+    const lista = await prazoService.listar();
     expect(lista.length).toBe(0);
   });
 
-  it('exclui evento da agenda', () => {
-    agendaService.excluir(eventoId);
-    const lista = agendaService.listar();
+  it('exclui evento da agenda', async () => {
+    await agendaService.excluir(eventoId);
+    const lista = await agendaService.listar();
     expect(lista.length).toBe(0);
   });
 
-  it('exclui processo', () => {
-    processoService.excluir(processoId);
-    const lista = processoService.listar();
+  it('exclui processo', async () => {
+    await processoService.excluir(processoId);
+    const lista = await processoService.listar();
     expect(lista.length).toBe(0);
   });
 
-  it('exclui cliente', () => {
-    clienteService.excluir(clienteId);
-    const lista = clienteService.listar();
+  it('exclui cliente', async () => {
+    await clienteService.excluir(clienteId);
+    const lista = await clienteService.listar();
     expect(lista.length).toBe(0);
   });
 });

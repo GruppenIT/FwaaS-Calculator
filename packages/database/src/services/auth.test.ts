@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDatabase } from '../client';
+import { getSchema } from '../schema-provider';
 import { AuthService } from './auth';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { roles } from '../schema/rbac';
 import { v4 as uuid } from 'uuid';
 import fs from 'node:fs';
 
@@ -17,20 +17,20 @@ describe('AuthService', () => {
   let db: ReturnType<typeof createDatabase>;
   let auth: AuthService;
   let adminRoleId: string;
+  const schema = getSchema('solo');
 
-  beforeEach(() => {
+  beforeEach(async () => {
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 
     db = createDatabase({ topologia: 'solo', sqlitePath: TEST_DB });
-    migrate(db, { migrationsFolder: MIGRATIONS_DIR });
+    migrate(db as any, { migrationsFolder: MIGRATIONS_DIR });
 
     // Criar papel admin para testes
     adminRoleId = uuid();
-    db.insert(roles)
-      .values({ id: adminRoleId, nome: 'admin', descricao: 'Admin', isSystemRole: true })
-      .run();
+    await (db as any).insert(schema.roles)
+      .values({ id: adminRoleId, nome: 'admin', descricao: 'Admin', isSystemRole: true });
 
-    auth = new AuthService(db, JWT_SECRET);
+    auth = new AuthService(db, JWT_SECRET, schema);
   });
 
   afterEach(() => {
@@ -143,7 +143,7 @@ describe('AuthService', () => {
       });
 
       const tokens = await auth.login('michele@causa.app', 'Jur1dico!');
-      const newTokens = auth.refreshAccessToken(tokens.refreshToken);
+      const newTokens = await auth.refreshAccessToken(tokens.refreshToken);
 
       expect(newTokens.accessToken).toBeDefined();
       expect(newTokens.accessToken).not.toBe(tokens.accessToken);
@@ -158,7 +158,7 @@ describe('AuthService', () => {
       });
 
       const tokens = await auth.login('michele@causa.app', 'Jur1dico!');
-      expect(() => auth.refreshAccessToken(tokens.accessToken)).toThrow(
+      await expect(auth.refreshAccessToken(tokens.accessToken)).rejects.toThrow(
         'não é um refresh token',
       );
     });

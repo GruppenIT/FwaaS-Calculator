@@ -3,8 +3,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
 import { eq } from 'drizzle-orm';
 import type { CausaDatabase } from '../client';
-import { users } from '../schema/usuarios';
-import { roles, rolePermissions, permissions } from '../schema/rbac';
+import type { CausaSchema } from '../schema-provider';
 
 const BCRYPT_COST = 12;
 const JWT_EXPIRY = '8h';
@@ -33,10 +32,21 @@ export interface CreateUserInput {
 }
 
 export class AuthService {
+  private users;
+  private roles;
+  private rolePermissions;
+  private permissions;
+
   constructor(
     private db: CausaDatabase,
     private jwtSecret: string,
-  ) {}
+    schema: CausaSchema,
+  ) {
+    this.users = schema.users;
+    this.roles = schema.roles;
+    this.rolePermissions = schema.rolePermissions;
+    this.permissions = schema.permissions;
+  }
 
   async hashPassword(senha: string): Promise<string> {
     return bcrypt.hash(senha, BCRYPT_COST);
@@ -47,7 +57,7 @@ export class AuthService {
   }
 
   async createUser(input: CreateUserInput): Promise<string> {
-    const existing = this.db.select().from(users).where(eq(users.email, input.email)).get();
+    const [existing] = await (this.db as any).select().from(this.users).where(eq(this.users.email, input.email));
     if (existing) {
       throw new Error('Email já cadastrado.');
     }
@@ -55,8 +65,8 @@ export class AuthService {
     const id = uuid();
     const senhaHash = await this.hashPassword(input.senha);
 
-    this.db
-      .insert(users)
+    await (this.db as any)
+      .insert(this.users)
       .values({
         id,
         nome: input.nome,
@@ -66,14 +76,13 @@ export class AuthService {
         oabSeccional: input.oabSeccional ?? null,
         roleId: input.roleId,
         ativo: true,
-      })
-      .run();
+      });
 
     return id;
   }
 
   async login(email: string, senha: string): Promise<AuthTokens> {
-    const user = this.db.select().from(users).where(eq(users.email, email)).get();
+    const [user] = await (this.db as any).select().from(this.users).where(eq(this.users.email, email));
 
     if (!user) {
       throw new Error('Credenciais inválidas.');
@@ -89,7 +98,7 @@ export class AuthService {
     }
 
     // Buscar nome do papel
-    const role = this.db.select().from(roles).where(eq(roles.id, user.roleId)).get();
+    const [role] = await (this.db as any).select().from(this.roles).where(eq(this.roles.id, user.roleId));
 
     return this.generateTokens(user.id, user.email, role?.nome ?? 'unknown');
   }
@@ -114,7 +123,7 @@ export class AuthService {
     }
   }
 
-  refreshAccessToken(refreshToken: string): AuthTokens {
+  async refreshAccessToken(refreshToken: string): Promise<AuthTokens> {
     let payload: { sub: string; type?: string };
     try {
       payload = jwt.verify(refreshToken, this.jwtSecret) as { sub: string; type?: string };
@@ -126,29 +135,28 @@ export class AuthService {
       throw new Error('Token fornecido não é um refresh token.');
     }
 
-    const user = this.db.select().from(users).where(eq(users.id, payload.sub)).get();
+    const [user] = await (this.db as any).select().from(this.users).where(eq(this.users.id, payload.sub));
     if (!user || !user.ativo) {
       throw new Error('Usuário não encontrado ou desativado.');
     }
 
-    const role = this.db.select().from(roles).where(eq(roles.id, user.roleId)).get();
+    const [role] = await (this.db as any).select().from(this.roles).where(eq(this.roles.id, user.roleId));
     return this.generateTokens(user.id, user.email, role?.nome ?? 'unknown');
   }
 
-  getUserPermissions(userId: string): string[] {
-    const user = this.db.select().from(users).where(eq(users.id, userId)).get();
+  async getUserPermissions(userId: string): Promise<string[]> {
+    const [user] = await (this.db as any).select().from(this.users).where(eq(this.users.id, userId));
     if (!user) return [];
 
-    const results = this.db
+    const results = await (this.db as any)
       .select({
-        recurso: permissions.recurso,
-        acao: permissions.acao,
+        recurso: this.permissions.recurso,
+        acao: this.permissions.acao,
       })
-      .from(rolePermissions)
-      .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(rolePermissions.roleId, user.roleId))
-      .all();
+      .from(this.rolePermissions)
+      .innerJoin(this.permissions, eq(this.rolePermissions.permissionId, this.permissions.id))
+      .where(eq(this.rolePermissions.roleId, user.roleId));
 
-    return results.map((r) => `${r.recurso}:${r.acao}`);
+    return results.map((r: { recurso: string; acao: string }) => `${r.recurso}:${r.acao}`);
   }
 }

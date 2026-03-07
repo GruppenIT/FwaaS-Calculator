@@ -1,16 +1,20 @@
 import { v4 as uuid } from 'uuid';
 import { eq, like, or } from 'drizzle-orm';
 import type { CausaDatabase } from '../client';
-import { clientes } from '../schema/clientes';
+import type { CausaSchema } from '../schema-provider';
 import type { CreateClienteInput } from '@causa/shared';
 
 export class ClienteService {
-  constructor(private db: CausaDatabase) {}
+  private clientes;
 
-  criar(input: CreateClienteInput, userId: string): string {
+  constructor(private db: CausaDatabase, schema: CausaSchema) {
+    this.clientes = schema.clientes;
+  }
+
+  async criar(input: CreateClienteInput, userId: string): Promise<string> {
     const id = uuid();
-    this.db
-      .insert(clientes)
+    await (this.db as any)
+      .insert(this.clientes)
       .values({
         id,
         tipo: input.tipo,
@@ -20,37 +24,36 @@ export class ClienteService {
         telefone: input.telefone ?? null,
         endereco: input.endereco ?? null,
         createdBy: userId,
-      })
-      .run();
+      });
     return id;
   }
 
-  listar() {
-    return this.db.select().from(clientes).all();
+  async listar() {
+    return (this.db as any).select().from(this.clientes);
   }
 
-  buscar(termo: string) {
+  async buscar(termo: string) {
     const pattern = `%${termo}%`;
-    return this.db
+    return (this.db as any)
       .select()
-      .from(clientes)
+      .from(this.clientes)
       .where(
         or(
-          like(clientes.nome, pattern),
-          like(clientes.cpfCnpj, pattern),
-          like(clientes.email, pattern),
+          like(this.clientes.nome, pattern),
+          like(this.clientes.cpfCnpj, pattern),
+          like(this.clientes.email, pattern),
         ),
-      )
-      .all();
+      );
   }
 
-  obterPorId(id: string) {
-    return this.db.select().from(clientes).where(eq(clientes.id, id)).get();
+  async obterPorId(id: string) {
+    const [row] = await (this.db as any).select().from(this.clientes).where(eq(this.clientes.id, id));
+    return row ?? undefined;
   }
 
-  atualizar(id: string, input: Partial<CreateClienteInput>) {
-    this.db
-      .update(clientes)
+  async atualizar(id: string, input: Partial<CreateClienteInput>) {
+    await (this.db as any)
+      .update(this.clientes)
       .set({
         ...(input.nome !== undefined ? { nome: input.nome } : {}),
         ...(input.tipo !== undefined ? { tipo: input.tipo } : {}),
@@ -58,11 +61,10 @@ export class ClienteService {
         ...(input.email !== undefined ? { email: input.email || null } : {}),
         ...(input.telefone !== undefined ? { telefone: input.telefone ?? null } : {}),
       })
-      .where(eq(clientes.id, id))
-      .run();
+      .where(eq(this.clientes.id, id));
   }
 
-  excluir(id: string) {
-    this.db.delete(clientes).where(eq(clientes.id, id)).run();
+  async excluir(id: string) {
+    await (this.db as any).delete(this.clientes).where(eq(this.clientes.id, id));
   }
 }

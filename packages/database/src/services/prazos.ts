@@ -1,8 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import { eq, and } from 'drizzle-orm';
 import type { CausaDatabase } from '../client';
-import { prazos, processos } from '../schema/processos';
-import { users } from '../schema/usuarios';
+import type { CausaSchema } from '../schema-provider';
 
 export interface CreatePrazoInput {
   processoId: string;
@@ -14,12 +13,20 @@ export interface CreatePrazoInput {
 }
 
 export class PrazoService {
-  constructor(private db: CausaDatabase) {}
+  private prazos;
+  private processos;
+  private users;
 
-  criar(input: CreatePrazoInput): string {
+  constructor(private db: CausaDatabase, schema: CausaSchema) {
+    this.prazos = schema.prazos;
+    this.processos = schema.processos;
+    this.users = schema.users;
+  }
+
+  async criar(input: CreatePrazoInput): Promise<string> {
     const id = uuid();
-    this.db
-      .insert(prazos)
+    await (this.db as any)
+      .insert(this.prazos)
       .values({
         id,
         processoId: input.processoId,
@@ -30,73 +37,71 @@ export class PrazoService {
         responsavelId: input.responsavelId,
         status: 'pendente',
         alertasEnviados: { dias: [7, 3, 1], enviados: [] },
-      })
-      .run();
+      });
     return id;
   }
 
-  listar(filtros?: { status?: string; responsavelId?: string }) {
+  async listar(filtros?: { status?: string; responsavelId?: string }) {
     const conditions = [];
     if (filtros?.status) {
-      conditions.push(eq(prazos.status, filtros.status as 'pendente' | 'cumprido' | 'perdido'));
+      conditions.push(eq(this.prazos.status, filtros.status as 'pendente' | 'cumprido' | 'perdido'));
     }
     if (filtros?.responsavelId) {
-      conditions.push(eq(prazos.responsavelId, filtros.responsavelId));
+      conditions.push(eq(this.prazos.responsavelId, filtros.responsavelId));
     }
 
-    const query = this.db
+    const query = (this.db as any)
       .select({
-        id: prazos.id,
-        processoId: prazos.processoId,
-        numeroCnj: processos.numeroCnj,
-        descricao: prazos.descricao,
-        dataFatal: prazos.dataFatal,
-        tipoPrazo: prazos.tipoPrazo,
-        status: prazos.status,
-        responsavelId: prazos.responsavelId,
-        responsavelNome: users.nome,
-        alertasEnviados: prazos.alertasEnviados,
+        id: this.prazos.id,
+        processoId: this.prazos.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        descricao: this.prazos.descricao,
+        dataFatal: this.prazos.dataFatal,
+        tipoPrazo: this.prazos.tipoPrazo,
+        status: this.prazos.status,
+        responsavelId: this.prazos.responsavelId,
+        responsavelNome: this.users.nome,
+        alertasEnviados: this.prazos.alertasEnviados,
       })
-      .from(prazos)
-      .leftJoin(processos, eq(prazos.processoId, processos.id))
-      .leftJoin(users, eq(prazos.responsavelId, users.id));
+      .from(this.prazos)
+      .leftJoin(this.processos, eq(this.prazos.processoId, this.processos.id))
+      .leftJoin(this.users, eq(this.prazos.responsavelId, this.users.id));
 
     if (conditions.length > 0) {
-      return query.where(and(...conditions)).all();
+      return query.where(and(...conditions));
     }
-    return query.all();
+    return query;
   }
 
-  obterPorId(id: string) {
-    return this.db
+  async obterPorId(id: string) {
+    const [row] = await (this.db as any)
       .select({
-        id: prazos.id,
-        processoId: prazos.processoId,
-        numeroCnj: processos.numeroCnj,
-        descricao: prazos.descricao,
-        dataFatal: prazos.dataFatal,
-        tipoPrazo: prazos.tipoPrazo,
-        status: prazos.status,
-        responsavelId: prazos.responsavelId,
-        responsavelNome: users.nome,
-        alertasEnviados: prazos.alertasEnviados,
+        id: this.prazos.id,
+        processoId: this.prazos.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        descricao: this.prazos.descricao,
+        dataFatal: this.prazos.dataFatal,
+        tipoPrazo: this.prazos.tipoPrazo,
+        status: this.prazos.status,
+        responsavelId: this.prazos.responsavelId,
+        responsavelNome: this.users.nome,
+        alertasEnviados: this.prazos.alertasEnviados,
       })
-      .from(prazos)
-      .leftJoin(processos, eq(prazos.processoId, processos.id))
-      .leftJoin(users, eq(prazos.responsavelId, users.id))
-      .where(eq(prazos.id, id))
-      .get();
+      .from(this.prazos)
+      .leftJoin(this.processos, eq(this.prazos.processoId, this.processos.id))
+      .leftJoin(this.users, eq(this.prazos.responsavelId, this.users.id))
+      .where(eq(this.prazos.id, id));
+    return row ?? undefined;
   }
 
-  atualizarStatus(id: string, status: 'pendente' | 'cumprido' | 'perdido') {
-    this.db
-      .update(prazos)
+  async atualizarStatus(id: string, status: 'pendente' | 'cumprido' | 'perdido') {
+    await (this.db as any)
+      .update(this.prazos)
       .set({ status })
-      .where(eq(prazos.id, id))
-      .run();
+      .where(eq(this.prazos.id, id));
   }
 
-  excluir(id: string) {
-    this.db.delete(prazos).where(eq(prazos.id, id)).run();
+  async excluir(id: string) {
+    await (this.db as any).delete(this.prazos).where(eq(this.prazos.id, id));
   }
 }

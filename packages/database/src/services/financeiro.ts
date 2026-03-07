@@ -1,9 +1,7 @@
 import { v4 as uuid } from 'uuid';
-import { eq, like, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { CausaDatabase } from '../client';
-import { honorarios } from '../schema/financeiro';
-import { processos } from '../schema/processos';
-import { clientes } from '../schema/clientes';
+import type { CausaSchema } from '../schema-provider';
 
 export interface CreateHonorarioInput {
   processoId?: string;
@@ -15,12 +13,20 @@ export interface CreateHonorarioInput {
 }
 
 export class FinanceiroService {
-  constructor(private db: CausaDatabase) {}
+  private honorarios;
+  private processos;
+  private clientes;
 
-  criar(input: CreateHonorarioInput): string {
+  constructor(private db: CausaDatabase, schema: CausaSchema) {
+    this.honorarios = schema.honorarios;
+    this.processos = schema.processos;
+    this.clientes = schema.clientes;
+  }
+
+  async criar(input: CreateHonorarioInput): Promise<string> {
     const id = uuid();
-    this.db
-      .insert(honorarios)
+    await (this.db as any)
+      .insert(this.honorarios)
       .values({
         id,
         processoId: input.processoId ?? null,
@@ -30,63 +36,60 @@ export class FinanceiroService {
         percentualExito: input.percentualExito ?? null,
         vencimento: input.vencimento ?? null,
         status: 'pendente',
-      })
-      .run();
+      });
     return id;
   }
 
-  listar() {
-    return this.db
+  async listar() {
+    return (this.db as any)
       .select({
-        id: honorarios.id,
-        processoId: honorarios.processoId,
-        numeroCnj: processos.numeroCnj,
-        clienteId: honorarios.clienteId,
-        clienteNome: clientes.nome,
-        tipo: honorarios.tipo,
-        valor: honorarios.valor,
-        percentualExito: honorarios.percentualExito,
-        status: honorarios.status,
-        vencimento: honorarios.vencimento,
-        createdAt: honorarios.createdAt,
+        id: this.honorarios.id,
+        processoId: this.honorarios.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        clienteId: this.honorarios.clienteId,
+        clienteNome: this.clientes.nome,
+        tipo: this.honorarios.tipo,
+        valor: this.honorarios.valor,
+        percentualExito: this.honorarios.percentualExito,
+        status: this.honorarios.status,
+        vencimento: this.honorarios.vencimento,
+        createdAt: this.honorarios.createdAt,
       })
-      .from(honorarios)
-      .leftJoin(processos, eq(honorarios.processoId, processos.id))
-      .leftJoin(clientes, eq(honorarios.clienteId, clientes.id))
-      .all();
+      .from(this.honorarios)
+      .leftJoin(this.processos, eq(this.honorarios.processoId, this.processos.id))
+      .leftJoin(this.clientes, eq(this.honorarios.clienteId, this.clientes.id));
   }
 
-  obterPorId(id: string) {
-    return this.db
+  async obterPorId(id: string) {
+    const [row] = await (this.db as any)
       .select({
-        id: honorarios.id,
-        processoId: honorarios.processoId,
-        numeroCnj: processos.numeroCnj,
-        clienteId: honorarios.clienteId,
-        clienteNome: clientes.nome,
-        tipo: honorarios.tipo,
-        valor: honorarios.valor,
-        percentualExito: honorarios.percentualExito,
-        status: honorarios.status,
-        vencimento: honorarios.vencimento,
-        createdAt: honorarios.createdAt,
+        id: this.honorarios.id,
+        processoId: this.honorarios.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        clienteId: this.honorarios.clienteId,
+        clienteNome: this.clientes.nome,
+        tipo: this.honorarios.tipo,
+        valor: this.honorarios.valor,
+        percentualExito: this.honorarios.percentualExito,
+        status: this.honorarios.status,
+        vencimento: this.honorarios.vencimento,
+        createdAt: this.honorarios.createdAt,
       })
-      .from(honorarios)
-      .leftJoin(processos, eq(honorarios.processoId, processos.id))
-      .leftJoin(clientes, eq(honorarios.clienteId, clientes.id))
-      .where(eq(honorarios.id, id))
-      .get();
+      .from(this.honorarios)
+      .leftJoin(this.processos, eq(this.honorarios.processoId, this.processos.id))
+      .leftJoin(this.clientes, eq(this.honorarios.clienteId, this.clientes.id))
+      .where(eq(this.honorarios.id, id));
+    return row ?? undefined;
   }
 
-  atualizarStatus(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
-    this.db
-      .update(honorarios)
+  async atualizarStatus(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
+    await (this.db as any)
+      .update(this.honorarios)
       .set({ status })
-      .where(eq(honorarios.id, id))
-      .run();
+      .where(eq(this.honorarios.id, id));
   }
 
-  excluir(id: string) {
-    this.db.delete(honorarios).where(eq(honorarios.id, id)).run();
+  async excluir(id: string) {
+    await (this.db as any).delete(this.honorarios).where(eq(this.honorarios.id, id));
   }
 }
