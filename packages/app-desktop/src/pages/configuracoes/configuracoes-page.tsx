@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Settings, Save, Moon, Sun } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { Skeleton } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
 import { useTheme } from '../../hooks/use-theme';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
@@ -9,11 +11,11 @@ import * as api from '../../lib/api';
 export function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme();
   const { can } = usePermission();
+  const { toast } = useToast();
   const canManageLicenca = can('licenca:gerenciar');
   const [topologia, setTopologia] = useState<'solo' | 'escritorio'>('solo');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [mensagem, setMensagem] = useState('');
 
   useEffect(() => {
     api
@@ -21,19 +23,17 @@ export function ConfiguracoesPage() {
       .then((config) => {
         setTopologia(config.topologia);
       })
-      .catch((err) => console.error('Erro ao carregar configurações:', err))
+      .catch((err) => toast(err instanceof Error ? err.message : 'Erro ao carregar configurações.', 'error'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   async function handleSave() {
     setSaving(true);
-    setMensagem('');
     try {
       await api.atualizarConfiguracoes({ topologia });
-      setMensagem('Configurações salvas com sucesso.');
-      setTimeout(() => setMensagem(''), 3000);
+      toast('Configurações salvas com sucesso.', 'success');
     } catch (err) {
-      setMensagem(err instanceof Error ? err.message : 'Erro ao salvar.');
+      toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     } finally {
       setSaving(false);
     }
@@ -43,8 +43,14 @@ export function ConfiguracoesPage() {
     return (
       <div>
         <PageHeader title="Configurações" description="Preferências do sistema" />
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-12 text-center">
-          <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
+        <div className="flex flex-col gap-6">
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-3.5 w-48 mb-4" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -173,7 +179,6 @@ export function ConfiguracoesPage() {
               <Save size={16} />
               {saving ? 'Salvando...' : 'Salvar configurações'}
             </Button>
-            {mensagem && <span className="text-sm-causa text-causa-success">{mensagem}</span>}
           </div>
         )}
       </div>

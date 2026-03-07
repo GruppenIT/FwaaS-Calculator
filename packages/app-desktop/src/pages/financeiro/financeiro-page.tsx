@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, DollarSign, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
@@ -63,6 +64,7 @@ export function FinanceiroPage() {
 
   function handleCreated() {
     setShowModal(false);
+    toast('Honorário registrado com sucesso.', 'success');
     carregar();
   }
 
@@ -152,18 +154,11 @@ export function FinanceiroPage() {
             {loading ? (
               <SkeletonTableRows rows={5} cols={6} />
             ) : honorarios.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <DollarSign
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum honorário cadastrado. Comece registrando seus honorários.
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={DollarSign}
+                message="Nenhum honorário cadastrado. Comece registrando seus honorários."
+                colSpan={6}
+              />
             ) : (
               honorarios.map((h) => {
                 const statusCfg =

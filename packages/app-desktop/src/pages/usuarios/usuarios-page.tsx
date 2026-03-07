@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Shield } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
@@ -50,6 +51,7 @@ export function UsuariosPage() {
 
   function handleCreated() {
     setShowModal(false);
+    toast('Usuário criado com sucesso.', 'success');
     carregar();
   }
 
@@ -92,18 +94,11 @@ export function UsuariosPage() {
             {loading ? (
               <SkeletonTableRows rows={5} cols={5} />
             ) : usuarios.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
-                  <Shield
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum usuário cadastrado além do administrador.
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Shield}
+                message="Nenhum usuário cadastrado além do administrador."
+                colSpan={5}
+              />
             ) : (
               usuarios.map((user) => (
                 <tr

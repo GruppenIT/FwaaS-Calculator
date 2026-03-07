@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Users, Search } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
@@ -44,6 +45,7 @@ export function ClientesPage() {
 
   function handleCreated() {
     setShowModal(false);
+    toast('Cliente cadastrado com sucesso.', 'success');
     carregar();
   }
 
@@ -100,20 +102,11 @@ export function ClientesPage() {
             {loading ? (
               <SkeletonTableRows rows={5} cols={4} />
             ) : clientes.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-12 text-center">
-                  <Users
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    {busca
-                      ? 'Nenhum cliente encontrado.'
-                      : 'Cadastre seu primeiro cliente para começar.'}
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Users}
+                message={busca ? 'Nenhum cliente encontrado.' : 'Cadastre seu primeiro cliente para começar.'}
+                colSpan={4}
+              />
             ) : (
               clientes.map((c) => (
                 <tr

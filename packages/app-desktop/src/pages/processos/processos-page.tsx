@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Briefcase, Search } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
@@ -51,6 +52,7 @@ export function ProcessosPage() {
 
   function handleCreated() {
     setShowModal(false);
+    toast('Processo cadastrado com sucesso.', 'success');
     carregar();
   }
 
@@ -115,18 +117,11 @@ export function ProcessosPage() {
             {loading ? (
               <SkeletonTableRows rows={5} cols={6} />
             ) : processos.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <Briefcase
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    {busca ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'}
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Briefcase}
+                message={busca ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'}
+                colSpan={6}
+              />
             ) : (
               processos.map((p) => (
                 <tr

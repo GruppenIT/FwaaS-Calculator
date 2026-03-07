@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Clock, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
@@ -167,18 +168,11 @@ export function PrazosPage() {
             {loading ? (
               <SkeletonTableRows rows={5} cols={7} />
             ) : prazos.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
-                  <Clock
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum prazo encontrado.
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Clock}
+                message="Nenhum prazo encontrado."
+                colSpan={7}
+              />
             ) : (
               prazos.map((p) => {
                 const dias = diasRestantes(p.dataFatal);

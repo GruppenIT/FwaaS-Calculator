@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Calendar, Trash2 } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
@@ -115,18 +116,11 @@ export function AgendaPage() {
             {loading ? (
               <SkeletonTableRows rows={5} cols={6} />
             ) : eventos.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <Calendar
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum evento cadastrado. Crie seu primeiro evento.
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Calendar}
+                message="Nenhum evento cadastrado. Crie seu primeiro evento."
+                colSpan={6}
+              />
             ) : (
               eventos.map((e) => (
                 <tr
