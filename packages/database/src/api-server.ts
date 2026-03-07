@@ -51,7 +51,11 @@ function loadApp(): boolean {
   if (!fs.existsSync(CONFIG_PATH)) return false;
 
   const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-  const database = createDatabase({ topologia: config.topologia, sqlitePath: config.dbPath, postgresUrl: config.postgresUrl });
+  const database = createDatabase({
+    topologia: config.topologia,
+    sqlitePath: config.dbPath,
+    ...(config.postgresUrl ? { postgresUrl: config.postgresUrl } : {}),
+  });
   const s = getSchema(config.topologia);
   initializeServices(database, s, config.jwtSecret);
   return true;
@@ -146,7 +150,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const result = await setupDatabase({
         topologia: body.topologia,
         dbPath: DB_PATH,
-        postgresUrl: body.postgresUrl,
+        ...(body.postgresUrl ? { postgresUrl: body.postgresUrl } : {}),
         admin: body.admin,
       });
 
@@ -155,7 +159,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         jwtSecret: result.jwtSecret,
         topologia: body.topologia,
         dbPath: DB_PATH,
-        postgresUrl: body.postgresUrl,
+        ...(body.postgresUrl ? { postgresUrl: body.postgresUrl } : {}),
       };
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 

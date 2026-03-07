@@ -1,12 +1,12 @@
 import { v4 as uuid } from 'uuid';
-import { createDatabase } from '../client.js';
+import { createDatabase, type SqliteDatabase } from '../client.js';
 import { roles, permissions, rolePermissions } from '../schema/index.js';
 import { DEFAULT_PERMISSIONS, SYSTEM_ROLES, type PermissionKey } from '@causa/shared';
 
 const db = createDatabase({
   topologia: 'solo',
   sqlitePath: 'causa-dev.db',
-});
+}) as SqliteDatabase;
 
 console.log('Iniciando seed de papéis e permissões...');
 

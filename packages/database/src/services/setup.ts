@@ -147,7 +147,7 @@ export async function setupDatabase(input: SetupInput): Promise<SetupResult> {
   const db = createDatabase({
     topologia: input.topologia,
     sqlitePath: input.dbPath ?? 'causa.db',
-    postgresUrl: input.postgresUrl,
+    ...(input.postgresUrl ? { postgresUrl: input.postgresUrl } : {}),
   });
 
   // 2. Migrations + seed por topologia
