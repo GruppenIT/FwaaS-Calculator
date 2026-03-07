@@ -4,39 +4,82 @@ import os from 'node:os';
 
 /**
  * Logger de debug para CAUSA.
- * Escreve logs em:
- *   Windows: C:\ProgramData\CAUSA\logs\
- *   Linux/macOS: ~/.causa/logs/
+ *
+ * Diretório de logs (por prioridade):
+ *   1. Diretório configurado via setLogDirectory() (recomendado: app.getPath('userData'))
+ *   2. Windows: %LOCALAPPDATA%\CAUSA\logs  (sem precisar de admin)
+ *   3. Linux/macOS: ~/.causa/logs/
+ *
+ * Fallback: se nenhum diretório for gravável, tenta C:\ProgramData\CAUSA\logs (Windows)
+ * e se falhar, desabilita escrita em arquivo (mantém console).
  */
 
 let logDir: string | null = null;
 let logFile: string | null = null;
 let enabled = true;
 
-function getLogDir(): string {
+/**
+ * Define o diretório de logs. Deve ser chamado antes do primeiro log.
+ * Recomendado usar app.getPath('userData') do Electron.
+ */
+export function setLogDirectory(dir: string): void {
+  logDir = path.join(dir, 'logs');
+  logFile = null; // Reset para usar novo dir
+}
+
+function resolveLogDir(): string {
   if (logDir) return logDir;
 
-  let dir: string;
+  // Tentar diretórios que não precisam de permissão de admin
+  const candidates: string[] = [];
+
   if (os.platform() === 'win32') {
+    // %LOCALAPPDATA% — sempre gravável pelo usuário
+    const localAppData = process.env.LOCALAPPDATA;
+    if (localAppData) {
+      candidates.push(path.join(localAppData, 'CAUSA', 'logs'));
+    }
+    // %APPDATA% — também gravável
+    const appData = process.env.APPDATA;
+    if (appData) {
+      candidates.push(path.join(appData, 'CAUSA', 'logs'));
+    }
+    // Fallback: ProgramData (pode precisar de admin)
     const programData = process.env.PROGRAMDATA || 'C:\\ProgramData';
-    dir = path.join(programData, 'CAUSA', 'logs');
+    candidates.push(path.join(programData, 'CAUSA', 'logs'));
   } else {
-    dir = path.join(os.homedir(), '.causa', 'logs');
+    candidates.push(path.join(os.homedir(), '.causa', 'logs'));
   }
 
-  logDir = dir;
-  return dir;
+  // Usar o primeiro diretório que conseguir criar
+  for (const candidate of candidates) {
+    try {
+      if (!fs.existsSync(candidate)) {
+        fs.mkdirSync(candidate, { recursive: true });
+      }
+      logDir = candidate;
+      return candidate;
+    } catch {
+      // Tentar o próximo
+    }
+  }
+
+  // Nenhum diretório disponível
+  enabled = false;
+  const fallback = candidates[0] ?? path.join(os.tmpdir(), 'causa-logs');
+  logDir = fallback;
+  return fallback;
 }
 
 function ensureLogDir(): boolean {
+  if (!enabled) return false;
   try {
-    const dir = getLogDir();
+    const dir = resolveLogDir();
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     return true;
   } catch {
-    // Sem permissão para criar diretório de log — desabilita silenciosamente
     enabled = false;
     return false;
   }
@@ -45,7 +88,7 @@ function ensureLogDir(): boolean {
 function getLogFile(): string {
   if (logFile) return logFile;
 
-  const dir = getLogDir();
+  const dir = resolveLogDir();
   const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const file = path.join(dir, `causa-${date}.log`);
   logFile = file;
@@ -94,6 +137,6 @@ export const logger = {
 
   /** Retorna o caminho do diretório de logs */
   getLogDirectory(): string {
-    return getLogDir();
+    return resolveLogDir();
   },
 };

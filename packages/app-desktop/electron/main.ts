@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
@@ -30,10 +30,14 @@ function getInstallConfig(): { topologia: 'solo' | 'escritorio'; postgresUrl?: s
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 let apiServer: http.Server | null = null;
+let apiStarted = false;
 
 async function startApi() {
-  const { startServer, logger } = await import('@causa/database');
+  const { startServer, logger, setLogDirectory } = await import('@causa/database');
   const dataDir = app.getPath('userData');
+
+  // Configurar diretório de logs para o userData (sempre gravável)
+  setLogDirectory(dataDir);
 
   logger.info('Electron', 'Iniciando API...', {
     dataDir,
@@ -49,6 +53,7 @@ async function startApi() {
   }
 
   apiServer = await startServer({ cwd: dataDir, port: 3456 });
+  apiStarted = true;
   logger.info('Electron', `API iniciada. Dados em: ${dataDir}`);
 
   // Capturar erros não tratados no processo para diagnóstico
@@ -140,6 +145,11 @@ ipcMain.handle('get-install-config', () => {
   return getInstallConfig();
 });
 
+// IPC: informar ao renderer se a API iniciou
+ipcMain.handle('get-api-status', () => {
+  return { started: apiStarted };
+});
+
 app.whenReady().then(async () => {
   // Exibe splash enquanto carrega
   createSplashWindow();
@@ -148,7 +158,33 @@ app.whenReady().then(async () => {
   try {
     await startApi();
   } catch (err) {
-    console.error('[CAUSA] Falha ao iniciar API:', err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : '';
+    console.error('[CAUSA] Falha ao iniciar API:', errorMsg);
+
+    // Tenta escrever o erro em um arquivo de log emergencial
+    try {
+      const logDir = path.join(app.getPath('userData'), 'logs');
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      const logFile = path.join(logDir, `causa-crash-${new Date().toISOString().slice(0, 10)}.log`);
+      fs.appendFileSync(
+        logFile,
+        `[${new Date().toISOString()}] [FATAL] Falha ao iniciar API:\n${errorMsg}\n${errorStack}\n\n`,
+      );
+    } catch {
+      // Se nem isso funcionar, não tem mais o que fazer
+    }
+
+    // Mostrar diálogo de erro para o usuário
+    dialog.showErrorBox(
+      'CAUSA — Erro ao iniciar',
+      `Não foi possível iniciar o serviço interno da aplicação.\n\n` +
+        `Erro: ${errorMsg}\n\n` +
+        `Logs: ${path.join(app.getPath('userData'), 'logs')}\n\n` +
+        `Tente reiniciar a aplicação. Se o problema persistir, verifique se outra instância do CAUSA não está rodando.`,
+    );
   }
 
   createWindow();

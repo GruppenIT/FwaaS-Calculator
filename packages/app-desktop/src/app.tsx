@@ -12,9 +12,10 @@ import { ConectoresPage } from './pages/conectores/conectores-page';
 import { UsuariosPage } from './pages/usuarios/usuarios-page';
 import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
 import { PrazosPage } from './pages/prazos/prazos-page';
+import { ServerErrorPage } from './pages/server-error-page';
 
 function AppRoutes() {
-  const { user, loading, configured } = useAuth();
+  const { user, loading, configured, serverError } = useAuth();
 
   if (loading) {
     return (
@@ -29,6 +30,7 @@ function AppRoutes() {
       {/* Público */}
       <Route path="/setup" element={<SetupPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/server-error" element={<ServerErrorPage message={serverError} />} />
 
       {/* Autenticado — layout com sidebar */}
       <Route path="/app" element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
@@ -46,7 +48,9 @@ function AppRoutes() {
       <Route
         path="*"
         element={
-          configured === false ? (
+          serverError ? (
+            <Navigate to="/server-error" replace />
+          ) : configured === false ? (
             <Navigate to="/setup" replace />
           ) : user ? (
             <Navigate to="/app" replace />
