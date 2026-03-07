@@ -76,7 +76,11 @@ ipcMain.handle('get-install-config', () => {
 });
 
 app.whenReady().then(async () => {
-  await startApi();
+  try {
+    await startApi();
+  } catch (err) {
+    console.error('[CAUSA] Falha ao iniciar API:', err);
+  }
   createWindow();
 });
 
