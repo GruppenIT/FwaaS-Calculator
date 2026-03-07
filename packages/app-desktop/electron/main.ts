@@ -7,6 +7,14 @@ import { setupAutoUpdater } from './auto-updater.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Redirecionar userData do Electron para ProgramData no Windows
+// Evita que dados fiquem em AppData/Roaming/@causa
+if (process.platform === 'win32') {
+  const programData = process.env.PROGRAMDATA || 'C:\\ProgramData';
+  const sharedDir = path.join(programData, 'CAUSA SISTEMAS', 'CAUSA');
+  app.setPath('userData', sharedDir);
+}
+
 /**
  * Retorna o diretório de dados compartilhado do CAUSA.
  * Windows: C:\ProgramData\CAUSA SISTEMAS\CAUSA
