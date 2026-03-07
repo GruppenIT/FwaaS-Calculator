@@ -1,5 +1,5 @@
 import { pgTable, text, jsonb } from 'drizzle-orm/pg-core';
-import { users } from './usuarios';
+import { users } from './usuarios.js';
 
 export const clientes = pgTable('clientes', {
   id: text('id').primaryKey(),

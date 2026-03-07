@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-import { roles } from './rbac';
+import { roles } from './rbac.js';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(), // uuid

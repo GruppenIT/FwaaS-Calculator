@@ -1,6 +1,6 @@
 import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
-import { processos } from './processos';
-import { clientes } from './clientes';
+import { processos } from './processos.js';
+import { clientes } from './clientes.js';
 
 export const honorarios = sqliteTable('honorarios', {
   id: text('id').primaryKey(),

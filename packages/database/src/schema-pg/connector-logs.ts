@@ -1,5 +1,5 @@
 import { pgTable, text, integer, jsonb } from 'drizzle-orm/pg-core';
-import { processos } from './processos';
+import { processos } from './processos.js';
 
 export const connectorLogs = pgTable('connector_logs', {
   id: text('id').primaryKey(),

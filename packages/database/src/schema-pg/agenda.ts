@@ -1,5 +1,5 @@
 import { pgTable, text, jsonb } from 'drizzle-orm/pg-core';
-import { processos } from './processos';
+import { processos } from './processos.js';
 
 export const agenda = pgTable('agenda', {
   id: text('id').primaryKey(),

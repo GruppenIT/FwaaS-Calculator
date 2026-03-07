@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-import { processos } from './processos';
+import { processos } from './processos.js';
 
 export const connectorLogs = sqliteTable('connector_logs', {
   id: text('id').primaryKey(),

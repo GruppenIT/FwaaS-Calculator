@@ -1,5 +1,5 @@
 import { pgTable, text, jsonb } from 'drizzle-orm/pg-core';
-import { users } from './usuarios';
+import { users } from './usuarios.js';
 
 export const auditLog = pgTable('audit_log', {
   id: text('id').primaryKey(),

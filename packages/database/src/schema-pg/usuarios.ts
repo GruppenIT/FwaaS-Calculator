@@ -1,5 +1,5 @@
 import { pgTable, text, boolean } from 'drizzle-orm/pg-core';
-import { roles } from './rbac';
+import { roles } from './rbac.js';
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),

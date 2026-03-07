@@ -8,23 +8,23 @@ import {
   type SqliteDatabase,
   type PgDatabase,
   type Topologia,
-} from '../client';
-import { getSchema } from '../schema-provider';
-import { AuthService } from './auth';
+} from '../client.js';
+import { getSchema } from '../schema-provider.js';
+import { AuthService } from './auth.js';
 import {
   roles as sqliteRoles,
   permissions as sqlitePermissions,
   rolePermissions as sqliteRolePermissions,
-} from '../schema/rbac';
+} from '../schema/rbac.js';
 import {
   roles as pgRoles,
   permissions as pgPermissions,
   rolePermissions as pgRolePermissions,
-} from '../schema-pg/rbac';
+} from '../schema-pg/rbac.js';
 import { SYSTEM_ROLES, DEFAULT_PERMISSIONS, type PermissionKey } from '@causa/shared';
 import { v4 as uuid } from 'uuid';
 import crypto from 'node:crypto';
-import { logger } from '../logger';
+import { logger } from '../logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '../migrations');
