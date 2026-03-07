@@ -10,3 +10,4 @@ export {
 export { getSchema, type CausaSchema } from './schema-provider';
 export * from './services/index';
 export { startServer, type StartServerOptions } from './api-server';
+export { logger } from './logger';

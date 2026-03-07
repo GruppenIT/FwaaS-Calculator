@@ -12,6 +12,7 @@ import { setupDatabase, type SetupInput } from './services/setup';
 import { count, eq, sum } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
+import { logger } from './logger';
 
 const DEFAULT_PORT = 3456;
 const DB_PATH = 'causa.db';
@@ -186,31 +187,63 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // === Setup ===
     if (path === '/api/setup' && method === 'POST') {
       if (fs.existsSync(CONFIG_PATH)) {
+        logger.warn('API', 'Setup chamado mas sistema já está configurado');
         return error(res, 'Sistema já configurado.', 409);
       }
 
-      const body = JSON.parse(await readBody(req)) as SetupInput;
-      const result = await setupDatabase({
-        topologia: body.topologia,
-        dbPath: DB_PATH,
-        ...(body.postgresUrl ? { postgresUrl: body.postgresUrl } : {}),
-        admin: body.admin,
-      });
+      logger.info('API', 'Recebida requisição de setup, lendo corpo...');
+      let body: SetupInput;
+      try {
+        const rawBody = await readBody(req);
+        logger.debug('API', 'Corpo da requisição recebido', { length: rawBody.length });
+        body = JSON.parse(rawBody) as SetupInput;
+        logger.info('API', 'Setup input parseado', {
+          topologia: body.topologia,
+          hasPostgresUrl: !!body.postgresUrl,
+          adminEmail: body.admin?.email,
+        });
+      } catch (parseErr) {
+        logger.error('API', 'Falha ao parsear corpo da requisição de setup', {
+          error: parseErr instanceof Error ? parseErr.message : String(parseErr),
+        });
+        return error(res, 'Corpo da requisição inválido.', 400);
+      }
 
-      // Persist config
-      const config: AppConfig = {
-        jwtSecret: result.jwtSecret,
-        topologia: body.topologia,
-        dbPath: DB_PATH,
-        ...(body.postgresUrl ? { postgresUrl: body.postgresUrl } : {}),
-      };
-      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+      try {
+        logger.info('API', 'Iniciando setupDatabase...');
+        const result = await setupDatabase({
+          topologia: body.topologia,
+          dbPath: DB_PATH,
+          ...(body.postgresUrl ? { postgresUrl: body.postgresUrl } : {}),
+          admin: body.admin,
+        });
+        logger.info('API', 'setupDatabase concluído com sucesso', { adminId: result.adminId });
 
-      // Initialize services
-      const s = getSchema(body.topologia);
-      initializeServices(result.db, s, result.jwtSecret);
+        // Persist config
+        const config: AppConfig = {
+          jwtSecret: result.jwtSecret,
+          topologia: body.topologia,
+          dbPath: DB_PATH,
+          ...(body.postgresUrl ? { postgresUrl: body.postgresUrl } : {}),
+        };
+        logger.debug('API', 'Salvando causa.config.json...', { path: CONFIG_PATH });
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+        logger.info('API', 'Config salvo com sucesso');
 
-      return json(res, { ok: true, adminId: result.adminId }, 201);
+        // Initialize services
+        const s = getSchema(body.topologia);
+        initializeServices(result.db, s, result.jwtSecret);
+        logger.info('API', 'Serviços inicializados — setup completo');
+
+        return json(res, { ok: true, adminId: result.adminId }, 201);
+      } catch (setupErr) {
+        logger.error('API', 'Falha durante o setup', {
+          error: setupErr instanceof Error ? setupErr.message : String(setupErr),
+          stack: setupErr instanceof Error ? setupErr.stack : undefined,
+        });
+        const message = setupErr instanceof Error ? setupErr.message : 'Erro durante o setup do sistema.';
+        return error(res, message, 500);
+      }
     }
 
     // All routes below require the app to be configured
@@ -577,7 +610,10 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     error(res, 'Rota não encontrada.', 404);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro interno';
-    console.error('[API]', method, path, message);
+    logger.error('API', `Erro não tratado: ${method} ${path}`, {
+      error: message,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     error(res, message, 500);
   }
 }
@@ -601,10 +637,22 @@ export function startServer(options: StartServerOptions = {}): Promise<http.Serv
 
   return new Promise((resolve) => {
     const server = http.createServer(handleRequest);
+
+    // Capturar erros não tratados para evitar crash silencioso
+    server.on('error', (err) => {
+      logger.error('API', 'Erro no servidor HTTP', {
+        error: err.message,
+        stack: err.stack,
+      });
+    });
+
     server.listen(port, () => {
       const configured = fs.existsSync(CONFIG_PATH);
-      console.log(`[CAUSA API] Rodando em http://localhost:${port}`);
-      console.log(`[CAUSA API] Status: ${configured ? 'Configurado' : 'Aguardando setup'}`);
+      logger.info('API', `Servidor rodando em http://localhost:${port}`, {
+        configured,
+        cwd: process.cwd(),
+        logDir: logger.getLogDirectory(),
+      });
       resolve(server);
     });
   });
