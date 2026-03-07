@@ -89,16 +89,16 @@ async function startApi() {
 
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
-    width: 480,
-    height: 380,
+    width: 1280,
+    height: 720,
     frame: false,
-    transparent: true,
     resizable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     show: false,
     center: true,
     focusable: true,
+    backgroundColor: '#0F1829',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -113,6 +113,14 @@ function createSplashWindow() {
   splashWindow.on('closed', () => {
     splashWindow = null;
   });
+}
+
+/** Envia status de progresso para o splash via executeJavaScript */
+function updateSplashStatus(percent: number, text: string) {
+  if (!splashWindow || splashWindow.isDestroyed()) return;
+  splashWindow.webContents.executeJavaScript(
+    `if (typeof setProgress === 'function') setProgress(${percent}, ${JSON.stringify(text)});`
+  ).catch(() => { /* splash pode já ter fechado */ });
 }
 
 function createWindow() {
@@ -148,13 +156,28 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     // Garante que o splash fique visível por no mínimo 3 segundos
     const MIN_SPLASH_MS = 3000;
+    const FADE_OUT_MS = 200;
     const elapsed = Date.now() - splashStartTime;
     const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
 
     setTimeout(() => {
-      splashWindow?.close();
-      mainWindow?.show();
-      mainWindow?.focus();
+      updateSplashStatus(100, 'Pronto!');
+
+      // Fade out do splash antes de mostrar a janela principal
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.webContents.executeJavaScript(
+          `document.body.classList.add('fade-out');`
+        ).catch(() => {});
+
+        setTimeout(() => {
+          splashWindow?.close();
+          mainWindow?.show();
+          mainWindow?.focus();
+        }, FADE_OUT_MS);
+      } else {
+        mainWindow?.show();
+        mainWindow?.focus();
+      }
     }, remaining);
   });
 
@@ -181,7 +204,9 @@ app.whenReady().then(async () => {
   splashStartTime = Date.now();
 
   try {
+    updateSplashStatus(20, 'Carregando módulos...');
     await startApi();
+    updateSplashStatus(90, 'Preparando interface...');
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     const errorStack = err instanceof Error ? err.stack : '';
