@@ -14,6 +14,11 @@ files:
 
 asar: false
 
+publish:
+  provider: github
+  owner: GruppenIT
+  repo: FwaaS-Calculator
+
 win:
   target:
     - target: nsis
