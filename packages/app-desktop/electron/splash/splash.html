@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAUSA</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+
+    /* Animated background particles */
+    .bg-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .bg-glow:nth-child(1) {
+      width: 300px; height: 300px;
+      background: #6366f1;
+      top: -80px; left: -80px;
+      animation-delay: 0s;
+    }
+
+    .bg-glow:nth-child(2) {
+      width: 250px; height: 250px;
+      background: #8b5cf6;
+      bottom: -60px; right: -60px;
+      animation-delay: -3s;
+    }
+
+    .bg-glow:nth-child(3) {
+      width: 200px; height: 200px;
+      background: #a78bfa;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: -1.5s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(20px, -20px) scale(1.1); }
+    }
+
+    /* Logo container */
+    .logo-wrapper {
+      position: relative;
+      z-index: 2;
+      animation: logoEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: scale(0.8) translateY(20px);
+    }
+
+    @keyframes logoEntry {
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .logo-wrapper img {
+      width: 120px;
+      height: 120px;
+      filter: drop-shadow(0 8px 32px rgba(99, 102, 241, 0.4));
+    }
+
+    /* Ring pulse around logo */
+    .logo-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 140px; height: 140px;
+      margin: -70px 0 0 -70px;
+      border: 2px solid rgba(99, 102, 241, 0.3);
+      border-radius: 50%;
+      animation: ringPulse 2s ease-out infinite;
+    }
+
+    @keyframes ringPulse {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    /* Brand text */
+    .brand {
+      position: relative;
+      z-index: 2;
+      margin-top: 28px;
+      animation: textEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+      opacity: 0;
+      transform: translateY(15px);
+    }
+
+    @keyframes textEntry {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand h1 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      color: #ffffff;
+      text-shadow: 0 2px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .brand p {
+      margin-top: 8px;
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+      text-align: center;
+    }
+
+    /* Loading bar */
+    .loader {
+      position: absolute;
+      bottom: 40px;
+      z-index: 2;
+      width: 200px;
+      animation: textEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+      opacity: 0;
+      transform: translateY(15px);
+    }
+
+    .loader-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .loader-bar {
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #a78bfa);
+      border-radius: 3px;
+      animation: loading 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(350%); }
+    }
+
+    .loader-text {
+      margin-top: 10px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.35);
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background glows -->
+  <div class="bg-glow"></div>
+  <div class="bg-glow"></div>
+  <div class="bg-glow"></div>
+
+  <!-- Logo -->
+  <div class="logo-wrapper">
+    <div class="logo-ring"></div>
+    <img src="logo.svg" alt="CAUSA">
+  </div>
+
+  <!-- Brand -->
+  <div class="brand">
+    <h1>CAUSA</h1>
+    <p>A sua causa, no seu escritório</p>
+  </div>
+
+  <!-- Loading indicator -->
+  <div class="loader">
+    <div class="loader-track">
+      <div class="loader-bar"></div>
+    </div>
+    <p class="loader-text">Carregando...</p>
+  </div>
+</body>
+</html>
