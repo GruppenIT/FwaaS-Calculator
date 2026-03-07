@@ -144,7 +144,7 @@ export function ProcessoModal({ onClose, onSaved, editData }: Props) {
       if (isEdit) {
         await api.atualizarProcesso(editData.id, {
           numeroCnj: form.numeroCnj,
-          clienteId: form.clienteId,
+          ...(form.clienteId ? { clienteId: form.clienteId } : {}),
           tribunalSigla: form.tribunalSigla,
           plataforma: form.plataforma,
           area: form.area,

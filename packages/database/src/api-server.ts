@@ -305,13 +305,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         return json(res, c);
       }
       if (method === 'PUT') {
-        if (!(await requirePermission(res, user, 'clientes:criar'))) return;
+        if (!(await requirePermission(res, user, 'clientes:editar'))) return;
         const body = JSON.parse(await readBody(req));
         await getClienteService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
-        if (!(await requirePermission(res, user, 'clientes:criar'))) return;
+        if (!(await requirePermission(res, user, 'clientes:excluir'))) return;
         await getClienteService().excluir(id);
         return json(res, { ok: true });
       }
