@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import type http from 'node:http';
+import { setupAutoUpdater } from './auto-updater.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -82,6 +83,9 @@ app.whenReady().then(async () => {
     console.error('[CAUSA] Falha ao iniciar API:', err);
   }
   createWindow();
+  if (mainWindow) {
+    setupAutoUpdater(mainWindow);
+  }
 });
 
 app.on('window-all-closed', () => {

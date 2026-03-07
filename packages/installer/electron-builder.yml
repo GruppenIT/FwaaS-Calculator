@@ -36,6 +36,7 @@ nsis:
   license: "resources/license.txt"
   include: "nsis/installer.nsh"
   artifactName: "CAUSA-Setup-${version}.${ext}"
-  shortcutName: "CAUSA"
+  shortcutName: "CAUSA - A sua causa, no seu escritório"
   menuCategory: "CAUSA"
+  uninstallDisplayName: "CAUSA - A sua causa, no seu escritório"
   perMachine: true
