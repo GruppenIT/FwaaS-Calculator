@@ -406,6 +406,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
     }
 
+    const honProcessoMatch = path.match(/^\/api\/processos\/([^/]+)\/honorarios$/);
+    if (honProcessoMatch) {
+      const processoId = honProcessoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente', 403);
+        }
+        const data = await getFinanceiroService().listarPorProcesso(processoId);
+        return json(res, data);
+      }
+    }
+
     // --- Usuarios ---
     if (path === '/api/usuarios' && method === 'GET') {
       if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;

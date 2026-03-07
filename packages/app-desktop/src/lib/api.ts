@@ -260,8 +260,7 @@ export function listarPrazosDoProcesso(processoId: string) {
 }
 
 export function listarHonorariosDoProcesso(processoId: string) {
-  // Uses the general honorários endpoint filtered client-side for now
-  return request<HonorarioRow[]>('/api/honorarios');
+  return request<HonorarioRow[]>(`/api/processos/${processoId}/honorarios`);
 }
 
 export function criarProcesso(data: {

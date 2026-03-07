@@ -79,7 +79,7 @@ export function ProcessoDetailPage() {
       setProcesso(proc);
       setMovimentacoes(movs);
       setPrazos(prazosData);
-      setHonorarios(honData.filter((h) => h.processoId === id));
+      setHonorarios(honData);
 
       // Resolve names
       if (proc.clienteId) {

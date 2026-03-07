@@ -66,6 +66,27 @@ export class FinanceiroService {
     return query;
   }
 
+  async listarPorProcesso(processoId: string) {
+    return (this.db as unknown as DatabaseQueryBuilder)
+      .select({
+        id: this.honorarios.id,
+        processoId: this.honorarios.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        clienteId: this.honorarios.clienteId,
+        clienteNome: this.clientes.nome,
+        tipo: this.honorarios.tipo,
+        valor: this.honorarios.valor,
+        percentualExito: this.honorarios.percentualExito,
+        status: this.honorarios.status,
+        vencimento: this.honorarios.vencimento,
+        createdAt: this.honorarios.createdAt,
+      })
+      .from(this.honorarios)
+      .leftJoin(this.processos, eq(this.honorarios.processoId, this.processos.id))
+      .leftJoin(this.clientes, eq(this.honorarios.clienteId, this.clientes.id))
+      .where(eq(this.honorarios.processoId, processoId));
+  }
+
   async obterPorId(id: string) {
     const [row] = await (this.db as unknown as DatabaseQueryBuilder)
       .select({
