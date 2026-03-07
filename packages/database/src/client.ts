@@ -20,9 +20,16 @@ export type PgDatabase = ReturnType<typeof createPgDatabase>;
 export type CausaDatabase = SqliteDatabase | PgDatabase;
 
 /** Minimal query-builder interface shared by both SQLite and PG Drizzle instances. */
+export interface QueryResult {
+  where(condition: unknown): QueryResult;
+  leftJoin(table: unknown, condition: unknown): QueryResult;
+  then: Promise<unknown[]>['then'];
+  [Symbol.asyncIterator](): AsyncIterator<unknown>;
+}
+
 export interface DatabaseQueryBuilder {
   insert(table: unknown): { values(data: unknown): unknown };
-  select(fields?: unknown): { from(table: unknown): unknown };
+  select(fields?: unknown): { from(table: unknown): QueryResult };
   update(table: unknown): { set(data: unknown): { where(condition: unknown): unknown } };
   delete(table: unknown): { where(condition: unknown): unknown };
 }
