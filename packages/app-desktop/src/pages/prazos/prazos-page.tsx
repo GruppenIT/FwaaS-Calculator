@@ -96,11 +96,19 @@ export function PrazosPage() {
 
       {/* Filtro por status */}
       <div className="flex gap-2 mb-4">
-        {[{ value: '', label: 'Todos' }, { value: 'pendente', label: 'Pendentes' }, { value: 'cumprido', label: 'Cumpridos' }, { value: 'perdido', label: 'Perdidos' }].map((f) => (
+        {[
+          { value: '', label: 'Todos' },
+          { value: 'pendente', label: 'Pendentes' },
+          { value: 'cumprido', label: 'Cumpridos' },
+          { value: 'perdido', label: 'Perdidos' },
+        ].map((f) => (
           <button
             key={f.value}
             type="button"
-            onClick={() => { setFiltroStatus(f.value); setLoading(true); }}
+            onClick={() => {
+              setFiltroStatus(f.value);
+              setLoading(true);
+            }}
             className={`px-3 py-1.5 rounded-[var(--radius-md)] text-sm-causa font-medium transition-causa cursor-pointer ${
               filtroStatus === f.value
                 ? 'bg-[var(--color-primary)] text-white'
@@ -116,12 +124,24 @@ export function PrazosPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Descrição</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Processo</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Data Fatal</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Tipo</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Status</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Responsável</th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Descrição
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Processo
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Data Fatal
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Tipo
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Status
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Responsável
+              </th>
               <th className="w-24"></th>
             </tr>
           </thead>
@@ -135,7 +155,11 @@ export function PrazosPage() {
             ) : prazos.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center">
-                  <Clock size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
+                  <Clock
+                    size={32}
+                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
+                    strokeWidth={1}
+                  />
                   <p className="text-sm-causa text-[var(--color-text-muted)]">
                     Nenhum prazo encontrado.
                   </p>
@@ -146,15 +170,28 @@ export function PrazosPage() {
                 const dias = diasRestantes(p.dataFatal);
                 const urgente = p.status === 'pendente' && dias <= 3;
                 return (
-                  <tr key={p.id} className={`border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa ${urgente ? 'bg-causa-danger/5' : ''}`}>
+                  <tr
+                    key={p.id}
+                    className={`border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa ${urgente ? 'bg-causa-danger/5' : ''}`}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {urgente && <AlertTriangle size={14} className="text-causa-danger shrink-0" />}
-                        <span className="text-base-causa text-[var(--color-text)] font-medium">{p.descricao}</span>
+                        {urgente && (
+                          <AlertTriangle size={14} className="text-causa-danger shrink-0" />
+                        )}
+                        <span className="text-base-causa text-[var(--color-text)] font-medium">
+                          {p.descricao}
+                        </span>
                       </div>
                       {p.status === 'pendente' && (
-                        <span className={`text-xs-causa ${dias <= 1 ? 'text-causa-danger' : dias <= 3 ? 'text-causa-warning' : 'text-[var(--color-text-muted)]'}`}>
-                          {dias < 0 ? `${Math.abs(dias)} dia(s) atrasado` : dias === 0 ? 'Vence hoje' : `${dias} dia(s) restante(s)`}
+                        <span
+                          className={`text-xs-causa ${dias <= 1 ? 'text-causa-danger' : dias <= 3 ? 'text-causa-warning' : 'text-[var(--color-text-muted)]'}`}
+                        >
+                          {dias < 0
+                            ? `${Math.abs(dias)} dia(s) atrasado`
+                            : dias === 0
+                              ? 'Vence hoje'
+                              : `${dias} dia(s) restante(s)`}
                         </span>
                       )}
                     </td>
@@ -170,11 +207,15 @@ export function PrazosPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${STATUS_STYLES[p.status] ?? ''}`}>
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${STATUS_STYLES[p.status] ?? ''}`}
+                      >
                         {STATUS_LABELS[p.status] ?? p.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{p.responsavelNome ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
+                      {p.responsavelNome ?? '—'}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         {p.status === 'pendente' && (

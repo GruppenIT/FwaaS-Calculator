@@ -17,8 +17,33 @@ interface Props {
 }
 
 const UF_OPTIONS = [
-  'AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT',
-  'PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO',
+  'AC',
+  'AL',
+  'AM',
+  'AP',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MG',
+  'MS',
+  'MT',
+  'PA',
+  'PB',
+  'PE',
+  'PI',
+  'PR',
+  'RJ',
+  'RN',
+  'RO',
+  'RR',
+  'RS',
+  'SC',
+  'SE',
+  'SP',
+  'TO',
 ];
 
 export function StepAdmin({ onBack, onSubmit }: Props) {
@@ -63,9 +88,7 @@ export function StepAdmin({ onBack, onSubmit }: Props) {
         Voltar
       </button>
 
-      <h2 className="text-xl-causa text-[var(--color-text)] mb-1">
-        Criar administrador
-      </h2>
+      <h2 className="text-xl-causa text-[var(--color-text)] mb-1">Criar administrador</h2>
       <p className="text-sm-causa text-[var(--color-text-muted)] mb-6">
         Este será o primeiro usuário do sistema com acesso total.
       </p>
@@ -105,7 +128,9 @@ export function StepAdmin({ onBack, onSubmit }: Props) {
             >
               <option value="">—</option>
               {UF_OPTIONS.map((uf) => (
-                <option key={uf} value={uf}>{uf}</option>
+                <option key={uf} value={uf}>
+                  {uf}
+                </option>
               ))}
             </select>
           </div>

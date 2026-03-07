@@ -94,7 +94,9 @@ export function EventoModal({ onClose, onCreated }: Props) {
               className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
             >
               {TIPOS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
               ))}
             </select>
           </div>
@@ -129,7 +131,13 @@ export function EventoModal({ onClose, onCreated }: Props) {
           )}
 
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">

@@ -14,7 +14,9 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
   return (
     <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center ${color}`}>
+        <div
+          className={`w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center ${color}`}
+        >
           <Icon size={20} />
         </div>
         <div>
@@ -36,7 +38,8 @@ export function DashboardPage() {
   });
 
   useEffect(() => {
-    api.getDashboardStats()
+    api
+      .getDashboardStats()
       .then(setStats)
       .catch((err) => console.error('Erro ao carregar dashboard:', err));
   }, []);
@@ -45,10 +48,7 @@ export function DashboardPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Dashboard"
-        description="Visão geral do escritório"
-      />
+      <PageHeader title="Dashboard" description="Visão geral do escritório" />
 
       <div className="grid grid-cols-5 gap-4 mb-8">
         <StatCard
@@ -78,14 +78,22 @@ export function DashboardPage() {
         <StatCard
           icon={DollarSign}
           label="A receber"
-          value={stats.honorariosPendentes > 0 ? `R$ ${stats.honorariosPendentes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0'}
+          value={
+            stats.honorariosPendentes > 0
+              ? `R$ ${stats.honorariosPendentes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+              : 'R$ 0'
+          }
           color="bg-causa-warning/10 text-causa-warning"
         />
       </div>
 
       {total === 0 && (
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-12 text-center">
-          <Briefcase size={48} className="mx-auto text-[var(--color-text-muted)]/30 mb-4" strokeWidth={1} />
+          <Briefcase
+            size={48}
+            className="mx-auto text-[var(--color-text-muted)]/30 mb-4"
+            strokeWidth={1}
+          />
           <h2 className="text-lg-causa text-[var(--color-text)] mb-1">
             Nenhum processo cadastrado
           </h2>

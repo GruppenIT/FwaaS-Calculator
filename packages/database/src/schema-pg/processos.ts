@@ -20,12 +20,14 @@ export const processos = pgTable('processos', {
   status: text('status', { enum: ['ativo', 'arquivado', 'encerrado'] })
     .notNull()
     .default('ativo'),
-  poloAtivo: jsonb('polo_ativo').$type<
-    Array<{ nome: string; cpfCnpj?: string | undefined; tipo: string }>
-  >(),
-  poloPassivo: jsonb('polo_passivo').$type<
-    Array<{ nome: string; cpfCnpj?: string | undefined; tipo: string }>
-  >(),
+  poloAtivo:
+    jsonb('polo_ativo').$type<
+      Array<{ nome: string; cpfCnpj?: string | undefined; tipo: string }>
+    >(),
+  poloPassivo:
+    jsonb('polo_passivo').$type<
+      Array<{ nome: string; cpfCnpj?: string | undefined; tipo: string }>
+    >(),
   valorCausa: doublePrecision('valor_causa'),
   ultimoSyncAt: text('ultimo_sync_at'),
   createdAt: text('created_at')

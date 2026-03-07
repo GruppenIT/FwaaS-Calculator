@@ -17,25 +17,26 @@ export class AgendaService {
   private agenda;
   private processos;
 
-  constructor(private db: CausaDatabase, schema: CausaSchema) {
+  constructor(
+    private db: CausaDatabase,
+    schema: CausaSchema,
+  ) {
     this.agenda = schema.agenda;
     this.processos = schema.processos;
   }
 
   async criar(input: CreateAgendaInput): Promise<string> {
     const id = uuid();
-    await (this.db as unknown as DatabaseQueryBuilder)
-      .insert(this.agenda)
-      .values({
-        id,
-        titulo: input.titulo,
-        tipo: input.tipo,
-        dataHoraInicio: input.dataHoraInicio,
-        dataHoraFim: input.dataHoraFim ?? null,
-        processoId: input.processoId ?? null,
-        participantes: input.participantes ?? null,
-        local: input.local ?? null,
-      });
+    await (this.db as unknown as DatabaseQueryBuilder).insert(this.agenda).values({
+      id,
+      titulo: input.titulo,
+      tipo: input.tipo,
+      dataHoraInicio: input.dataHoraInicio,
+      dataHoraFim: input.dataHoraFim ?? null,
+      processoId: input.processoId ?? null,
+      participantes: input.participantes ?? null,
+      local: input.local ?? null,
+    });
     return id;
   }
 
@@ -99,13 +100,17 @@ export class AgendaService {
         ...(input.dataHoraInicio !== undefined ? { dataHoraInicio: input.dataHoraInicio } : {}),
         ...(input.dataHoraFim !== undefined ? { dataHoraFim: input.dataHoraFim ?? null } : {}),
         ...(input.processoId !== undefined ? { processoId: input.processoId ?? null } : {}),
-        ...(input.participantes !== undefined ? { participantes: input.participantes ?? null } : {}),
+        ...(input.participantes !== undefined
+          ? { participantes: input.participantes ?? null }
+          : {}),
         ...(input.local !== undefined ? { local: input.local ?? null } : {}),
       })
       .where(eq(this.agenda.id, id));
   }
 
   async excluir(id: string) {
-    await (this.db as unknown as DatabaseQueryBuilder).delete(this.agenda).where(eq(this.agenda.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder)
+      .delete(this.agenda)
+      .where(eq(this.agenda.id, id));
   }
 }

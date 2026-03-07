@@ -7,24 +7,25 @@ import type { CreateClienteInput } from '@causa/shared';
 export class ClienteService {
   private clientes;
 
-  constructor(private db: CausaDatabase, schema: CausaSchema) {
+  constructor(
+    private db: CausaDatabase,
+    schema: CausaSchema,
+  ) {
     this.clientes = schema.clientes;
   }
 
   async criar(input: CreateClienteInput, userId: string): Promise<string> {
     const id = uuid();
-    await (this.db as unknown as DatabaseQueryBuilder)
-      .insert(this.clientes)
-      .values({
-        id,
-        tipo: input.tipo,
-        nome: input.nome,
-        cpfCnpj: input.cpfCnpj?.replace(/\D/g, '') ?? null,
-        email: input.email || null,
-        telefone: input.telefone ?? null,
-        endereco: input.endereco ?? null,
-        createdBy: userId,
-      });
+    await (this.db as unknown as DatabaseQueryBuilder).insert(this.clientes).values({
+      id,
+      tipo: input.tipo,
+      nome: input.nome,
+      cpfCnpj: input.cpfCnpj?.replace(/\D/g, '') ?? null,
+      email: input.email || null,
+      telefone: input.telefone ?? null,
+      endereco: input.endereco ?? null,
+      createdBy: userId,
+    });
     return id;
   }
 
@@ -47,7 +48,10 @@ export class ClienteService {
   }
 
   async obterPorId(id: string) {
-    const [row] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.clientes).where(eq(this.clientes.id, id));
+    const [row] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(this.clientes)
+      .where(eq(this.clientes.id, id));
     return row ?? undefined;
   }
 
@@ -57,7 +61,9 @@ export class ClienteService {
       .set({
         ...(input.nome !== undefined ? { nome: input.nome } : {}),
         ...(input.tipo !== undefined ? { tipo: input.tipo } : {}),
-        ...(input.cpfCnpj !== undefined ? { cpfCnpj: input.cpfCnpj?.replace(/\D/g, '') ?? null } : {}),
+        ...(input.cpfCnpj !== undefined
+          ? { cpfCnpj: input.cpfCnpj?.replace(/\D/g, '') ?? null }
+          : {}),
         ...(input.email !== undefined ? { email: input.email || null } : {}),
         ...(input.telefone !== undefined ? { telefone: input.telefone ?? null } : {}),
       })
@@ -65,6 +71,8 @@ export class ClienteService {
   }
 
   async excluir(id: string) {
-    await (this.db as unknown as DatabaseQueryBuilder).delete(this.clientes).where(eq(this.clientes.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder)
+      .delete(this.clientes)
+      .where(eq(this.clientes.id, id));
   }
 }

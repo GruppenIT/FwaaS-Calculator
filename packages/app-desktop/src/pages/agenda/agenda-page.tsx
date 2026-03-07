@@ -22,8 +22,11 @@ const TIPO_STYLES: Record<string, string> = {
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-    ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return (
+    d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+    ' ' +
+    d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  );
 }
 
 export function AgendaPage() {
@@ -77,11 +80,21 @@ export function AgendaPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Título</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Tipo</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Início</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Processo</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Local</th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Título
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Tipo
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Início
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Processo
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Local
+              </th>
               <th className="w-10"></th>
             </tr>
           </thead>
@@ -95,7 +108,11 @@ export function AgendaPage() {
             ) : eventos.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center">
-                  <Calendar size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
+                  <Calendar
+                    size={32}
+                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
+                    strokeWidth={1}
+                  />
                   <p className="text-sm-causa text-[var(--color-text-muted)]">
                     Nenhum evento cadastrado. Crie seu primeiro evento.
                   </p>
@@ -103,10 +120,17 @@ export function AgendaPage() {
               </tr>
             ) : (
               eventos.map((e) => (
-                <tr key={e.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa">
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">{e.titulo}</td>
+                <tr
+                  key={e.id}
+                  className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
+                >
+                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">
+                    {e.titulo}
+                  </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${TIPO_STYLES[e.tipo] ?? ''}`}>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${TIPO_STYLES[e.tipo] ?? ''}`}
+                    >
                       {TIPO_LABELS[e.tipo] ?? e.tipo}
                     </span>
                   </td>
@@ -116,7 +140,9 @@ export function AgendaPage() {
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
                     {e.numeroCnj ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{e.local ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
+                    {e.local ?? '—'}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       type="button"

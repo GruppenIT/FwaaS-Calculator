@@ -17,7 +17,10 @@ export class FinanceiroService {
   private processos;
   private clientes;
 
-  constructor(private db: CausaDatabase, schema: CausaSchema) {
+  constructor(
+    private db: CausaDatabase,
+    schema: CausaSchema,
+  ) {
     this.honorarios = schema.honorarios;
     this.processos = schema.processos;
     this.clientes = schema.clientes;
@@ -25,18 +28,16 @@ export class FinanceiroService {
 
   async criar(input: CreateHonorarioInput): Promise<string> {
     const id = uuid();
-    await (this.db as unknown as DatabaseQueryBuilder)
-      .insert(this.honorarios)
-      .values({
-        id,
-        processoId: input.processoId ?? null,
-        clienteId: input.clienteId ?? null,
-        tipo: input.tipo,
-        valor: input.valor,
-        percentualExito: input.percentualExito ?? null,
-        vencimento: input.vencimento ?? null,
-        status: 'pendente',
-      });
+    await (this.db as unknown as DatabaseQueryBuilder).insert(this.honorarios).values({
+      id,
+      processoId: input.processoId ?? null,
+      clienteId: input.clienteId ?? null,
+      tipo: input.tipo,
+      valor: input.valor,
+      percentualExito: input.percentualExito ?? null,
+      vencimento: input.vencimento ?? null,
+      status: 'pendente',
+    });
     return id;
   }
 
@@ -90,6 +91,8 @@ export class FinanceiroService {
   }
 
   async excluir(id: string) {
-    await (this.db as unknown as DatabaseQueryBuilder).delete(this.honorarios).where(eq(this.honorarios.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder)
+      .delete(this.honorarios)
+      .where(eq(this.honorarios.id, id));
   }
 }

@@ -94,11 +94,7 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'clientes:ler_todos',
     'tema:alternar',
   ],
-  estagiario: [
-    'processos:ler_proprios',
-    'clientes:ler_todos',
-    'tema:alternar',
-  ],
+  estagiario: ['processos:ler_proprios', 'clientes:ler_todos', 'tema:alternar'],
   secretaria: [
     'processos:ler_todos',
     'processos:ler_proprios',

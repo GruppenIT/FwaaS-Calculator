@@ -13,7 +13,8 @@ export function ConfiguracoesPage() {
   const [mensagem, setMensagem] = useState('');
 
   useEffect(() => {
-    api.getConfiguracoes()
+    api
+      .getConfiguracoes()
       .then((config) => {
         setTopologia(config.topologia);
       })
@@ -54,7 +55,9 @@ export function ConfiguracoesPage() {
         {/* Tema */}
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
           <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">Aparência</h3>
-          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">Escolha o tema visual do sistema.</p>
+          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+            Escolha o tema visual do sistema.
+          </p>
           <div className="flex gap-3">
             {[
               { value: 'light' as const, label: 'Claro', icon: Sun },
@@ -80,11 +83,21 @@ export function ConfiguracoesPage() {
         {/* Topologia */}
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
           <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">Topologia</h3>
-          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">Modo de operação do sistema.</p>
+          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+            Modo de operação do sistema.
+          </p>
           <div className="flex gap-3">
             {[
-              { value: 'solo' as const, label: 'Solo', desc: 'Advogado individual com banco local' },
-              { value: 'escritorio' as const, label: 'Escritório', desc: 'Múltiplos usuários com servidor compartilhado' },
+              {
+                value: 'solo' as const,
+                label: 'Solo',
+                desc: 'Advogado individual com banco local',
+              },
+              {
+                value: 'escritorio' as const,
+                label: 'Escritório',
+                desc: 'Múltiplos usuários com servidor compartilhado',
+              },
             ].map(({ value, label, desc }) => (
               <button
                 key={value}
@@ -96,7 +109,9 @@ export function ConfiguracoesPage() {
                     : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-causa-surface-alt'
                 }`}
               >
-                <div className={`text-sm-causa font-medium mb-0.5 ${topologia === value ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}>
+                <div
+                  className={`text-sm-causa font-medium mb-0.5 ${topologia === value ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}
+                >
                   {label}
                 </div>
                 <div className="text-xs-causa text-[var(--color-text-muted)]">{desc}</div>
@@ -107,7 +122,9 @@ export function ConfiguracoesPage() {
 
         {/* Certificado A1 */}
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">Certificado Digital A1</h3>
+          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">
+            Certificado Digital A1
+          </h3>
           <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
             Certificado para autenticação nos portais judiciais (PJe, e-SAJ).
           </p>
@@ -121,16 +138,24 @@ export function ConfiguracoesPage() {
 
         {/* Banco de dados */}
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">Banco de dados</h3>
-          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">Informações sobre o armazenamento.</p>
+          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">
+            Banco de dados
+          </h3>
+          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+            Informações sobre o armazenamento.
+          </p>
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center px-4 py-2 rounded-[var(--radius-md)] bg-causa-surface-alt">
               <span className="text-sm-causa text-[var(--color-text-muted)]">Motor</span>
-              <span className="text-sm-causa text-[var(--color-text)] font-medium">SQLite (local)</span>
+              <span className="text-sm-causa text-[var(--color-text)] font-medium">
+                SQLite (local)
+              </span>
             </div>
             <div className="flex justify-between items-center px-4 py-2 rounded-[var(--radius-md)] bg-causa-surface-alt">
               <span className="text-sm-causa text-[var(--color-text-muted)]">Topologia</span>
-              <span className="text-sm-causa text-[var(--color-text)] font-medium capitalize">{topologia}</span>
+              <span className="text-sm-causa text-[var(--color-text)] font-medium capitalize">
+                {topologia}
+              </span>
             </div>
           </div>
         </div>
@@ -141,9 +166,7 @@ export function ConfiguracoesPage() {
             <Save size={16} />
             {saving ? 'Salvando...' : 'Salvar configurações'}
           </Button>
-          {mensagem && (
-            <span className="text-sm-causa text-causa-success">{mensagem}</span>
-          )}
+          {mensagem && <span className="text-sm-causa text-causa-success">{mensagem}</span>}
         </div>
       </div>
     </div>

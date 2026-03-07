@@ -49,7 +49,9 @@ export function PrazoModal({ onClose, onCreated }: Props) {
     const timer = setTimeout(async () => {
       try {
         const data = await api.listarProcessos(processoBusca);
-        setProcessoOptions(data.map((p) => ({ id: p.id, numeroCnj: p.numeroCnj, clienteNome: p.clienteNome })));
+        setProcessoOptions(
+          data.map((p) => ({ id: p.id, numeroCnj: p.numeroCnj, clienteNome: p.clienteNome })),
+        );
       } catch {
         setProcessoOptions([]);
       }
@@ -127,13 +129,20 @@ export function PrazoModal({ onClose, onCreated }: Props) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Processo autocomplete */}
           <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
-            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Processo</label>
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Processo
+            </label>
             {processoLabel ? (
               <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <span className="flex-1 text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">{processoLabel}</span>
+                <span className="flex-1 text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
+                  {processoLabel}
+                </span>
                 <button
                   type="button"
-                  onClick={() => { setProcessoLabel(''); setForm((prev) => ({ ...prev, processoId: '' })); }}
+                  onClick={() => {
+                    setProcessoLabel('');
+                    setForm((prev) => ({ ...prev, processoId: '' }));
+                  }}
                   className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
                 >
                   <X size={14} />
@@ -141,12 +150,18 @@ export function PrazoModal({ onClose, onCreated }: Props) {
               </div>
             ) : (
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
                 <input
                   type="text"
                   placeholder="Buscar por número CNJ..."
                   value={processoBusca}
-                  onChange={(e) => { setProcessoBusca(e.target.value); setShowDropdown(true); }}
+                  onChange={(e) => {
+                    setProcessoBusca(e.target.value);
+                    setShowDropdown(true);
+                  }}
                   onFocus={() => processoOptions.length > 0 && setShowDropdown(true)}
                   className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
                 />
@@ -159,9 +174,13 @@ export function PrazoModal({ onClose, onCreated }: Props) {
                         onClick={() => selectProcesso(p)}
                         className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer"
                       >
-                        <span className="text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">{p.numeroCnj}</span>
+                        <span className="text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
+                          {p.numeroCnj}
+                        </span>
                         {p.clienteNome && (
-                          <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">{p.clienteNome}</span>
+                          <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                            {p.clienteNome}
+                          </span>
                         )}
                       </button>
                     ))}
@@ -191,14 +210,18 @@ export function PrazoModal({ onClose, onCreated }: Props) {
               error={errors.dataFatal}
             />
             <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Tipo de prazo</label>
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Tipo de prazo
+              </label>
               <select
                 value={form.tipoPrazo}
                 onChange={(e) => update('tipoPrazo', e.target.value)}
                 className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
               >
                 {TIPOS_PRAZO.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -211,7 +234,13 @@ export function PrazoModal({ onClose, onCreated }: Props) {
           )}
 
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">

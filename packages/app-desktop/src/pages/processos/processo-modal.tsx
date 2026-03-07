@@ -121,7 +121,9 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
 
     setLoading(true);
     try {
-      const valor = form.valorCausa ? parseFloat(form.valorCausa.replace(/[^\d.,]/g, '').replace(',', '.')) : undefined;
+      const valor = form.valorCausa
+        ? parseFloat(form.valorCausa.replace(/[^\d.,]/g, '').replace(',', '.'))
+        : undefined;
       await api.criarProcesso({
         numeroCnj: form.numeroCnj,
         clienteId: form.clienteId,
@@ -173,13 +175,20 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
 
           {/* Cliente autocomplete */}
           <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
-            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Cliente</label>
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Cliente
+            </label>
             {clienteNome ? (
               <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <span className="flex-1 text-base-causa text-[var(--color-text)]">{clienteNome}</span>
+                <span className="flex-1 text-base-causa text-[var(--color-text)]">
+                  {clienteNome}
+                </span>
                 <button
                   type="button"
-                  onClick={() => { setClienteNome(''); setForm((prev) => ({ ...prev, clienteId: '' })); }}
+                  onClick={() => {
+                    setClienteNome('');
+                    setForm((prev) => ({ ...prev, clienteId: '' }));
+                  }}
                   className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
                 >
                   <X size={14} />
@@ -187,12 +196,18 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
               </div>
             ) : (
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
                 <input
                   type="text"
                   placeholder="Buscar cliente por nome..."
                   value={clienteBusca}
-                  onChange={(e) => { setClienteBusca(e.target.value); setShowDropdown(true); }}
+                  onChange={(e) => {
+                    setClienteBusca(e.target.value);
+                    setShowDropdown(true);
+                  }}
                   onFocus={() => clienteOptions.length > 0 && setShowDropdown(true)}
                   className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
                 />
@@ -207,7 +222,9 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
                       >
                         <span className="text-base-causa text-[var(--color-text)]">{c.nome}</span>
                         {c.cpfCnpj && (
-                          <span className="ml-2 text-xs-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">{c.cpfCnpj}</span>
+                          <span className="ml-2 text-xs-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
+                            {c.cpfCnpj}
+                          </span>
                         )}
                       </button>
                     ))}
@@ -226,14 +243,18 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
               error={errors.tribunalSigla}
             />
             <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Plataforma</label>
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Plataforma
+              </label>
               <select
                 value={form.plataforma}
                 onChange={(e) => update('plataforma', e.target.value)}
                 className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
               >
                 {PLATAFORMAS.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -241,26 +262,34 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Área</label>
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Área
+              </label>
               <select
                 value={form.area}
                 onChange={(e) => update('area', e.target.value)}
                 className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
               >
                 {AREAS.map((a) => (
-                  <option key={a.value} value={a.value}>{a.label}</option>
+                  <option key={a.value} value={a.value}>
+                    {a.label}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Fase</label>
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Fase
+              </label>
               <select
                 value={form.fase}
                 onChange={(e) => update('fase', e.target.value)}
                 className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
               >
                 {FASES.map((f) => (
-                  <option key={f.value} value={f.value}>{f.label}</option>
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -280,7 +309,13 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
           )}
 
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">

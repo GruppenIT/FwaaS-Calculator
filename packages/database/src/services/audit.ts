@@ -13,7 +13,10 @@ export interface AuditEntry {
 export class AuditService {
   private auditLog;
 
-  constructor(private db: CausaDatabase, schema: CausaSchema) {
+  constructor(
+    private db: CausaDatabase,
+    schema: CausaSchema,
+  ) {
     this.auditLog = schema.auditLog;
   }
 
@@ -22,15 +25,13 @@ export class AuditService {
    * O audit log é append-only — sem UPDATE ou DELETE.
    */
   async registrar(entry: AuditEntry): Promise<void> {
-    await (this.db as unknown as DatabaseQueryBuilder)
-      .insert(this.auditLog)
-      .values({
-        id: uuid(),
-        userId: entry.userId,
-        acao: entry.acao,
-        recurso: entry.recurso,
-        recursoId: entry.recursoId ?? null,
-        payloadAnterior: entry.payloadAnterior ?? null,
-      });
+    await (this.db as unknown as DatabaseQueryBuilder).insert(this.auditLog).values({
+      id: uuid(),
+      userId: entry.userId,
+      acao: entry.acao,
+      recurso: entry.recurso,
+      recursoId: entry.recursoId ?? null,
+      payloadAnterior: entry.payloadAnterior ?? null,
+    });
   }
 }

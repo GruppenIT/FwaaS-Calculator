@@ -249,7 +249,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/clientes' && method === 'GET') {
       if (!(await requirePermission(res, user, 'clientes:ler_todos'))) return;
       const termo = url.searchParams.get('q');
-      const data = termo ? await getClienteService().buscar(termo) : await getClienteService().listar();
+      const data = termo
+        ? await getClienteService().buscar(termo)
+        : await getClienteService().listar();
       return json(res, data);
     }
 
@@ -284,12 +286,16 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Processos ---
     if (path === '/api/processos' && method === 'GET') {
-      if (!(await hasPermission(user, 'processos:ler_todos')) &&
-          !(await hasPermission(user, 'processos:ler_proprios'))) {
+      if (
+        !(await hasPermission(user, 'processos:ler_todos')) &&
+        !(await hasPermission(user, 'processos:ler_proprios'))
+      ) {
         return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
       }
       const termo = url.searchParams.get('q');
-      const data = termo ? await getProcessoService().buscar(termo) : await getProcessoService().listar();
+      const data = termo
+        ? await getProcessoService().buscar(termo)
+        : await getProcessoService().listar();
       return json(res, data);
     }
 
@@ -345,7 +351,10 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
       const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
       const s = getAppSchema();
-      const [role] = await getDb().select().from(s.roles).where(eq(s.roles.nome, body.role as string));
+      const [role] = await getDb()
+        .select()
+        .from(s.roles)
+        .where(eq(s.roles.nome, body.role as string));
       if (!role) return error(res, `Papel "${String(body.role)}" não encontrado.`, 400);
       const id = await getAuthService().createUser({
         nome: body.nome as string,
@@ -372,7 +381,10 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (body.oabSeccional !== undefined) updateData.oabSeccional = body.oabSeccional || null;
         if (body.ativo !== undefined) updateData.ativo = body.ativo;
         if (body.role !== undefined) {
-          const [role] = await getDb().select().from(s.roles).where(eq(s.roles.nome, body.role as string));
+          const [role] = await getDb()
+            .select()
+            .from(s.roles)
+            .where(eq(s.roles.nome, body.role as string));
           if (!role) return error(res, `Papel "${String(body.role)}" não encontrado.`, 400);
           updateData.roleId = role.id;
         }
@@ -414,7 +426,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'financeiro:editar'))) return;
-        const body = JSON.parse(await readBody(req)) as { status: 'pendente' | 'recebido' | 'inadimplente' };
+        const body = JSON.parse(await readBody(req)) as {
+          status: 'pendente' | 'recebido' | 'inadimplente';
+        };
         await getFinanceiroService().atualizarStatus(id, body.status);
         return json(res, { ok: true });
       }
@@ -468,8 +482,10 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Prazos ---
     if (path === '/api/prazos' && method === 'GET') {
-      if (!(await hasPermission(user, 'processos:ler_todos')) &&
-          !(await hasPermission(user, 'processos:ler_proprios'))) {
+      if (
+        !(await hasPermission(user, 'processos:ler_todos')) &&
+        !(await hasPermission(user, 'processos:ler_proprios'))
+      ) {
         return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
       }
       const filtrosPrazo: { status?: string; responsavelId?: string } = {};
@@ -498,7 +514,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'processos:editar'))) return;
-        const body = JSON.parse(await readBody(req)) as { status: 'pendente' | 'cumprido' | 'perdido' };
+        const body = JSON.parse(await readBody(req)) as {
+          status: 'pendente' | 'cumprido' | 'perdido';
+        };
         await getPrazoService().atualizarStatus(id, body.status);
         return json(res, { ok: true });
       }
@@ -531,11 +549,20 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/dashboard' && method === 'GET') {
       const s = getAppSchema();
       const dbq = getDb();
-      const [processosAtivos] = await dbq.select({ count: count() }).from(s.processos).where(eq(s.processos.status, 'ativo'));
+      const [processosAtivos] = await dbq
+        .select({ count: count() })
+        .from(s.processos)
+        .where(eq(s.processos.status, 'ativo'));
       const [totalClientes] = await dbq.select({ count: count() }).from(s.clientes);
-      const [prazosPendentes] = await dbq.select({ count: count() }).from(s.prazos).where(eq(s.prazos.status, 'pendente'));
+      const [prazosPendentes] = await dbq
+        .select({ count: count() })
+        .from(s.prazos)
+        .where(eq(s.prazos.status, 'pendente'));
 
-      const [honorariosPendentes] = await dbq.select({ total: sum(s.honorarios.valor) }).from(s.honorarios).where(eq(s.honorarios.status, 'pendente'));
+      const [honorariosPendentes] = await dbq
+        .select({ total: sum(s.honorarios.valor) })
+        .from(s.honorarios)
+        .where(eq(s.honorarios.status, 'pendente'));
 
       return json(res, {
         processosAtivos: processosAtivos?.count ?? 0,

@@ -2,11 +2,25 @@ import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDatabase, type CausaDatabase, type SqliteDatabase, type PgDatabase, type Topologia } from '../client';
+import {
+  createDatabase,
+  type CausaDatabase,
+  type SqliteDatabase,
+  type PgDatabase,
+  type Topologia,
+} from '../client';
 import { getSchema } from '../schema-provider';
 import { AuthService } from './auth';
-import { roles as sqliteRoles, permissions as sqlitePermissions, rolePermissions as sqliteRolePermissions } from '../schema/rbac';
-import { roles as pgRoles, permissions as pgPermissions, rolePermissions as pgRolePermissions } from '../schema-pg/rbac';
+import {
+  roles as sqliteRoles,
+  permissions as sqlitePermissions,
+  rolePermissions as sqliteRolePermissions,
+} from '../schema/rbac';
+import {
+  roles as pgRoles,
+  permissions as pgPermissions,
+  rolePermissions as pgRolePermissions,
+} from '../schema-pg/rbac';
 import { SYSTEM_ROLES, DEFAULT_PERMISSIONS, type PermissionKey } from '@causa/shared';
 import { v4 as uuid } from 'uuid';
 import crypto from 'node:crypto';
@@ -46,7 +60,11 @@ export interface SetupResult {
 /**
  * Setup SQLite (modo solo): migrations + seed síncronos.
  */
-function setupSqliteSeed(db: SqliteDatabase, roleMap: Map<string, string>, permissionMap: Map<PermissionKey, string>) {
+function setupSqliteSeed(
+  db: SqliteDatabase,
+  roleMap: Map<string, string>,
+  permissionMap: Map<PermissionKey, string>,
+) {
   for (const roleName of SYSTEM_ROLES) {
     const id = uuid();
     roleMap.set(roleName, id);
@@ -84,10 +102,7 @@ function setupSqliteSeed(db: SqliteDatabase, roleMap: Map<string, string>, permi
     for (const permKey of DEFAULT_PERMISSIONS[roleName]) {
       const permissionId = permissionMap.get(permKey);
       if (!permissionId) continue;
-      db.insert(sqliteRolePermissions)
-        .values({ roleId, permissionId })
-        .onConflictDoNothing()
-        .run();
+      db.insert(sqliteRolePermissions).values({ roleId, permissionId }).onConflictDoNothing().run();
     }
   }
 }
@@ -95,11 +110,16 @@ function setupSqliteSeed(db: SqliteDatabase, roleMap: Map<string, string>, permi
 /**
  * Setup PostgreSQL (modo escritório): migrations + seed assíncronos.
  */
-async function setupPgSeed(db: PgDatabase, roleMap: Map<string, string>, permissionMap: Map<PermissionKey, string>) {
+async function setupPgSeed(
+  db: PgDatabase,
+  roleMap: Map<string, string>,
+  permissionMap: Map<PermissionKey, string>,
+) {
   for (const roleName of SYSTEM_ROLES) {
     const id = uuid();
     roleMap.set(roleName, id);
-    await db.insert(pgRoles)
+    await db
+      .insert(pgRoles)
       .values({
         id,
         nome: roleName,
@@ -120,7 +140,8 @@ async function setupPgSeed(db: PgDatabase, roleMap: Map<string, string>, permiss
     const [recurso, acao] = key.split(':') as [string, string];
     const id = uuid();
     permissionMap.set(key, id);
-    await db.insert(pgPermissions)
+    await db
+      .insert(pgPermissions)
       .values({ id, recurso, acao, descricao: `${recurso} — ${acao}` })
       .onConflictDoNothing();
   }
@@ -131,9 +152,7 @@ async function setupPgSeed(db: PgDatabase, roleMap: Map<string, string>, permiss
     for (const permKey of DEFAULT_PERMISSIONS[roleName]) {
       const permissionId = permissionMap.get(permKey);
       if (!permissionId) continue;
-      await db.insert(pgRolePermissions)
-        .values({ roleId, permissionId })
-        .onConflictDoNothing();
+      await db.insert(pgRolePermissions).values({ roleId, permissionId }).onConflictDoNothing();
     }
   }
 }

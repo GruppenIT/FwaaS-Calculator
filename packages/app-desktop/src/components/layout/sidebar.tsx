@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   Briefcase,
-
   Calendar,
   DollarSign,
   Clock,
@@ -41,9 +40,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: 'FINANCEIRO',
-    items: [
-      { to: '/app/financeiro', icon: DollarSign, label: 'Honorários' },
-    ],
+    items: [{ to: '/app/financeiro', icon: DollarSign, label: 'Honorários' }],
   },
   {
     title: 'SISTEMA',

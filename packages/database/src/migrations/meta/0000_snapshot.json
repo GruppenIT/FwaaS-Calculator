@@ -66,12 +66,8 @@
           "name": "role_permissions_role_id_roles_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -79,22 +75,15 @@
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "permissions",
-          "columnsFrom": [
-            "permission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["permission_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "role_permissions_role_id_permission_id_pk": {
-          "columns": [
-            "role_id",
-            "permission_id"
-          ],
+          "columns": ["role_id", "permission_id"],
           "name": "role_permissions_role_id_permission_id_pk"
         }
       },
@@ -137,9 +126,7 @@
       "indexes": {
         "roles_nome_unique": {
           "name": "roles_nome_unique",
-          "columns": [
-            "nome"
-          ],
+          "columns": ["nome"],
           "isUnique": true
         }
       },
@@ -226,9 +213,7 @@
       "indexes": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -237,12 +222,8 @@
           "name": "users_role_id_roles_id_fk",
           "tableFrom": "users",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -321,9 +302,7 @@
       "indexes": {
         "clientes_cpf_cnpj_unique": {
           "name": "clientes_cpf_cnpj_unique",
-          "columns": [
-            "cpf_cnpj"
-          ],
+          "columns": ["cpf_cnpj"],
           "isUnique": true
         }
       },
@@ -332,12 +311,8 @@
           "name": "clientes_created_by_users_id_fk",
           "tableFrom": "clientes",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -413,12 +388,8 @@
           "name": "movimentacoes_processo_id_processos_id_fk",
           "tableFrom": "movimentacoes",
           "tableTo": "processos",
-          "columnsFrom": [
-            "processo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["processo_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -501,12 +472,8 @@
           "name": "prazos_processo_id_processos_id_fk",
           "tableFrom": "prazos",
           "tableTo": "processos",
-          "columnsFrom": [
-            "processo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["processo_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -514,12 +481,8 @@
           "name": "prazos_movimentacao_id_movimentacoes_id_fk",
           "tableFrom": "prazos",
           "tableTo": "movimentacoes",
-          "columnsFrom": [
-            "movimentacao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["movimentacao_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -527,12 +490,8 @@
           "name": "prazos_responsavel_id_users_id_fk",
           "tableFrom": "prazos",
           "tableTo": "users",
-          "columnsFrom": [
-            "responsavel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsavel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -647,9 +606,7 @@
       "indexes": {
         "processos_numero_cnj_unique": {
           "name": "processos_numero_cnj_unique",
-          "columns": [
-            "numero_cnj"
-          ],
+          "columns": ["numero_cnj"],
           "isUnique": true
         }
       },
@@ -658,12 +615,8 @@
           "name": "processos_cliente_id_clientes_id_fk",
           "tableFrom": "processos",
           "tableTo": "clientes",
-          "columnsFrom": [
-            "cliente_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cliente_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -671,12 +624,8 @@
           "name": "processos_advogado_responsavel_id_users_id_fk",
           "tableFrom": "processos",
           "tableTo": "users",
-          "columnsFrom": [
-            "advogado_responsavel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["advogado_responsavel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -759,12 +708,8 @@
           "name": "honorarios_processo_id_processos_id_fk",
           "tableFrom": "honorarios",
           "tableTo": "processos",
-          "columnsFrom": [
-            "processo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["processo_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -772,12 +717,8 @@
           "name": "honorarios_cliente_id_clientes_id_fk",
           "tableFrom": "honorarios",
           "tableTo": "clientes",
-          "columnsFrom": [
-            "cliente_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cliente_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -859,12 +800,8 @@
           "name": "agenda_processo_id_processos_id_fk",
           "tableFrom": "agenda",
           "tableTo": "processos",
-          "columnsFrom": [
-            "processo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["processo_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -961,12 +898,8 @@
           "name": "documentos_processo_id_processos_id_fk",
           "tableFrom": "documentos",
           "tableTo": "processos",
-          "columnsFrom": [
-            "processo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["processo_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -974,12 +907,8 @@
           "name": "documentos_cliente_id_clientes_id_fk",
           "tableFrom": "documentos",
           "tableTo": "clientes",
-          "columnsFrom": [
-            "cliente_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cliente_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -987,12 +916,8 @@
           "name": "documentos_uploaded_by_users_id_fk",
           "tableFrom": "documentos",
           "tableTo": "users",
-          "columnsFrom": [
-            "uploaded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uploaded_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1067,12 +992,8 @@
           "name": "connector_logs_processo_id_processos_id_fk",
           "tableFrom": "connector_logs",
           "tableTo": "processos",
-          "columnsFrom": [
-            "processo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["processo_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1131,9 +1052,7 @@
       "indexes": {
         "licencas_chave_licenca_unique": {
           "name": "licencas_chave_licenca_unique",
-          "columns": [
-            "chave_licenca"
-          ],
+          "columns": ["chave_licenca"],
           "isUnique": true
         }
       },
@@ -1201,12 +1120,8 @@
           "name": "audit_log_user_id_users_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

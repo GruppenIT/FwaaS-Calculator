@@ -33,7 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check system status on mount
   useEffect(() => {
-    api.checkHealth()
+    api
+      .checkHealth()
       .then(async (health) => {
         if (!health.configured) {
           setState({ user: null, loading: false, configured: false });
@@ -58,16 +59,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const loginFn = useCallback(async (email: string, senha: string) => {
-    await api.login(email, senha);
-    const me = await api.getMe();
-    setState({
-      user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
-      loading: false,
-      configured: true,
-    });
-    navigate('/app');
-  }, [navigate]);
+  const loginFn = useCallback(
+    async (email: string, senha: string) => {
+      await api.login(email, senha);
+      const me = await api.getMe();
+      setState({
+        user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
+        loading: false,
+        configured: true,
+      });
+      navigate('/app');
+    },
+    [navigate],
+  );
 
   const logout = useCallback(() => {
     api.clearTokens();
