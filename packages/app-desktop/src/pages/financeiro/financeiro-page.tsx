@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, DollarSign, Pencil, Trash2 } from 'lucide-react';
+import { Plus, DollarSign, Pencil, Trash2, Download, X } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -48,8 +48,21 @@ export function FinanceiroPage() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [periodoInicio, setPeriodoInicio] = useState('');
+  const [periodoFim, setPeriodoFim] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('');
 
   const showModal = modalData !== undefined;
+
+  // Client-side filters
+  const filtrados = honorarios.filter((h) => {
+    if (filtroStatus && h.status !== filtroStatus) return false;
+    if (periodoInicio && h.vencimento && h.vencimento < periodoInicio) return false;
+    if (periodoFim && h.vencimento && h.vencimento > periodoFim) return false;
+    return true;
+  });
+
+  const hasFilters = !!filtroStatus || !!periodoInicio || !!periodoFim;
 
   const carregar = useCallback(async () => {
     try {
@@ -113,13 +126,33 @@ export function FinanceiroPage() {
     }
   }
 
-  const totalPendente = honorarios
+  function exportCsv() {
+    const header = ['Cliente', 'Processo', 'Tipo', 'Valor', 'Vencimento', 'Status'];
+    const lines = filtrados.map((h) => [
+      h.clienteNome ?? '',
+      h.numeroCnj ?? '',
+      TIPO_LABELS[h.tipo] ?? h.tipo,
+      h.valor.toFixed(2),
+      h.vencimento ?? '',
+      STATUS_LABELS[h.status] ?? h.status,
+    ]);
+    const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'honorarios.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const totalPendente = filtrados
     .filter((h) => h.status === 'pendente')
     .reduce((s, h) => s + h.valor, 0);
-  const totalRecebido = honorarios
+  const totalRecebido = filtrados
     .filter((h) => h.status === 'recebido')
     .reduce((s, h) => s + h.valor, 0);
-  const totalInadimplente = honorarios
+  const totalInadimplente = filtrados
     .filter((h) => h.status === 'inadimplente')
     .reduce((s, h) => s + h.valor, 0);
 
@@ -137,6 +170,57 @@ export function FinanceiroPage() {
           ) : undefined
         }
       />
+
+      {/* Filtros */}
+      <div className="flex items-center gap-3 mb-4">
+        <select
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa cursor-pointer"
+        >
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="recebido">Recebido</option>
+          <option value="inadimplente">Inadimplente</option>
+        </select>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm-causa text-[var(--color-text-muted)]">De</span>
+          <input
+            type="date"
+            value={periodoInicio}
+            onChange={(e) => setPeriodoInicio(e.target.value)}
+            className="h-9 px-2 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa"
+          />
+          <span className="text-sm-causa text-[var(--color-text-muted)]">até</span>
+          <input
+            type="date"
+            value={periodoFim}
+            onChange={(e) => setPeriodoFim(e.target.value)}
+            className="h-9 px-2 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa"
+          />
+        </div>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => { setFiltroStatus(''); setPeriodoInicio(''); setPeriodoFim(''); }}
+            className="h-9 px-2 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
+            title="Limpar filtros"
+          >
+            <X size={16} />
+          </button>
+        )}
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={exportCsv}
+          disabled={filtrados.length === 0}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)] text-sm-causa hover:bg-causa-surface-alt transition-causa cursor-pointer disabled:opacity-50 disabled:cursor-default flex items-center gap-1.5"
+          title="Exportar CSV"
+        >
+          <Download size={14} />
+          CSV
+        </button>
+      </div>
 
       {/* Resumo */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -189,14 +273,14 @@ export function FinanceiroPage() {
           <tbody>
             {loading ? (
               <SkeletonTableRows rows={5} cols={7} />
-            ) : honorarios.length === 0 ? (
+            ) : filtrados.length === 0 ? (
               <EmptyState
                 icon={DollarSign}
                 message="Nenhum honorário cadastrado. Comece registrando seus honorários."
                 colSpan={7}
               />
             ) : (
-              honorarios.map((h) => {
+              filtrados.map((h) => {
                 return (
                   <tr
                     key={h.id}

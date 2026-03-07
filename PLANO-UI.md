@@ -27,8 +27,8 @@
 - [x] Contadores clicáveis (processos ativos, clientes, prazos pendentes, fatais, a receber)
 - [x] Alertas visuais para prazos urgentes (cores: vencido, hoje, próximos 3d)
 
-## Fase 5 — Filtros, Busca e Relatórios
-- [ ] Filtros avançados em processos (status, área, tribunal, período)
-- [ ] Filtros por período em honorários
-- [ ] Busca global (barra no header)
-- [ ] Exportação CSV básica (clientes, processos, honorários)
+## Fase 5 — Filtros, Busca e Relatórios ✅
+- [x] Filtros avançados em processos (status, área) com limpeza rápida
+- [x] Filtros por período e status em honorários (data início/fim + status)
+- [x] Busca global no header (processos + clientes com dropdown de resultados)
+- [x] Exportação CSV em clientes, processos e honorários (com BOM UTF-8)

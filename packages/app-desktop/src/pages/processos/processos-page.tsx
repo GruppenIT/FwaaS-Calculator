@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Briefcase, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Briefcase, Search, Pencil, Trash2, Download, X } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -42,8 +42,20 @@ export function ProcessosPage() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [filtroStatus, setFiltroStatus] = useState('');
+  const [filtroArea, setFiltroArea] = useState('');
 
   const showModal = modalData !== undefined;
+
+  // Client-side filters
+  const filtrados = processos.filter((p) => {
+    if (filtroStatus && p.status !== filtroStatus) return false;
+    if (filtroArea && p.area !== filtroArea) return false;
+    return true;
+  });
+
+  const areas = [...new Set(processos.map((p) => p.area))].sort();
+  const hasFilters = !!filtroStatus || !!filtroArea;
 
   const carregar = useCallback(async () => {
     try {
@@ -98,6 +110,26 @@ export function ProcessosPage() {
     }
   }
 
+  function exportCsv(rows: ProcessoRow[]) {
+    const header = ['Número CNJ', 'Cliente', 'Advogado', 'Tribunal', 'Área', 'Status'];
+    const lines = rows.map((p) => [
+      p.numeroCnj,
+      p.clienteNome ?? '',
+      p.advogadoNome ?? '',
+      p.tribunalSigla,
+      p.area,
+      p.status,
+    ]);
+    const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'processos.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <PageHeader
@@ -113,7 +145,7 @@ export function ProcessosPage() {
         }
       />
 
-      {/* Busca */}
+      {/* Busca + Filtros */}
       <div className="flex gap-3 mb-4">
         <div className="relative flex-1">
           <Search
@@ -128,6 +160,48 @@ export function ProcessosPage() {
             className="w-full h-9 pl-9 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
           />
         </div>
+        <select
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa cursor-pointer"
+        >
+          <option value="">Status</option>
+          <option value="ativo">Ativo</option>
+          <option value="arquivado">Arquivado</option>
+          <option value="encerrado">Encerrado</option>
+        </select>
+        <select
+          value={filtroArea}
+          onChange={(e) => setFiltroArea(e.target.value)}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa cursor-pointer"
+        >
+          <option value="">Área</option>
+          {areas.map((a) => (
+            <option key={a} value={a}>
+              {a.charAt(0).toUpperCase() + a.slice(1)}
+            </option>
+          ))}
+        </select>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => { setFiltroStatus(''); setFiltroArea(''); }}
+            className="h-9 px-2 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
+            title="Limpar filtros"
+          >
+            <X size={16} />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => exportCsv(filtrados)}
+          disabled={filtrados.length === 0}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)] text-sm-causa hover:bg-causa-surface-alt transition-causa cursor-pointer disabled:opacity-50 disabled:cursor-default flex items-center gap-1.5"
+          title="Exportar CSV"
+        >
+          <Download size={14} />
+          CSV
+        </button>
       </div>
 
       {/* Tabela */}
@@ -159,14 +233,14 @@ export function ProcessosPage() {
           <tbody>
             {loading ? (
               <SkeletonTableRows rows={5} cols={7} />
-            ) : processos.length === 0 ? (
+            ) : filtrados.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
-                message={busca ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'}
+                message={busca || hasFilters ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'}
                 colSpan={7}
               />
             ) : (
-              processos.map((p) => (
+              filtrados.map((p) => (
                 <tr
                   key={p.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"

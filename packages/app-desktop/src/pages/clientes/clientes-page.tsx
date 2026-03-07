@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Users, Search, Pencil, Trash2, Download } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -99,19 +99,42 @@ export function ClientesPage() {
         }
       />
 
-      {/* Busca */}
-      <div className="relative mb-4">
-        <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-        />
-        <input
-          type="text"
-          placeholder="Buscar por nome, CPF/CNPJ ou email..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="w-full h-9 pl-9 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
-        />
+      {/* Busca + Export */}
+      <div className="flex gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+          />
+          <input
+            type="text"
+            placeholder="Buscar por nome, CPF/CNPJ ou email..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="w-full h-9 pl-9 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const header = ['Nome', 'Tipo', 'CPF/CNPJ', 'Email', 'Telefone'];
+            const lines = clientes.map((c) => [c.nome, c.tipo, c.cpfCnpj ?? '', c.email ?? '', c.telefone ?? '']);
+            const csv = [header, ...lines].map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'clientes.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          disabled={clientes.length === 0}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)] text-sm-causa hover:bg-causa-surface-alt transition-causa cursor-pointer disabled:opacity-50 disabled:cursor-default flex items-center gap-1.5"
+          title="Exportar CSV"
+        >
+          <Download size={14} />
+          CSV
+        </button>
       </div>
 
       {/* Tabela */}
