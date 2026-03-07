@@ -12,7 +12,7 @@ const TIPO_LABELS: Record<string, string> = {
   por_hora: 'Por hora',
 };
 
-const STATUS_CONFIG: Record<string, { label: string; style: string; icon: typeof CheckCircle }> = {
+const STATUS_CONFIG = {
   pendente: { label: 'Pendente', style: 'bg-causa-warning/10 text-causa-warning', icon: Clock },
   recebido: { label: 'Recebido', style: 'bg-causa-success/10 text-causa-success', icon: CheckCircle },
   inadimplente: { label: 'Inadimplente', style: 'bg-causa-danger/10 text-causa-danger', icon: AlertTriangle },
@@ -126,7 +126,7 @@ export function FinanceiroPage() {
               </tr>
             ) : (
               honorarios.map((h) => {
-                const statusCfg = STATUS_CONFIG[h.status] ?? STATUS_CONFIG.pendente;
+                const statusCfg = STATUS_CONFIG[h.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pendente;
                 return (
                   <tr key={h.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa">
                     <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">
