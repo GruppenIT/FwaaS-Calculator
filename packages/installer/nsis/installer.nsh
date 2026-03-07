@@ -9,7 +9,6 @@
 !include "FileFunc.nsh"
 
 ; --- Variáveis ---
-Var CausaDataDir
 Var TopologiaDialog
 Var TopologiaLabel
 Var RadioSolo
@@ -190,18 +189,18 @@ FunctionEnd
 ; ============================================================================
 
 !macro customInstall
-  ; Resolver %PROGRAMDATA% em runtime (não existe como variável nativa do NSIS)
-  ExpandEnvStrings $CausaDataDir "%PROGRAMDATA%\CAUSA SISTEMAS\CAUSA"
+  ; Resolver %PROGRAMDATA% em runtime usando registrador $R9 (não requer Var)
+  ExpandEnvStrings $R9 "%PROGRAMDATA%\CAUSA SISTEMAS\CAUSA"
 
   ; Criar diretório compartilhado em ProgramData para dados do CAUSA
-  CreateDirectory "$CausaDataDir"
-  CreateDirectory "$CausaDataDir\logs"
+  CreateDirectory "$R9"
+  CreateDirectory "$R9\logs"
 
   ; Conceder permissão de escrita para todos os usuários no diretório de dados
-  nsExec::ExecToLog 'icacls "$CausaDataDir" /grant *S-1-5-32-545:(OI)(CI)M /T'
+  nsExec::ExecToLog 'icacls "$R9" /grant *S-1-5-32-545:(OI)(CI)M /T'
 
   ; Grava arquivo de configuração com topologia escolhida (em ProgramData, compartilhado)
-  FileOpen $0 "$CausaDataDir\causa-install.json" w
+  FileOpen $0 "$R9\causa-install.json" w
 
   ${If} $Topologia == "escritorio"
     FileWrite $0 '{"topologia":"escritorio","postgresUrl":"postgresql://$PgUser:$PgPassword@$PgHost:$PgPort/$PgDatabase"}'
