@@ -10,6 +10,8 @@ directories:
 files:
   - "dist/**/*"
   - "electron/**/*.js"
+  - "electron/**/*.ico"
+  - "electron/**/*.png"
   - "electron/splash/**/*"
   - "package.json"
 
@@ -25,15 +27,15 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: "resources/Causa-icone.ico"
+  icon: "resources/CAUSA_icon.ico"
   artifactName: "CAUSA-Setup-${version}.${ext}"
 
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  installerIcon: "resources/Causa-icone.ico"
-  uninstallerIcon: "resources/Causa-icone.ico"
-  installerHeaderIcon: "resources/Causa-icone.ico"
+  installerIcon: "resources/CAUSA_icon.ico"
+  uninstallerIcon: "resources/CAUSA_icon.ico"
+  installerHeaderIcon: "resources/CAUSA_icon.ico"
   license: "resources/license.txt"
   include: "nsis/installer.nsh"
   artifactName: "CAUSA-Setup-${version}.${ext}"

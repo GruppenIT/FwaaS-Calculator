@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { CausaLogo } from '../../components/ui/causa-logo';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../lib/auth-context';
 import { Moon, Sun } from 'lucide-react';
@@ -45,15 +46,8 @@ export function LoginPage() {
       </button>
 
       {/* Logo */}
-      <div className="mb-8 text-center">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-[var(--radius-lg)] bg-[var(--color-primary)] flex items-center justify-center">
-            <span className="text-white font-bold text-xl font-[var(--font-brand)]">C</span>
-          </div>
-          <h1 className="text-2xl-causa text-[var(--color-text)] font-[var(--font-brand)]">
-            CAUSA
-          </h1>
-        </div>
+      <div className="mb-8 flex justify-center">
+        <CausaLogo size={40} />
       </div>
 
       {/* Card de login */}

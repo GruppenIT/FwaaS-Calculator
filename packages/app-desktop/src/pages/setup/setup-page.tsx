@@ -3,6 +3,7 @@ import { StepTopologia } from './step-topologia';
 import { StepPostgres } from './step-postgres';
 import { StepAdmin } from './step-admin';
 import { StepConclusao } from './step-conclusao';
+import { CausaLogo } from '../../components/ui/causa-logo';
 
 export type Topologia = 'solo' | 'escritorio';
 
@@ -41,13 +42,8 @@ export function SetupPage() {
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-8">
       {/* Logo */}
       <div className="mb-8 text-center">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-[var(--radius-lg)] bg-[var(--color-primary)] flex items-center justify-center">
-            <span className="text-white font-bold text-xl font-[var(--font-brand)]">C</span>
-          </div>
-          <h1 className="text-2xl-causa text-[var(--color-text)] font-[var(--font-brand)]">
-            CAUSA
-          </h1>
+        <div className="flex items-center justify-center mb-2">
+          <CausaLogo size={40} />
         </div>
         <p className="text-sm-causa text-[var(--color-text-muted)] italic font-[var(--font-brand)]">
           A sua causa, no seu escritório.

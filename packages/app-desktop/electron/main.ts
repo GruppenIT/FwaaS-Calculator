@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
@@ -81,6 +81,8 @@ function createSplashWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     show: false,
+    center: true,
+    focusable: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -90,6 +92,7 @@ function createSplashWindow() {
   splashWindow.loadFile(path.join(__dirname, 'splash', 'splash.html'));
   splashWindow.once('ready-to-show', () => {
     splashWindow?.show();
+    splashWindow?.focus();
   });
   splashWindow.on('closed', () => {
     splashWindow = null;
@@ -99,13 +102,18 @@ function createSplashWindow() {
 function createWindow() {
   const installConfig = getInstallConfig();
 
+  // Remover barra de menus (File, Edit, View, Window, Help)
+  Menu.setApplicationMenu(null);
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 600,
     show: false,
+    icon: path.join(__dirname, 'icon.ico'),
     title: `CAUSA — ${installConfig.topologia === 'solo' ? 'Solo' : 'Escritório'}`,
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -120,16 +128,17 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // Quando a janela principal estiver pronta, fecha o splash
+  // Quando a janela principal estiver pronta, aguarda o splash antes de mostrar
   mainWindow.once('ready-to-show', () => {
-    // Garante um tempo mínimo de exibição do splash (1.5s)
-    const MIN_SPLASH_MS = 1500;
+    // Garante que o splash fique visível por no mínimo 3 segundos
+    const MIN_SPLASH_MS = 3000;
     const elapsed = Date.now() - splashStartTime;
     const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
 
     setTimeout(() => {
       splashWindow?.close();
       mainWindow?.show();
+      mainWindow?.focus();
     }, remaining);
   });
 
