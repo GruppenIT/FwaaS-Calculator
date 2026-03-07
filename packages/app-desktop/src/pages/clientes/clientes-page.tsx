@@ -119,7 +119,7 @@ export function ClientesPage() {
           onClick={() => {
             const header = ['Nome', 'Tipo', 'CPF/CNPJ', 'Email', 'Telefone'];
             const lines = clientes.map((c) => [c.nome, c.tipo, c.cpfCnpj ?? '', c.email ?? '', c.telefone ?? '']);
-            const csv = [header, ...lines].map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+            const csv = [header, ...lines].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 
 interface ClienteDetail {
@@ -35,6 +36,7 @@ export function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { can } = usePermission();
 
   const [cliente, setCliente] = useState<ClienteDetail | null>(null);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
@@ -44,17 +46,12 @@ export function ClienteDetailPage() {
   const carregar = useCallback(async () => {
     if (!id) return;
     try {
-      const [c, allProcessos] = await Promise.all([
-        api.obterCliente(id),
-        api.listarProcessos(),
-      ]);
+      const c = await api.obterCliente(id);
       setCliente(c);
-      // Filter processos by clienteId (the list endpoint has clienteNome but not clienteId,
-      // so we search by name matching)
-      // Actually we can't filter by clienteId from the list endpoint. Let's just show all
-      // and filter in the future when the API supports it.
-      // For now, we'll use a search by client name.
-      const filtered = allProcessos.filter(
+      // Search processos by client name via API (server-side filtering)
+      const matchedProcessos = await api.listarProcessos(c.nome);
+      // Double-check: the API search is fuzzy, so filter to exact name match
+      const filtered = matchedProcessos.filter(
         (p) => p.clienteNome === c.nome,
       );
       setProcessos(filtered);
@@ -121,10 +118,12 @@ export function ClienteDetailPage() {
             {cliente.tipo === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
           </span>
         </div>
-        <Button variant="secondary" onClick={handleEdit}>
-          <Pencil size={14} />
-          Editar
-        </Button>
+        {can('clientes:editar') && (
+          <Button variant="secondary" onClick={handleEdit}>
+            <Pencil size={14} />
+            Editar
+          </Button>
+        )}
       </div>
 
       {/* Info Cards */}

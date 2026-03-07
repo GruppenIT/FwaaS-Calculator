@@ -57,8 +57,14 @@ export function FinanceiroPage() {
   // Client-side filters
   const filtrados = honorarios.filter((h) => {
     if (filtroStatus && h.status !== filtroStatus) return false;
-    if (periodoInicio && h.vencimento && h.vencimento < periodoInicio) return false;
-    if (periodoFim && h.vencimento && h.vencimento > periodoFim) return false;
+    if (periodoInicio) {
+      if (!h.vencimento) return false;
+      if (h.vencimento < periodoInicio) return false;
+    }
+    if (periodoFim) {
+      if (!h.vencimento) return false;
+      if (h.vencimento > periodoFim) return false;
+    }
     return true;
   });
 
@@ -136,7 +142,7 @@ export function FinanceiroPage() {
       h.vencimento ?? '',
       STATUS_LABELS[h.status] ?? h.status,
     ]);
-    const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const csv = [header, ...lines].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

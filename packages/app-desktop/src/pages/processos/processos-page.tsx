@@ -120,7 +120,7 @@ export function ProcessosPage() {
       p.area,
       p.status,
     ]);
-    const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const csv = [header, ...lines].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

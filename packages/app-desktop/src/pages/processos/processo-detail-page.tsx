@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, FileText, DollarSign, Pencil, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ProcessoModal } from './processo-modal';
 import type { ProcessoEditData } from './processo-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { PrazoRow, HonorarioRow } from '../../lib/api';
 
@@ -57,10 +57,10 @@ export function ProcessoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { can } = usePermission();
 
   const [processo, setProcesso] = useState<api.ProcessoDetail | null>(null);
   const [clienteNome, setClienteNome] = useState<string>('');
-  const [advogadoNome, setAdvogadoNome] = useState<string>('');
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoRow[]>([]);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
@@ -166,10 +166,12 @@ export function ProcessoDetailPage() {
             </span>
           </div>
         </div>
-        <Button variant="secondary" onClick={handleEdit}>
-          <Pencil size={14} />
-          Editar
-        </Button>
+        {can('processos:editar') && (
+          <Button variant="secondary" onClick={handleEdit}>
+            <Pencil size={14} />
+            Editar
+          </Button>
+        )}
       </div>
 
       {/* Info Cards */}
