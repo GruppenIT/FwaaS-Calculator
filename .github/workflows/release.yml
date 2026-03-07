@@ -32,7 +32,8 @@ jobs:
           pnpm --filter @causa/app-desktop run build
 
       - name: Build installer
-        run: pnpm --filter @causa/installer run build:win -- --publish never
+        working-directory: packages/installer
+        run: npx electron-builder --win --config electron-builder.yml --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
