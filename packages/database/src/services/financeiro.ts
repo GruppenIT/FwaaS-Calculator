@@ -88,10 +88,18 @@ export class FinanceiroService {
     return row ?? undefined;
   }
 
-  async atualizarStatus(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
+  async atualizar(id: string, input: Partial<CreateHonorarioInput> & { status?: 'pendente' | 'recebido' | 'inadimplente' }) {
     await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.honorarios)
-      .set({ status })
+      .set({
+        ...(input.processoId !== undefined ? { processoId: input.processoId ?? null } : {}),
+        ...(input.clienteId !== undefined ? { clienteId: input.clienteId ?? null } : {}),
+        ...(input.tipo !== undefined ? { tipo: input.tipo } : {}),
+        ...(input.valor !== undefined ? { valor: input.valor } : {}),
+        ...(input.percentualExito !== undefined ? { percentualExito: input.percentualExito ?? null } : {}),
+        ...(input.vencimento !== undefined ? { vencimento: input.vencimento ?? null } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+      })
       .where(eq(this.honorarios.id, id));
   }
 

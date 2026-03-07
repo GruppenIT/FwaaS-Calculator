@@ -374,6 +374,38 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
     }
 
+    // --- Movimentações de Processo ---
+    const movimentacoesMatch = path.match(/^\/api\/processos\/([^/]+)\/movimentacoes$/);
+    if (movimentacoesMatch) {
+      const processoId = movimentacoesMatch[1] ?? '';
+      if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
+        const data = await getProcessoService().listarMovimentacoes(processoId);
+        return json(res, data);
+      }
+    }
+
+    // --- Prazos de Processo ---
+    const prazosProcessoMatch = path.match(/^\/api\/processos\/([^/]+)\/prazos$/);
+    if (prazosProcessoMatch) {
+      const processoId = prazosProcessoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
+        const data = await getProcessoService().listarPrazos(processoId);
+        return json(res, data);
+      }
+    }
+
     // --- Usuarios ---
     if (path === '/api/usuarios' && method === 'GET') {
       if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
@@ -437,7 +469,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         }
         if (Object.keys(updateData).length > 0) {
           await getDb().update(s.users).set(updateData).where(eq(s.users.id, id));
+          // Limpar cache RBAC ao alterar papel do usuário
+          if (updateData.roleId) getRbacService().clearCache(id);
         }
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
+        // Não permitir auto-exclusão
+        if (id === user.id) {
+          return error(res, 'Não é possível excluir o próprio usuário.', 400);
+        }
+        const s = getAppSchema();
+        // Desativar ao invés de deletar (soft delete) para preservar integridade referencial
+        await getDb().update(s.users).set({ ativo: false }).where(eq(s.users.id, id));
+        getRbacService().clearCache(id);
         return json(res, { ok: true });
       }
     }
@@ -473,17 +519,19 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (honorarioMatch) {
       const id = honorarioMatch[1] ?? '';
       if (method === 'GET') {
-        if (!(await requirePermission(res, user, 'financeiro:ler_todos'))) return;
+        const canReadAllFin = await hasPermission(user, 'financeiro:ler_todos');
+        const canReadOwnFin = await hasPermission(user, 'financeiro:ler_proprios');
+        if (!canReadAllFin && !canReadOwnFin) {
+          return error(res, 'Permissão insuficiente: financeiro:ler_todos', 403);
+        }
         const h = await getFinanceiroService().obterPorId(id);
         if (!h) return error(res, 'Honorário não encontrado.', 404);
         return json(res, h);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'financeiro:editar'))) return;
-        const body = JSON.parse(await readBody(req)) as {
-          status: 'pendente' | 'recebido' | 'inadimplente';
-        };
-        await getFinanceiroService().atualizarStatus(id, body.status);
+        const body = JSON.parse(await readBody(req));
+        await getFinanceiroService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
@@ -584,14 +632,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'processos:editar'))) return;
-        const body = JSON.parse(await readBody(req)) as {
-          status: 'pendente' | 'cumprido' | 'perdido';
-        };
-        await getPrazoService().atualizarStatus(id, body.status);
+        const body = JSON.parse(await readBody(req));
+        await getPrazoService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
-        if (!(await requirePermission(res, user, 'processos:editar'))) return;
+        if (!(await requirePermission(res, user, 'processos:excluir'))) return;
         await getPrazoService().excluir(id);
         return json(res, { ok: true });
       }
