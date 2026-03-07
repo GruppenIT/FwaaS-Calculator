@@ -3,10 +3,13 @@ import { Settings, Save, Moon, Sun } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { useTheme } from '../../hooks/use-theme';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 
 export function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme();
+  const { can } = usePermission();
+  const canManageLicenca = can('licenca:gerenciar');
   const [topologia, setTopologia] = useState<'solo' | 'escritorio'>('solo');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,7 +83,8 @@ export function ConfiguracoesPage() {
           </div>
         </div>
 
-        {/* Topologia */}
+        {/* Topologia — somente admin */}
+        {canManageLicenca && (
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
           <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">Topologia</h3>
           <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
@@ -119,6 +123,8 @@ export function ConfiguracoesPage() {
             ))}
           </div>
         </div>
+
+        )}
 
         {/* Certificado A1 */}
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
@@ -160,14 +166,16 @@ export function ConfiguracoesPage() {
           </div>
         </div>
 
-        {/* Ações */}
-        <div className="flex items-center gap-3">
-          <Button onClick={handleSave} disabled={saving}>
-            <Save size={16} />
-            {saving ? 'Salvando...' : 'Salvar configurações'}
-          </Button>
-          {mensagem && <span className="text-sm-causa text-causa-success">{mensagem}</span>}
-        </div>
+        {/* Ações — somente admin */}
+        {canManageLicenca && (
+          <div className="flex items-center gap-3">
+            <Button onClick={handleSave} disabled={saving}>
+              <Save size={16} />
+              {saving ? 'Salvando...' : 'Salvar configurações'}
+            </Button>
+            {mensagem && <span className="text-sm-causa text-causa-success">{mensagem}</span>}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Plus, Clock, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { PrazoModal } from './prazo-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { PrazoRow } from '../../lib/api';
 
@@ -38,6 +39,7 @@ function diasRestantes(dataFatal: string): number {
 }
 
 export function PrazosPage() {
+  const { can } = usePermission();
   const [showModal, setShowModal] = useState(false);
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,10 +89,12 @@ export function PrazosPage() {
         title="Prazos"
         description="Prazos processuais e alertas"
         action={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} />
-            Novo prazo
-          </Button>
+          can('processos:editar') ? (
+            <Button onClick={() => setShowModal(true)}>
+              <Plus size={16} />
+              Novo prazo
+            </Button>
+          ) : undefined
         }
       />
 
@@ -218,7 +222,7 @@ export function PrazosPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {p.status === 'pendente' && (
+                        {p.status === 'pendente' && can('processos:editar') && (
                           <button
                             type="button"
                             onClick={() => handleStatusChange(p.id, 'cumprido')}
@@ -228,13 +232,15 @@ export function PrazosPage() {
                             <CheckCircle2 size={14} />
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(p.id)}
-                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {can('processos:excluir') && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(p.id)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

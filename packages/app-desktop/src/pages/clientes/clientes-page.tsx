@@ -3,6 +3,7 @@ import { Plus, Users, Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { ClienteModal } from './cliente-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 
 interface ClienteRow {
@@ -16,6 +17,7 @@ interface ClienteRow {
 }
 
 export function ClientesPage() {
+  const { can } = usePermission();
   const [showModal, setShowModal] = useState(false);
   const [clientes, setClientes] = useState<ClienteRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -48,10 +50,12 @@ export function ClientesPage() {
         title="Clientes"
         description="Pessoas físicas e jurídicas do escritório"
         action={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} />
-            Novo cliente
-          </Button>
+          can('clientes:criar') ? (
+            <Button onClick={() => setShowModal(true)}>
+              <Plus size={16} />
+              Novo cliente
+            </Button>
+          ) : undefined
         }
       />
 

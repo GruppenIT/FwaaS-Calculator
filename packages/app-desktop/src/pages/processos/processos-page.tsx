@@ -3,6 +3,7 @@ import { Plus, Briefcase, Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { ProcessoModal } from './processo-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 
 interface ProcessoRow {
@@ -23,6 +24,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export function ProcessosPage() {
+  const { can } = usePermission();
   const [showModal, setShowModal] = useState(false);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -55,10 +57,12 @@ export function ProcessosPage() {
         title="Processos"
         description="Acompanhe todos os processos do escritório"
         action={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} />
-            Novo processo
-          </Button>
+          can('processos:criar') ? (
+            <Button onClick={() => setShowModal(true)}>
+              <Plus size={16} />
+              Novo processo
+            </Button>
+          ) : undefined
         }
       />
 

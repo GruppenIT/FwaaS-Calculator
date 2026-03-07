@@ -3,6 +3,7 @@ import { Plus, DollarSign, CheckCircle, AlertTriangle, Clock } from 'lucide-reac
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { HonorarioModal } from './honorario-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { HonorarioRow } from '../../lib/api';
 
@@ -37,6 +38,7 @@ function formatDate(iso: string | null): string {
 }
 
 export function FinanceiroPage() {
+  const { can } = usePermission();
   const [showModal, setShowModal] = useState(false);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,10 +88,12 @@ export function FinanceiroPage() {
         title="Honorários"
         description="Controle financeiro do escritório"
         action={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} />
-            Novo honorário
-          </Button>
+          can('financeiro:editar') ? (
+            <Button onClick={() => setShowModal(true)}>
+              <Plus size={16} />
+              Novo honorário
+            </Button>
+          ) : undefined
         }
       />
 
@@ -196,7 +200,8 @@ export function FinanceiroPage() {
                             e.target.value as 'pendente' | 'recebido' | 'inadimplente',
                           )
                         }
-                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 cursor-pointer ${statusCfg.style}`}
+                        disabled={!can('financeiro:editar')}
+                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 ${can('financeiro:editar') ? 'cursor-pointer' : 'cursor-default opacity-75'} ${statusCfg.style}`}
                       >
                         <option value="pendente">Pendente</option>
                         <option value="recebido">Recebido</option>

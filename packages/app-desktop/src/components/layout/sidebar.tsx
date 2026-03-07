@@ -15,12 +15,15 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../lib/auth-context';
+import { usePermission } from '../../hooks/use-permission';
 import { CausaLogo } from '../ui/causa-logo';
 
 interface NavItem {
   to: string;
   icon: typeof LayoutDashboard;
   label: string;
+  /** Permissões necessárias (OR) para exibir. Vazio = sempre visível. */
+  permissions?: string[];
 }
 
 interface NavSection {
@@ -33,21 +36,21 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'GERAL',
     items: [
       { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/app/processos', icon: Briefcase, label: 'Processos' },
-      { to: '/app/clientes', icon: Users, label: 'Clientes' },
-      { to: '/app/agenda', icon: Calendar, label: 'Agenda' },
-      { to: '/app/prazos', icon: Clock, label: 'Prazos' },
+      { to: '/app/processos', icon: Briefcase, label: 'Processos', permissions: ['processos:ler_todos', 'processos:ler_proprios'] },
+      { to: '/app/clientes', icon: Users, label: 'Clientes', permissions: ['clientes:ler_todos'] },
+      { to: '/app/agenda', icon: Calendar, label: 'Agenda', permissions: ['agenda:gerenciar_todos'] },
+      { to: '/app/prazos', icon: Clock, label: 'Prazos', permissions: ['processos:ler_todos', 'processos:ler_proprios'] },
     ],
   },
   {
     title: 'FINANCEIRO',
-    items: [{ to: '/app/financeiro', icon: DollarSign, label: 'Honorários' }],
+    items: [{ to: '/app/financeiro', icon: DollarSign, label: 'Honorários', permissions: ['financeiro:ler_todos', 'financeiro:ler_proprios'] }],
   },
   {
     title: 'SISTEMA',
     items: [
-      { to: '/app/conectores', icon: Plug, label: 'Conectores' },
-      { to: '/app/usuarios', icon: Shield, label: 'Usuários' },
+      { to: '/app/conectores', icon: Plug, label: 'Conectores', permissions: ['conectores:executar'] },
+      { to: '/app/usuarios', icon: Shield, label: 'Usuários', permissions: ['usuarios:gerenciar'] },
       { to: '/app/configuracoes', icon: Settings, label: 'Configurações' },
     ],
   },
@@ -56,6 +59,7 @@ const NAV_SECTIONS: NavSection[] = [
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
+  const { canAny } = usePermission();
 
   return (
     <aside className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
@@ -66,12 +70,17 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-2">
-        {NAV_SECTIONS.map((section) => (
+        {NAV_SECTIONS.map((section) => {
+          const visibleItems = section.items.filter(
+            (item) => !item.permissions || canAny(item.permissions),
+          );
+          if (visibleItems.length === 0) return null;
+          return (
           <div key={section.title} className="mb-4">
             <div className="px-2 mb-1.5 text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
               {section.title}
             </div>
-            {section.items.map(({ to, icon: Icon, label }) => (
+            {visibleItems.map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -89,7 +98,8 @@ export function Sidebar() {
               </NavLink>
             ))}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Footer */}
