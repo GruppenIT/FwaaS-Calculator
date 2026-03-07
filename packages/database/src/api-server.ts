@@ -319,16 +319,17 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Processos ---
     if (path === '/api/processos' && method === 'GET') {
-      if (
-        !(await hasPermission(user, 'processos:ler_todos')) &&
-        !(await hasPermission(user, 'processos:ler_proprios'))
-      ) {
+      const canReadAll = await hasPermission(user, 'processos:ler_todos');
+      const canReadOwn = await hasPermission(user, 'processos:ler_proprios');
+      if (!canReadAll && !canReadOwn) {
         return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
       }
+      // Se só tem ler_proprios, filtrar por advogado responsável
+      const filtros = !canReadAll ? { advogadoId: user.id } : undefined;
       const termo = url.searchParams.get('q');
       const data = termo
-        ? await getProcessoService().buscar(termo)
-        : await getProcessoService().listar();
+        ? await getProcessoService().buscar(termo, filtros)
+        : await getProcessoService().listar(filtros);
       return json(res, data);
     }
 
@@ -343,8 +344,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (processoMatch) {
       const id = processoMatch[1] ?? '';
       if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
         const p = await getProcessoService().obterPorId(id);
         if (!p) return error(res, 'Processo não encontrado.', 404);
+        // Se só tem ler_proprios, verificar se é o advogado responsável
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          p.advogadoResponsavelId !== user.id
+        ) {
+          return error(res, 'Permissão insuficiente: processo não atribuído a você.', 403);
+        }
         return json(res, p);
       }
       if (method === 'PUT') {
@@ -429,6 +443,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
 
     if (path === '/api/roles' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
       const s = getAppSchema();
       const data = await getDb().select({ id: s.roles.id, nome: s.roles.nome }).from(s.roles);
       return json(res, data);
@@ -436,8 +451,14 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Honorários ---
     if (path === '/api/honorarios' && method === 'GET') {
-      if (!(await requirePermission(res, user, 'financeiro:ler_todos'))) return;
-      const data = await getFinanceiroService().listar();
+      const canReadAllFinanceiro = await hasPermission(user, 'financeiro:ler_todos');
+      const canReadOwnFinanceiro = await hasPermission(user, 'financeiro:ler_proprios');
+      if (!canReadAllFinanceiro && !canReadOwnFinanceiro) {
+        return error(res, 'Permissão insuficiente: financeiro:ler_todos', 403);
+      }
+      // Se só tem ler_proprios, filtrar pelos honorários dos processos do advogado
+      const advogadoId = !canReadAllFinanceiro ? user.id : undefined;
+      const data = await getFinanceiroService().listar(advogadoId);
       return json(res, data);
     }
 
@@ -515,10 +536,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Prazos ---
     if (path === '/api/prazos' && method === 'GET') {
-      if (
-        !(await hasPermission(user, 'processos:ler_todos')) &&
-        !(await hasPermission(user, 'processos:ler_proprios'))
-      ) {
+      const canReadAllProcessos = await hasPermission(user, 'processos:ler_todos');
+      const canReadOwnProcessos = await hasPermission(user, 'processos:ler_proprios');
+      if (!canReadAllProcessos && !canReadOwnProcessos) {
         return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
       }
       const filtrosPrazo: { status?: string; responsavelId?: string } = {};
@@ -526,6 +546,10 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const responsavelParam = url.searchParams.get('responsavelId');
       if (statusParam) filtrosPrazo.status = statusParam;
       if (responsavelParam) filtrosPrazo.responsavelId = responsavelParam;
+      // Se só tem ler_proprios, filtrar pelos prazos do próprio usuário
+      if (!canReadAllProcessos) {
+        filtrosPrazo.responsavelId = user.id;
+      }
       const data = await getPrazoService().listar(filtrosPrazo);
       return json(res, data);
     }
@@ -541,8 +565,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (prazoMatch) {
       const id = prazoMatch[1] ?? '';
       if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
         const p = await getPrazoService().obterPorId(id);
         if (!p) return error(res, 'Prazo não encontrado.', 404);
+        // Se só tem ler_proprios, verificar se é o responsável
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          p.responsavelId !== user.id
+        ) {
+          return error(res, 'Permissão insuficiente: prazo não atribuído a você.', 403);
+        }
         return json(res, p);
       }
       if (method === 'PUT') {
@@ -562,6 +599,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Configurações ---
     if (path === '/api/configuracoes' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       return json(res, {
         topologia: config.topologia,
@@ -578,7 +616,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, { ok: true });
     }
 
-    // --- Dashboard stats ---
+    // --- Dashboard stats --- (qualquer usuário autenticado pode ver)
     if (path === '/api/dashboard' && method === 'GET') {
       const s = getAppSchema();
       const dbq = getDb();

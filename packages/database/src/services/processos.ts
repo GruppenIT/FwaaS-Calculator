@@ -77,8 +77,15 @@ export class ProcessoService {
     return query;
   }
 
-  async buscar(termo: string) {
+  async buscar(termo: string, filtros?: { advogadoId?: string; status?: string }) {
     const pattern = `%${termo}%`;
+    const conditions = [or(like(this.processos.numeroCnj, pattern), like(this.clientes.nome, pattern))];
+    if (filtros?.advogadoId) {
+      conditions.push(eq(this.processos.advogadoResponsavelId, filtros.advogadoId));
+    }
+    if (filtros?.status) {
+      conditions.push(eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'));
+    }
     return (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.processos.id,
@@ -97,7 +104,7 @@ export class ProcessoService {
       .from(this.processos)
       .leftJoin(this.clientes, eq(this.processos.clienteId, this.clientes.id))
       .leftJoin(this.users, eq(this.processos.advogadoResponsavelId, this.users.id))
-      .where(or(like(this.processos.numeroCnj, pattern), like(this.clientes.nome, pattern)));
+      .where(and(...conditions));
   }
 
   async obterPorId(id: string) {

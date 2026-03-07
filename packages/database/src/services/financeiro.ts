@@ -41,8 +41,8 @@ export class FinanceiroService {
     return id;
   }
 
-  async listar() {
-    return (this.db as unknown as DatabaseQueryBuilder)
+  async listar(advogadoId?: string) {
+    const query = (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.honorarios.id,
         processoId: this.honorarios.processoId,
@@ -59,6 +59,11 @@ export class FinanceiroService {
       .from(this.honorarios)
       .leftJoin(this.processos, eq(this.honorarios.processoId, this.processos.id))
       .leftJoin(this.clientes, eq(this.honorarios.clienteId, this.clientes.id));
+
+    if (advogadoId) {
+      return query.where(eq(this.processos.advogadoResponsavelId, advogadoId));
+    }
+    return query;
   }
 
   async obterPorId(id: string) {
