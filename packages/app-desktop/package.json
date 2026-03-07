@@ -5,7 +5,7 @@
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
-    "build": "tsc && vite build",
+    "build": "tsc -p tsconfig.electron.json && tsc && vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

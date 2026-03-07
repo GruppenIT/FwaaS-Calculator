@@ -39,9 +39,12 @@ pnpm-debug.log*
 # Electron
 packages/app-desktop/dist/
 packages/app-desktop/release/
+packages/app-desktop/electron/**/*.js
+packages/app-desktop/electron/**/*.js.map
 
 # Installer output
 packages/installer/output/
+dist-installer/
 
 # Coverage
 coverage/
