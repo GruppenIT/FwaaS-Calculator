@@ -190,14 +190,14 @@ FunctionEnd
 
 !macro customInstall
   ; Criar diretório compartilhado em ProgramData para dados do CAUSA
-  CreateDirectory "$PROGRAMDATA\CAUSA SISTEMAS\CAUSA"
-  CreateDirectory "$PROGRAMDATA\CAUSA SISTEMAS\CAUSA\logs"
+  CreateDirectory "$%PROGRAMDATA%\CAUSA SISTEMAS\CAUSA"
+  CreateDirectory "$%PROGRAMDATA%\CAUSA SISTEMAS\CAUSA\logs"
 
   ; Conceder permissão de escrita para todos os usuários no diretório de dados
-  nsExec::ExecToLog 'icacls "$PROGRAMDATA\CAUSA SISTEMAS\CAUSA" /grant *S-1-5-32-545:(OI)(CI)M /T'
+  nsExec::ExecToLog 'icacls "$%PROGRAMDATA%\CAUSA SISTEMAS\CAUSA" /grant *S-1-5-32-545:(OI)(CI)M /T'
 
   ; Grava arquivo de configuração com topologia escolhida (em ProgramData, compartilhado)
-  FileOpen $0 "$PROGRAMDATA\CAUSA SISTEMAS\CAUSA\causa-install.json" w
+  FileOpen $0 "$%PROGRAMDATA%\CAUSA SISTEMAS\CAUSA\causa-install.json" w
 
   ${If} $Topologia == "escritorio"
     FileWrite $0 '{"topologia":"escritorio","postgresUrl":"postgresql://$PgUser:$PgPassword@$PgHost:$PgPort/$PgDatabase"}'
