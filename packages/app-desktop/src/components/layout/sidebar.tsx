@@ -6,6 +6,7 @@ import {
   FolderOpen,
   Calendar,
   DollarSign,
+  Clock,
   Plug,
   Settings,
   Shield,
@@ -35,6 +36,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/app/processos', icon: Briefcase, label: 'Processos' },
       { to: '/app/clientes', icon: Users, label: 'Clientes' },
       { to: '/app/agenda', icon: Calendar, label: 'Agenda' },
+      { to: '/app/prazos', icon: Clock, label: 'Prazos' },
     ],
   },
   {

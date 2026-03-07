@@ -11,6 +11,7 @@ import { FinanceiroPage } from './pages/financeiro/financeiro-page';
 import { ConectoresPage } from './pages/conectores/conectores-page';
 import { UsuariosPage } from './pages/usuarios/usuarios-page';
 import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
+import { PrazosPage } from './pages/prazos/prazos-page';
 
 function AppRoutes() {
   const { user, loading, configured } = useAuth();
@@ -38,6 +39,7 @@ function AppRoutes() {
         <Route path="financeiro" element={<FinanceiroPage />} />
         <Route path="conectores" element={<ConectoresPage />} />
         <Route path="usuarios" element={<UsuariosPage />} />
+        <Route path="prazos" element={<PrazosPage />} />
         <Route path="configuracoes" element={<ConfiguracoesPage />} />
       </Route>
 

@@ -264,6 +264,127 @@ export function excluirHonorario(id: string) {
   });
 }
 
+// === Agenda ===
+export interface AgendaRow {
+  id: string;
+  titulo: string;
+  tipo: 'audiencia' | 'diligencia' | 'reuniao' | 'prazo';
+  dataHoraInicio: string;
+  dataHoraFim: string | null;
+  processoId: string | null;
+  numeroCnj: string | null;
+  participantes: string[] | null;
+  local: string | null;
+  createdAt: string;
+}
+
+export function listarAgenda(inicio?: string, fim?: string) {
+  const params = new URLSearchParams();
+  if (inicio) params.set('inicio', inicio);
+  if (fim) params.set('fim', fim);
+  const q = params.toString();
+  return request<AgendaRow[]>(`/api/agenda${q ? `?${q}` : ''}`);
+}
+
+export function criarEvento(data: {
+  titulo: string;
+  tipo: 'audiencia' | 'diligencia' | 'reuniao' | 'prazo';
+  dataHoraInicio: string;
+  dataHoraFim?: string;
+  processoId?: string;
+  participantes?: string[];
+  local?: string;
+}) {
+  return request<{ id: string }>('/api/agenda', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarEvento(id: string, data: Partial<{
+  titulo: string;
+  tipo: 'audiencia' | 'diligencia' | 'reuniao' | 'prazo';
+  dataHoraInicio: string;
+  dataHoraFim: string;
+  processoId: string;
+  participantes: string[];
+  local: string;
+}>) {
+  return request<{ ok: boolean }>(`/api/agenda/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function excluirEvento(id: string) {
+  return request<{ ok: boolean }>(`/api/agenda/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// === Prazos ===
+export interface PrazoRow {
+  id: string;
+  processoId: string;
+  numeroCnj: string | null;
+  descricao: string;
+  dataFatal: string;
+  tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
+  status: 'pendente' | 'cumprido' | 'perdido';
+  responsavelId: string;
+  responsavelNome: string | null;
+  alertasEnviados: { dias: number[]; enviados: string[] } | null;
+}
+
+export function listarPrazos(filtros?: { status?: string; responsavelId?: string }) {
+  const params = new URLSearchParams();
+  if (filtros?.status) params.set('status', filtros.status);
+  if (filtros?.responsavelId) params.set('responsavelId', filtros.responsavelId);
+  const q = params.toString();
+  return request<PrazoRow[]>(`/api/prazos${q ? `?${q}` : ''}`);
+}
+
+export function criarPrazo(data: {
+  processoId: string;
+  descricao: string;
+  dataFatal: string;
+  tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
+  responsavelId: string;
+}) {
+  return request<{ id: string }>('/api/prazos', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarStatusPrazo(id: string, status: 'pendente' | 'cumprido' | 'perdido') {
+  return request<{ ok: boolean }>(`/api/prazos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function excluirPrazo(id: string) {
+  return request<{ ok: boolean }>(`/api/prazos/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// === Configurações ===
+export function getConfiguracoes() {
+  return request<{
+    topologia: 'solo' | 'escritorio';
+    dbPath: string;
+  }>('/api/configuracoes');
+}
+
+export function atualizarConfiguracoes(data: Partial<{ topologia: 'solo' | 'escritorio' }>) {
+  return request<{ ok: boolean }>('/api/configuracoes', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 // === Dashboard ===
 export function getDashboardStats() {
   return request<{
