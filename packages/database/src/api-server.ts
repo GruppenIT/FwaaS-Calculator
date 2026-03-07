@@ -13,7 +13,7 @@ import { count, eq, sum } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
 
-const PORT = 3456;
+const DEFAULT_PORT = 3456;
 const DB_PATH = 'causa.db';
 const CONFIG_PATH = 'causa.config.json';
 
@@ -114,7 +114,7 @@ async function hasPermission(user: AuthenticatedUser, permission: PermissionKey)
 
 // Simple URL routing
 async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
-  const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
+  const url = new URL(req.url ?? '/', `http://localhost:${DEFAULT_PORT}`);
   const method = req.method ?? 'GET';
   const path = url.pathname;
 
@@ -507,9 +507,36 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   }
 }
 
-const server = http.createServer(handleRequest);
-server.listen(PORT, () => {
-  const configured = fs.existsSync(CONFIG_PATH);
-  console.log(`[CAUSA API] Rodando em http://localhost:${PORT}`);
-  console.log(`[CAUSA API] Status: ${configured ? 'Configurado' : 'Aguardando setup'}`);
-});
+export interface StartServerOptions {
+  /** Diretório de trabalho onde o banco e config serão armazenados */
+  cwd?: string;
+  port?: number;
+}
+
+/**
+ * Inicia o servidor da API CAUSA.
+ * Retorna uma Promise que resolve com o http.Server quando estiver ouvindo.
+ */
+export function startServer(options: StartServerOptions = {}): Promise<http.Server> {
+  const port = options.port ?? DEFAULT_PORT;
+
+  if (options.cwd) {
+    process.chdir(options.cwd);
+  }
+
+  return new Promise((resolve) => {
+    const server = http.createServer(handleRequest);
+    server.listen(port, () => {
+      const configured = fs.existsSync(CONFIG_PATH);
+      console.log(`[CAUSA API] Rodando em http://localhost:${port}`);
+      console.log(`[CAUSA API] Status: ${configured ? 'Configurado' : 'Aguardando setup'}`);
+      resolve(server);
+    });
+  });
+}
+
+// Execução standalone (tsx src/api-server.ts)
+const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
+if (isDirectRun) {
+  startServer();
+}

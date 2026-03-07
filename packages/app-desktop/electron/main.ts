@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import type http from 'node:http';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,20 @@ function getInstallConfig(): { topologia: 'solo' | 'escritorio'; postgresUrl?: s
 }
 
 let mainWindow: BrowserWindow | null = null;
+let apiServer: http.Server | null = null;
+
+async function startApi() {
+  const { startServer } = await import('@causa/database');
+  const dataDir = app.getPath('userData');
+
+  // Garantir que o diretório de dados existe
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  apiServer = await startServer({ cwd: dataDir, port: 3456 });
+  console.log(`[CAUSA] API iniciada. Dados em: ${dataDir}`);
+}
 
 function createWindow() {
   const installConfig = getInstallConfig();
@@ -60,7 +75,10 @@ ipcMain.handle('get-install-config', () => {
   return getInstallConfig();
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  await startApi();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -71,5 +89,12 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (mainWindow === null) {
     createWindow();
+  }
+});
+
+app.on('will-quit', () => {
+  if (apiServer) {
+    apiServer.close();
+    apiServer = null;
   }
 });
