@@ -13,6 +13,8 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   configured: boolean | null;
+  /** Erro de conexão com o servidor */
+  serverError: string | null;
 }
 
 interface AuthContextValue extends AuthState {
@@ -28,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     loading: true,
     configured: null,
+    serverError: null,
   });
   const navigate = useNavigate();
 
@@ -35,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function pollHealth(retries = 10, delay = 500) {
+    async function pollHealth(retries = 15, delay = 500) {
       for (let i = 0; i < retries; i++) {
         if (cancelled) return;
         try {
@@ -44,11 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (cancelled) return;
 
           if (!health.configured) {
-            setState({ user: null, loading: false, configured: false });
+            setState({ user: null, loading: false, configured: false, serverError: null });
             return;
           }
 
-          setState((prev) => ({ ...prev, configured: true }));
+          setState((prev) => ({ ...prev, configured: true, serverError: null }));
 
           if (api.getAccessToken()) {
             const me = await api.getMe();
@@ -56,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
               loading: false,
               configured: true,
+              serverError: null,
             });
           } else {
             setState((prev) => ({ ...prev, loading: false }));
@@ -69,9 +73,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // All retries exhausted — treat as not configured
+      // All retries exhausted — servidor inacessível
       if (!cancelled) {
-        setState({ user: null, loading: false, configured: false });
+        setState({
+          user: null,
+          loading: false,
+          configured: false,
+          serverError:
+            'Não foi possível conectar ao serviço interno do CAUSA. ' +
+            'O servidor pode não ter iniciado corretamente. ' +
+            'Tente reiniciar a aplicação.',
+        });
       }
     }
 
@@ -90,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
         loading: false,
         configured: true,
+        serverError: null,
       });
       navigate('/app');
     },
