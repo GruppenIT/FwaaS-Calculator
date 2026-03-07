@@ -1,12 +1,22 @@
 import { useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import * as api from '../../lib/api';
 
+export interface ClienteEditData {
+  id: string;
+  tipo: 'PF' | 'PJ';
+  nome: string;
+  cpfCnpj: string | null;
+  email: string | null;
+  telefone: string | null;
+}
+
 interface Props {
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  editData?: ClienteEditData | null;
 }
 
 function formatCpf(value: string): string {
@@ -27,13 +37,14 @@ function formatCnpj(value: string): string {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
-export function ClienteModal({ onClose, onCreated }: Props) {
-  const [tipo, setTipo] = useState<'PF' | 'PJ'>('PF');
+export function ClienteModal({ onClose, onSaved, editData }: Props) {
+  const isEdit = !!editData;
+  const [tipo, setTipo] = useState<'PF' | 'PJ'>(editData?.tipo ?? 'PF');
   const [form, setForm] = useState({
-    nome: '',
-    cpfCnpj: '',
-    email: '',
-    telefone: '',
+    nome: editData?.nome ?? '',
+    cpfCnpj: editData?.cpfCnpj ?? '',
+    email: editData?.email ?? '',
+    telefone: editData?.telefone ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -56,14 +67,24 @@ export function ClienteModal({ onClose, onCreated }: Props) {
 
     setLoading(true);
     try {
-      await api.criarCliente({
-        tipo,
-        nome: form.nome,
-        ...(form.cpfCnpj ? { cpfCnpj: form.cpfCnpj } : {}),
-        ...(form.email ? { email: form.email } : {}),
-        ...(form.telefone ? { telefone: form.telefone } : {}),
-      });
-      onCreated();
+      if (isEdit) {
+        await api.atualizarCliente(editData.id, {
+          tipo,
+          nome: form.nome,
+          ...(form.cpfCnpj ? { cpfCnpj: form.cpfCnpj } : {}),
+          ...(form.email ? { email: form.email } : {}),
+          ...(form.telefone ? { telefone: form.telefone } : {}),
+        });
+      } else {
+        await api.criarCliente({
+          tipo,
+          nome: form.nome,
+          ...(form.cpfCnpj ? { cpfCnpj: form.cpfCnpj } : {}),
+          ...(form.email ? { email: form.email } : {}),
+          ...(form.telefone ? { telefone: form.telefone } : {}),
+        });
+      }
+      onSaved();
     } catch (err) {
       setErrors({ geral: err instanceof Error ? err.message : 'Erro ao cadastrar.' });
     } finally {
@@ -81,21 +102,7 @@ export function ClienteModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-
-      <div className="relative bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-md)] border border-[var(--color-border)] w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg-causa text-[var(--color-text)]">Novo cliente</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
+    <Modal open title={isEdit ? 'Editar cliente' : 'Novo cliente'} onClose={onClose}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Toggle PF/PJ */}
           <div className="flex gap-1 p-1 bg-causa-surface-alt rounded-[var(--radius-md)]">
@@ -165,11 +172,10 @@ export function ClienteModal({ onClose, onCreated }: Props) {
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Cadastrando...' : 'Cadastrar'}
+              {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar'}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

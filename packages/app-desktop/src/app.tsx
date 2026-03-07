@@ -1,11 +1,15 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth-context';
+import { ToastProvider } from './components/ui/toast';
+import { usePermission } from './hooks/use-permission';
 import { SetupPage } from './pages/setup/setup-page';
 import { LoginPage } from './pages/login/login-page';
 import { AppLayout } from './components/layout/app-layout';
 import { DashboardPage } from './pages/dashboard/dashboard-page';
 import { ProcessosPage } from './pages/processos/processos-page';
+import { ProcessoDetailPage } from './pages/processos/processo-detail-page';
 import { ClientesPage } from './pages/clientes/clientes-page';
+import { ClienteDetailPage } from './pages/clientes/cliente-detail-page';
 import { AgendaPage } from './pages/agenda/agenda-page';
 import { FinanceiroPage } from './pages/financeiro/financeiro-page';
 import { ConectoresPage } from './pages/conectores/conectores-page';
@@ -13,6 +17,14 @@ import { UsuariosPage } from './pages/usuarios/usuarios-page';
 import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
 import { PrazosPage } from './pages/prazos/prazos-page';
 import { ServerErrorPage } from './pages/server-error-page';
+import type { ReactNode } from 'react';
+
+/** Redireciona para /app se o usuário não tem nenhuma das permissões */
+function RequirePermission({ permissions, children }: { permissions: string[]; children: ReactNode }) {
+  const { canAny } = usePermission();
+  if (!canAny(permissions)) return <Navigate to="/app" replace />;
+  return <>{children}</>;
+}
 
 function AppRoutes() {
   const { user, loading, configured, serverError } = useAuth();
@@ -35,13 +47,15 @@ function AppRoutes() {
       {/* Autenticado — layout com sidebar */}
       <Route path="/app" element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
         <Route index element={<DashboardPage />} />
-        <Route path="processos" element={<ProcessosPage />} />
-        <Route path="clientes" element={<ClientesPage />} />
-        <Route path="agenda" element={<AgendaPage />} />
-        <Route path="financeiro" element={<FinanceiroPage />} />
-        <Route path="conectores" element={<ConectoresPage />} />
-        <Route path="usuarios" element={<UsuariosPage />} />
-        <Route path="prazos" element={<PrazosPage />} />
+        <Route path="processos" element={<RequirePermission permissions={['processos:ler_todos', 'processos:ler_proprios']}><ProcessosPage /></RequirePermission>} />
+        <Route path="processos/:id" element={<RequirePermission permissions={['processos:ler_todos', 'processos:ler_proprios']}><ProcessoDetailPage /></RequirePermission>} />
+        <Route path="clientes" element={<RequirePermission permissions={['clientes:ler_todos']}><ClientesPage /></RequirePermission>} />
+        <Route path="clientes/:id" element={<RequirePermission permissions={['clientes:ler_todos']}><ClienteDetailPage /></RequirePermission>} />
+        <Route path="agenda" element={<RequirePermission permissions={['agenda:gerenciar_todos']}><AgendaPage /></RequirePermission>} />
+        <Route path="financeiro" element={<RequirePermission permissions={['financeiro:ler_todos', 'financeiro:ler_proprios']}><FinanceiroPage /></RequirePermission>} />
+        <Route path="conectores" element={<RequirePermission permissions={['conectores:executar']}><ConectoresPage /></RequirePermission>} />
+        <Route path="usuarios" element={<RequirePermission permissions={['usuarios:gerenciar']}><UsuariosPage /></RequirePermission>} />
+        <Route path="prazos" element={<RequirePermission permissions={['processos:ler_todos', 'processos:ler_proprios']}><PrazosPage /></RequirePermission>} />
         <Route path="configuracoes" element={<ConfiguracoesPage />} />
       </Route>
 
@@ -67,7 +81,9 @@ export function App() {
   return (
     <HashRouter>
       <AuthProvider>
-        <AppRoutes />
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
       </AuthProvider>
     </HashRouter>
   );

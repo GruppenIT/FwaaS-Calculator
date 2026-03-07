@@ -1,13 +1,28 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import { X, Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useAuth } from '../../lib/auth-context';
 import * as api from '../../lib/api';
 
+export interface ProcessoEditData {
+  id: string;
+  numeroCnj: string;
+  clienteId: string;
+  clienteNome: string | null;
+  tribunalSigla: string;
+  plataforma: string;
+  area: string;
+  fase: string;
+  status: 'ativo' | 'arquivado' | 'encerrado';
+  valorCausa: number | null;
+}
+
 interface Props {
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  editData?: ProcessoEditData | null;
 }
 
 interface ClienteOption {
@@ -52,23 +67,25 @@ function formatCnj(value: string): string {
   return result;
 }
 
-export function ProcessoModal({ onClose, onCreated }: Props) {
+export function ProcessoModal({ onClose, onSaved, editData }: Props) {
+  const isEdit = !!editData;
   const { user } = useAuth();
   const [form, setForm] = useState({
-    numeroCnj: '',
-    clienteId: '',
-    tribunalSigla: '',
-    plataforma: 'pje',
-    area: 'civel',
-    fase: 'conhecimento',
-    valorCausa: '',
+    numeroCnj: editData?.numeroCnj ?? '',
+    clienteId: editData?.clienteId ?? '',
+    tribunalSigla: editData?.tribunalSigla ?? '',
+    plataforma: editData?.plataforma ?? 'pje',
+    area: editData?.area ?? 'civel',
+    fase: editData?.fase ?? 'conhecimento',
+    status: editData?.status ?? 'ativo',
+    valorCausa: editData?.valorCausa ? String(editData.valorCausa) : '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   // Cliente autocomplete state
   const [clienteBusca, setClienteBusca] = useState('');
-  const [clienteNome, setClienteNome] = useState('');
+  const [clienteNome, setClienteNome] = useState(editData?.clienteNome ?? '');
   const [clienteOptions, setClienteOptions] = useState<ClienteOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -124,17 +141,30 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
       const valor = form.valorCausa
         ? parseFloat(form.valorCausa.replace(/[^\d.,]/g, '').replace(',', '.'))
         : undefined;
-      await api.criarProcesso({
-        numeroCnj: form.numeroCnj,
-        clienteId: form.clienteId,
-        advogadoResponsavelId: user?.id ?? '',
-        tribunalSigla: form.tribunalSigla,
-        plataforma: form.plataforma,
-        area: form.area,
-        fase: form.fase,
-        ...(valor ? { valorCausa: valor } : {}),
-      });
-      onCreated();
+      if (isEdit) {
+        await api.atualizarProcesso(editData.id, {
+          numeroCnj: form.numeroCnj,
+          ...(form.clienteId ? { clienteId: form.clienteId } : {}),
+          tribunalSigla: form.tribunalSigla,
+          plataforma: form.plataforma,
+          area: form.area,
+          fase: form.fase,
+          status: form.status,
+          ...(valor ? { valorCausa: valor } : {}),
+        });
+      } else {
+        await api.criarProcesso({
+          numeroCnj: form.numeroCnj,
+          clienteId: form.clienteId,
+          advogadoResponsavelId: user?.id ?? '',
+          tribunalSigla: form.tribunalSigla,
+          plataforma: form.plataforma,
+          area: form.area,
+          fase: form.fase,
+          ...(valor ? { valorCausa: valor } : {}),
+        });
+      }
+      onSaved();
     } catch (err) {
       setErrors({ geral: err instanceof Error ? err.message : 'Erro ao cadastrar.' });
     } finally {
@@ -147,21 +177,7 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-
-      <div className="relative bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-md)] border border-[var(--color-border)] w-full max-w-lg p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg-causa text-[var(--color-text)]">Novo processo</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
+    <Modal open title={isEdit ? 'Editar processo' : 'Novo processo'} onClose={onClose} size="lg">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             label="Número CNJ"
@@ -302,6 +318,23 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
             onChange={(e) => update('valorCausa', e.target.value)}
           />
 
+          {isEdit && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Status
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) => update('status', e.target.value)}
+                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+              >
+                <option value="ativo">Ativo</option>
+                <option value="arquivado">Arquivado</option>
+                <option value="encerrado">Encerrado</option>
+              </select>
+            </div>
+          )}
+
           {errors.geral && (
             <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
               {errors.geral}
@@ -319,11 +352,10 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Cadastrando...' : 'Cadastrar processo'}
+              {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar processo'}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

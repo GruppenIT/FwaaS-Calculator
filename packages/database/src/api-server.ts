@@ -305,13 +305,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         return json(res, c);
       }
       if (method === 'PUT') {
-        if (!(await requirePermission(res, user, 'clientes:criar'))) return;
+        if (!(await requirePermission(res, user, 'clientes:editar'))) return;
         const body = JSON.parse(await readBody(req));
         await getClienteService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
-        if (!(await requirePermission(res, user, 'clientes:criar'))) return;
+        if (!(await requirePermission(res, user, 'clientes:excluir'))) return;
         await getClienteService().excluir(id);
         return json(res, { ok: true });
       }
@@ -319,16 +319,17 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Processos ---
     if (path === '/api/processos' && method === 'GET') {
-      if (
-        !(await hasPermission(user, 'processos:ler_todos')) &&
-        !(await hasPermission(user, 'processos:ler_proprios'))
-      ) {
+      const canReadAll = await hasPermission(user, 'processos:ler_todos');
+      const canReadOwn = await hasPermission(user, 'processos:ler_proprios');
+      if (!canReadAll && !canReadOwn) {
         return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
       }
+      // Se só tem ler_proprios, filtrar por advogado responsável
+      const filtros = !canReadAll ? { advogadoId: user.id } : undefined;
       const termo = url.searchParams.get('q');
       const data = termo
-        ? await getProcessoService().buscar(termo)
-        : await getProcessoService().listar();
+        ? await getProcessoService().buscar(termo, filtros)
+        : await getProcessoService().listar(filtros);
       return json(res, data);
     }
 
@@ -343,8 +344,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (processoMatch) {
       const id = processoMatch[1] ?? '';
       if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
         const p = await getProcessoService().obterPorId(id);
         if (!p) return error(res, 'Processo não encontrado.', 404);
+        // Se só tem ler_proprios, verificar se é o advogado responsável
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          p.advogadoResponsavelId !== user.id
+        ) {
+          return error(res, 'Permissão insuficiente: processo não atribuído a você.', 403);
+        }
         return json(res, p);
       }
       if (method === 'PUT') {
@@ -357,6 +371,53 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (!(await requirePermission(res, user, 'processos:excluir'))) return;
         await getProcessoService().excluir(id);
         return json(res, { ok: true });
+      }
+    }
+
+    // --- Movimentações de Processo ---
+    const movimentacoesMatch = path.match(/^\/api\/processos\/([^/]+)\/movimentacoes$/);
+    if (movimentacoesMatch) {
+      const processoId = movimentacoesMatch[1] ?? '';
+      if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
+        const data = await getProcessoService().listarMovimentacoes(processoId);
+        return json(res, data);
+      }
+    }
+
+    // --- Prazos de Processo ---
+    const prazosProcessoMatch = path.match(/^\/api\/processos\/([^/]+)\/prazos$/);
+    if (prazosProcessoMatch) {
+      const processoId = prazosProcessoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
+        const data = await getProcessoService().listarPrazos(processoId);
+        return json(res, data);
+      }
+    }
+
+    const honProcessoMatch = path.match(/^\/api\/processos\/([^/]+)\/honorarios$/);
+    if (honProcessoMatch) {
+      const processoId = honProcessoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente', 403);
+        }
+        const data = await getFinanceiroService().listarPorProcesso(processoId);
+        return json(res, data);
       }
     }
 
@@ -423,12 +484,27 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         }
         if (Object.keys(updateData).length > 0) {
           await getDb().update(s.users).set(updateData).where(eq(s.users.id, id));
+          // Limpar cache RBAC ao alterar papel do usuário
+          if (updateData.roleId) getRbacService().clearCache(id);
         }
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
+        // Não permitir auto-exclusão
+        if (id === user.id) {
+          return error(res, 'Não é possível excluir o próprio usuário.', 400);
+        }
+        const s = getAppSchema();
+        // Desativar ao invés de deletar (soft delete) para preservar integridade referencial
+        await getDb().update(s.users).set({ ativo: false }).where(eq(s.users.id, id));
+        getRbacService().clearCache(id);
         return json(res, { ok: true });
       }
     }
 
     if (path === '/api/roles' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
       const s = getAppSchema();
       const data = await getDb().select({ id: s.roles.id, nome: s.roles.nome }).from(s.roles);
       return json(res, data);
@@ -436,8 +512,14 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Honorários ---
     if (path === '/api/honorarios' && method === 'GET') {
-      if (!(await requirePermission(res, user, 'financeiro:ler_todos'))) return;
-      const data = await getFinanceiroService().listar();
+      const canReadAllFinanceiro = await hasPermission(user, 'financeiro:ler_todos');
+      const canReadOwnFinanceiro = await hasPermission(user, 'financeiro:ler_proprios');
+      if (!canReadAllFinanceiro && !canReadOwnFinanceiro) {
+        return error(res, 'Permissão insuficiente: financeiro:ler_todos', 403);
+      }
+      // Se só tem ler_proprios, filtrar pelos honorários dos processos do advogado
+      const advogadoId = !canReadAllFinanceiro ? user.id : undefined;
+      const data = await getFinanceiroService().listar(advogadoId);
       return json(res, data);
     }
 
@@ -452,17 +534,19 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (honorarioMatch) {
       const id = honorarioMatch[1] ?? '';
       if (method === 'GET') {
-        if (!(await requirePermission(res, user, 'financeiro:ler_todos'))) return;
+        const canReadAllFin = await hasPermission(user, 'financeiro:ler_todos');
+        const canReadOwnFin = await hasPermission(user, 'financeiro:ler_proprios');
+        if (!canReadAllFin && !canReadOwnFin) {
+          return error(res, 'Permissão insuficiente: financeiro:ler_todos', 403);
+        }
         const h = await getFinanceiroService().obterPorId(id);
         if (!h) return error(res, 'Honorário não encontrado.', 404);
         return json(res, h);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'financeiro:editar'))) return;
-        const body = JSON.parse(await readBody(req)) as {
-          status: 'pendente' | 'recebido' | 'inadimplente';
-        };
-        await getFinanceiroService().atualizarStatus(id, body.status);
+        const body = JSON.parse(await readBody(req));
+        await getFinanceiroService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
@@ -515,10 +599,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Prazos ---
     if (path === '/api/prazos' && method === 'GET') {
-      if (
-        !(await hasPermission(user, 'processos:ler_todos')) &&
-        !(await hasPermission(user, 'processos:ler_proprios'))
-      ) {
+      const canReadAllProcessos = await hasPermission(user, 'processos:ler_todos');
+      const canReadOwnProcessos = await hasPermission(user, 'processos:ler_proprios');
+      if (!canReadAllProcessos && !canReadOwnProcessos) {
         return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
       }
       const filtrosPrazo: { status?: string; responsavelId?: string } = {};
@@ -526,6 +609,10 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const responsavelParam = url.searchParams.get('responsavelId');
       if (statusParam) filtrosPrazo.status = statusParam;
       if (responsavelParam) filtrosPrazo.responsavelId = responsavelParam;
+      // Se só tem ler_proprios, filtrar pelos prazos do próprio usuário
+      if (!canReadAllProcessos) {
+        filtrosPrazo.responsavelId = user.id;
+      }
       const data = await getPrazoService().listar(filtrosPrazo);
       return json(res, data);
     }
@@ -541,20 +628,31 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (prazoMatch) {
       const id = prazoMatch[1] ?? '';
       if (method === 'GET') {
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          !(await hasPermission(user, 'processos:ler_proprios'))
+        ) {
+          return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
+        }
         const p = await getPrazoService().obterPorId(id);
         if (!p) return error(res, 'Prazo não encontrado.', 404);
+        // Se só tem ler_proprios, verificar se é o responsável
+        if (
+          !(await hasPermission(user, 'processos:ler_todos')) &&
+          p.responsavelId !== user.id
+        ) {
+          return error(res, 'Permissão insuficiente: prazo não atribuído a você.', 403);
+        }
         return json(res, p);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'processos:editar'))) return;
-        const body = JSON.parse(await readBody(req)) as {
-          status: 'pendente' | 'cumprido' | 'perdido';
-        };
-        await getPrazoService().atualizarStatus(id, body.status);
+        const body = JSON.parse(await readBody(req));
+        await getPrazoService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
-        if (!(await requirePermission(res, user, 'processos:editar'))) return;
+        if (!(await requirePermission(res, user, 'processos:excluir'))) return;
         await getPrazoService().excluir(id);
         return json(res, { ok: true });
       }
@@ -562,6 +660,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Configurações ---
     if (path === '/api/configuracoes' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       return json(res, {
         topologia: config.topologia,
@@ -578,7 +677,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, { ok: true });
     }
 
-    // --- Dashboard stats ---
+    // --- Dashboard stats --- (qualquer usuário autenticado pode ver)
     if (path === '/api/dashboard' && method === 'GET') {
       const s = getAppSchema();
       const dbq = getDb();

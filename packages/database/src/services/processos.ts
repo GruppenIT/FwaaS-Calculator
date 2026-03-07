@@ -77,8 +77,15 @@ export class ProcessoService {
     return query;
   }
 
-  async buscar(termo: string) {
+  async buscar(termo: string, filtros?: { advogadoId?: string; status?: string }) {
     const pattern = `%${termo}%`;
+    const conditions = [or(like(this.processos.numeroCnj, pattern), like(this.clientes.nome, pattern))];
+    if (filtros?.advogadoId) {
+      conditions.push(eq(this.processos.advogadoResponsavelId, filtros.advogadoId));
+    }
+    if (filtros?.status) {
+      conditions.push(eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'));
+    }
     return (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.processos.id,
@@ -97,7 +104,7 @@ export class ProcessoService {
       .from(this.processos)
       .leftJoin(this.clientes, eq(this.processos.clienteId, this.clientes.id))
       .leftJoin(this.users, eq(this.processos.advogadoResponsavelId, this.users.id))
-      .where(or(like(this.processos.numeroCnj, pattern), like(this.clientes.nome, pattern)));
+      .where(and(...conditions));
   }
 
   async obterPorId(id: string) {
@@ -117,8 +124,21 @@ export class ProcessoService {
 
   async listarPrazos(processoId: string) {
     return (this.db as unknown as DatabaseQueryBuilder)
-      .select()
+      .select({
+        id: this.prazos.id,
+        processoId: this.prazos.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        descricao: this.prazos.descricao,
+        dataFatal: this.prazos.dataFatal,
+        tipoPrazo: this.prazos.tipoPrazo,
+        status: this.prazos.status,
+        responsavelId: this.prazos.responsavelId,
+        responsavelNome: this.users.nome,
+        alertasEnviados: this.prazos.alertasEnviados,
+      })
       .from(this.prazos)
+      .leftJoin(this.processos, eq(this.prazos.processoId, this.processos.id))
+      .leftJoin(this.users, eq(this.prazos.responsavelId, this.users.id))
       .where(eq(this.prazos.processoId, processoId));
   }
 

@@ -1,8 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Clock, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, Trash2, Pencil, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { PrazoModal } from './prazo-modal';
+import type { PrazoEditData } from './prazo-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { PrazoRow } from '../../lib/api';
 
@@ -38,46 +44,74 @@ function diasRestantes(dataFatal: string): number {
 }
 
 export function PrazosPage() {
-  const [showModal, setShowModal] = useState(false);
+  const { can } = usePermission();
+  const { toast } = useToast();
+  const [modalData, setModalData] = useState<PrazoEditData | null | undefined>(undefined);
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
       const data = await api.listarPrazos(filtroStatus ? { status: filtroStatus } : undefined);
       setPrazos(data);
     } catch (err) {
-      console.error('Erro ao carregar prazos:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar prazos.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [filtroStatus]);
+  }, [filtroStatus, toast]);
 
   useEffect(() => {
     carregar();
   }, [carregar]);
 
-  function handleCreated() {
-    setShowModal(false);
+  const showModal = modalData !== undefined;
+
+  function handleSaved() {
+    const isEdit = !!modalData;
+    setModalData(undefined);
+    toast(isEdit ? 'Prazo atualizado com sucesso.' : 'Prazo criado com sucesso.', 'success');
     carregar();
+  }
+
+  function handleEdit(p: PrazoRow) {
+    setModalData({
+      id: p.id,
+      processoId: p.processoId,
+      numeroCnj: p.numeroCnj,
+      descricao: p.descricao,
+      dataFatal: p.dataFatal,
+      tipoPrazo: p.tipoPrazo,
+      status: p.status,
+      responsavelId: p.responsavelId,
+    });
   }
 
   async function handleStatusChange(id: string, status: 'cumprido' | 'perdido') {
     try {
       await api.atualizarStatusPrazo(id, status);
+      toast('Status atualizado.', 'success');
       carregar();
     } catch (err) {
-      console.error('Erro ao atualizar prazo:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao atualizar prazo.', 'error');
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
     try {
-      await api.excluirPrazo(id);
+      await api.excluirPrazo(deleteId);
+      toast('Prazo excluído.', 'success');
       carregar();
     } catch (err) {
-      console.error('Erro ao excluir prazo:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao excluir prazo.', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
     }
   }
 
@@ -87,10 +121,12 @@ export function PrazosPage() {
         title="Prazos"
         description="Prazos processuais e alertas"
         action={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} />
-            Novo prazo
-          </Button>
+          can('processos:editar') ? (
+            <Button onClick={() => setModalData(null)}>
+              <Plus size={16} />
+              Novo prazo
+            </Button>
+          ) : undefined
         }
       />
 
@@ -147,24 +183,13 @@ export function PrazosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={7} />
             ) : prazos.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
-                  <Clock
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum prazo encontrado.
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Clock}
+                message="Nenhum prazo encontrado."
+                colSpan={7}
+              />
             ) : (
               prazos.map((p) => {
                 const dias = diasRestantes(p.dataFatal);
@@ -218,7 +243,16 @@ export function PrazosPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {p.status === 'pendente' && (
+                        {can('processos:editar') && (
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(p)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        {p.status === 'pendente' && can('processos:editar') && (
                           <button
                             type="button"
                             onClick={() => handleStatusChange(p.id, 'cumprido')}
@@ -228,13 +262,15 @@ export function PrazosPage() {
                             <CheckCircle2 size={14} />
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(p.id)}
-                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {can('processos:excluir') && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteId(p.id)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -245,7 +281,23 @@ export function PrazosPage() {
         </table>
       </div>
 
-      {showModal && <PrazoModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+      {showModal && (
+        <PrazoModal
+          onClose={() => setModalData(undefined)}
+          onSaved={handleSaved}
+          editData={modalData}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Excluir prazo"
+        message="Tem certeza que deseja excluir este prazo? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        loading={deleting}
+      />
     </div>
   );
 }

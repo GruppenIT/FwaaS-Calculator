@@ -168,6 +168,18 @@ export function listarClientes(busca?: string) {
   >(`/api/clientes${q}`);
 }
 
+export function obterCliente(id: string) {
+  return request<{
+    id: string;
+    tipo: 'PF' | 'PJ';
+    nome: string;
+    cpfCnpj: string | null;
+    email: string | null;
+    telefone: string | null;
+    createdAt: string;
+  }>(`/api/clientes/${id}`);
+}
+
 export function criarCliente(data: {
   tipo: 'PF' | 'PJ';
   nome: string;
@@ -177,6 +189,22 @@ export function criarCliente(data: {
 }) {
   return request<{ id: string }>('/api/clientes', {
     method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarCliente(
+  id: string,
+  data: Partial<{
+    tipo: 'PF' | 'PJ';
+    nome: string;
+    cpfCnpj: string;
+    email: string;
+    telefone: string;
+  }>,
+) {
+  return request<{ ok: boolean }>(`/api/clientes/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(data),
   });
 }
@@ -206,6 +234,33 @@ export function listarProcessos(busca?: string) {
       createdAt: string;
     }>
   >(`/api/processos${q}`);
+}
+
+export interface ProcessoDetail {
+  id: string;
+  numeroCnj: string;
+  clienteId: string | null;
+  advogadoResponsavelId: string | null;
+  tribunalSigla: string;
+  plataforma: string;
+  area: string;
+  fase: string;
+  status: 'ativo' | 'arquivado' | 'encerrado';
+  valorCausa: number | null;
+  ultimoSyncAt: string | null;
+  createdAt: string;
+}
+
+export function obterProcesso(id: string) {
+  return request<ProcessoDetail>(`/api/processos/${id}`);
+}
+
+export function listarPrazosDoProcesso(processoId: string) {
+  return request<PrazoRow[]>(`/api/processos/${processoId}/prazos`);
+}
+
+export function listarHonorariosDoProcesso(processoId: string) {
+  return request<HonorarioRow[]>(`/api/processos/${processoId}/honorarios`);
 }
 
 export function criarProcesso(data: {
@@ -248,6 +303,22 @@ export function excluirProcesso(id: string) {
   return request<{ ok: boolean }>(`/api/processos/${id}`, {
     method: 'DELETE',
   });
+}
+
+// === Movimentações ===
+export function listarMovimentacoes(processoId: string) {
+  return request<
+    Array<{
+      id: string;
+      processoId: string;
+      dataMovimento: string;
+      descricao: string;
+      tipo: string;
+      origem: string;
+      lido: boolean;
+      createdAt: string;
+    }>
+  >(`/api/processos/${processoId}/movimentacoes`);
 }
 
 // === Usuarios ===
@@ -297,6 +368,12 @@ export function atualizarUsuario(
   });
 }
 
+export function desativarUsuario(id: string) {
+  return request<{ ok: boolean }>(`/api/usuarios/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export function listarRoles() {
   return request<Array<{ id: string; nome: string }>>('/api/roles');
 }
@@ -334,14 +411,30 @@ export function criarHonorario(data: {
   });
 }
 
+export function atualizarHonorario(
+  id: string,
+  data: Partial<{
+    processoId: string;
+    clienteId: string;
+    tipo: 'fixo' | 'exito' | 'por_hora';
+    valor: number;
+    percentualExito: number;
+    vencimento: string;
+    status: 'pendente' | 'recebido' | 'inadimplente';
+  }>,
+) {
+  return request<{ ok: boolean }>(`/api/honorarios/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/** @deprecated Use atualizarHonorario instead */
 export function atualizarStatusHonorario(
   id: string,
   status: 'pendente' | 'recebido' | 'inadimplente',
 ) {
-  return request<{ ok: boolean }>(`/api/honorarios/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({ status }),
-  });
+  return atualizarHonorario(id, { status });
 }
 
 export function excluirHonorario(id: string) {
@@ -446,11 +539,25 @@ export function criarPrazo(data: {
   });
 }
 
-export function atualizarStatusPrazo(id: string, status: 'pendente' | 'cumprido' | 'perdido') {
+export function atualizarPrazo(
+  id: string,
+  data: Partial<{
+    descricao: string;
+    dataFatal: string;
+    tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
+    responsavelId: string;
+    status: 'pendente' | 'cumprido' | 'perdido';
+  }>,
+) {
   return request<{ ok: boolean }>(`/api/prazos/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(data),
   });
+}
+
+/** @deprecated Use atualizarPrazo instead */
+export function atualizarStatusPrazo(id: string, status: 'pendente' | 'cumprido' | 'perdido') {
+  return atualizarPrazo(id, { status });
 }
 
 export function excluirPrazo(id: string) {

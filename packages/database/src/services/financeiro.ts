@@ -41,8 +41,8 @@ export class FinanceiroService {
     return id;
   }
 
-  async listar() {
-    return (this.db as unknown as DatabaseQueryBuilder)
+  async listar(advogadoId?: string) {
+    const query = (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.honorarios.id,
         processoId: this.honorarios.processoId,
@@ -59,6 +59,32 @@ export class FinanceiroService {
       .from(this.honorarios)
       .leftJoin(this.processos, eq(this.honorarios.processoId, this.processos.id))
       .leftJoin(this.clientes, eq(this.honorarios.clienteId, this.clientes.id));
+
+    if (advogadoId) {
+      return query.where(eq(this.processos.advogadoResponsavelId, advogadoId));
+    }
+    return query;
+  }
+
+  async listarPorProcesso(processoId: string) {
+    return (this.db as unknown as DatabaseQueryBuilder)
+      .select({
+        id: this.honorarios.id,
+        processoId: this.honorarios.processoId,
+        numeroCnj: this.processos.numeroCnj,
+        clienteId: this.honorarios.clienteId,
+        clienteNome: this.clientes.nome,
+        tipo: this.honorarios.tipo,
+        valor: this.honorarios.valor,
+        percentualExito: this.honorarios.percentualExito,
+        status: this.honorarios.status,
+        vencimento: this.honorarios.vencimento,
+        createdAt: this.honorarios.createdAt,
+      })
+      .from(this.honorarios)
+      .leftJoin(this.processos, eq(this.honorarios.processoId, this.processos.id))
+      .leftJoin(this.clientes, eq(this.honorarios.clienteId, this.clientes.id))
+      .where(eq(this.honorarios.processoId, processoId));
   }
 
   async obterPorId(id: string) {
@@ -83,10 +109,18 @@ export class FinanceiroService {
     return row ?? undefined;
   }
 
-  async atualizarStatus(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
+  async atualizar(id: string, input: Partial<CreateHonorarioInput> & { status?: 'pendente' | 'recebido' | 'inadimplente' }) {
     await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.honorarios)
-      .set({ status })
+      .set({
+        ...(input.processoId !== undefined ? { processoId: input.processoId ?? null } : {}),
+        ...(input.clienteId !== undefined ? { clienteId: input.clienteId ?? null } : {}),
+        ...(input.tipo !== undefined ? { tipo: input.tipo } : {}),
+        ...(input.valor !== undefined ? { valor: input.valor } : {}),
+        ...(input.percentualExito !== undefined ? { percentualExito: input.percentualExito ?? null } : {}),
+        ...(input.vencimento !== undefined ? { vencimento: input.vencimento ?? null } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+      })
       .where(eq(this.honorarios.id, id));
   }
 

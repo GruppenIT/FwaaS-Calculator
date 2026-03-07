@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import * as api from '../../lib/api';
@@ -61,21 +61,7 @@ export function EventoModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-
-      <div className="relative bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-md)] border border-[var(--color-border)] w-full max-w-lg p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg-causa text-[var(--color-text)]">Novo evento</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
+    <Modal open title="Novo evento" onClose={onClose} size="lg">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             label="Título"
@@ -145,7 +131,6 @@ export function EventoModal({ onClose, onCreated }: Props) {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

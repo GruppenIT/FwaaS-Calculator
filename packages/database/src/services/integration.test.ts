@@ -288,7 +288,7 @@ describe('Integração: setup → login → CRUD', () => {
   });
 
   it('atualiza status do prazo', async () => {
-    await prazoService.atualizarStatus(prazoId, 'cumprido');
+    await prazoService.atualizar(prazoId, { status: 'cumprido' });
     const updated = await prazoService.obterPorId(prazoId);
     expect((updated as Record<string, unknown>)?.status).toBe('cumprido');
   });
@@ -326,7 +326,7 @@ describe('Integração: setup → login → CRUD', () => {
   });
 
   it('atualiza status do honorário', async () => {
-    await financeiroService.atualizarStatus(honorarioId, 'recebido');
+    await financeiroService.atualizar(honorarioId, { status: 'recebido' });
     const updated = await financeiroService.obterPorId(honorarioId);
     expect((updated as Record<string, unknown>)?.status).toBe('recebido');
   });

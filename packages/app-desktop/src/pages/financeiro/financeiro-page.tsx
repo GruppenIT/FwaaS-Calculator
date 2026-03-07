@@ -1,8 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, DollarSign, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Plus, DollarSign, Pencil, Trash2, Download, X } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { HonorarioModal } from './honorario-modal';
+import type { HonorarioEditData } from './honorario-modal';
+import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { HonorarioRow } from '../../lib/api';
 
@@ -12,18 +18,16 @@ const TIPO_LABELS: Record<string, string> = {
   por_hora: 'Por hora',
 };
 
-const STATUS_CONFIG = {
-  pendente: { label: 'Pendente', style: 'bg-causa-warning/10 text-causa-warning', icon: Clock },
-  recebido: {
-    label: 'Recebido',
-    style: 'bg-causa-success/10 text-causa-success',
-    icon: CheckCircle,
-  },
-  inadimplente: {
-    label: 'Inadimplente',
-    style: 'bg-causa-danger/10 text-causa-danger',
-    icon: AlertTriangle,
-  },
+const STATUS_STYLES: Record<string, string> = {
+  pendente: 'bg-causa-warning/10 text-causa-warning',
+  recebido: 'bg-causa-success/10 text-causa-success',
+  inadimplente: 'bg-causa-danger/10 text-causa-danger',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  pendente: 'Pendente',
+  recebido: 'Recebido',
+  inadimplente: 'Inadimplente',
 };
 
 function formatCurrency(value: number): string {
@@ -37,46 +41,124 @@ function formatDate(iso: string | null): string {
 }
 
 export function FinanceiroPage() {
-  const [showModal, setShowModal] = useState(false);
+  const { can } = usePermission();
+  const { toast } = useToast();
+  const [modalData, setModalData] = useState<HonorarioEditData | null | undefined>(undefined);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [periodoInicio, setPeriodoInicio] = useState('');
+  const [periodoFim, setPeriodoFim] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('');
+
+  const showModal = modalData !== undefined;
+
+  // Client-side filters
+  const filtrados = honorarios.filter((h) => {
+    if (filtroStatus && h.status !== filtroStatus) return false;
+    if (periodoInicio) {
+      if (!h.vencimento) return false;
+      if (h.vencimento < periodoInicio) return false;
+    }
+    if (periodoFim) {
+      if (!h.vencimento) return false;
+      if (h.vencimento > periodoFim) return false;
+    }
+    return true;
+  });
+
+  const hasFilters = !!filtroStatus || !!periodoInicio || !!periodoFim;
 
   const carregar = useCallback(async () => {
     try {
       const data = await api.listarHonorarios();
       setHonorarios(data);
     } catch (err) {
-      console.error('Erro ao carregar honorários:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar honorários.', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     carregar();
   }, [carregar]);
 
-  function handleCreated() {
-    setShowModal(false);
+  function handleSaved() {
+    const isEdit = !!modalData;
+    setModalData(undefined);
+    toast(isEdit ? 'Honorário atualizado com sucesso.' : 'Honorário registrado com sucesso.', 'success');
     carregar();
+  }
+
+  function handleEdit(h: HonorarioRow) {
+    setModalData({
+      id: h.id,
+      clienteId: h.clienteId,
+      clienteNome: h.clienteNome,
+      processoId: h.processoId,
+      numeroCnj: h.numeroCnj,
+      tipo: h.tipo,
+      valor: h.valor,
+      percentualExito: h.percentualExito,
+      vencimento: h.vencimento,
+      status: h.status,
+    });
   }
 
   async function handleStatusChange(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
     try {
-      await api.atualizarStatusHonorario(id, status);
+      await api.atualizarHonorario(id, { status });
+      toast('Status atualizado.', 'success');
       carregar();
     } catch (err) {
-      console.error('Erro ao atualizar status:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao atualizar status.', 'error');
     }
   }
 
-  const totalPendente = honorarios
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await api.excluirHonorario(deleteId);
+      toast('Honorário excluído.', 'success');
+      carregar();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao excluir honorário.', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
+  }
+
+  function exportCsv() {
+    const header = ['Cliente', 'Processo', 'Tipo', 'Valor', 'Vencimento', 'Status'];
+    const lines = filtrados.map((h) => [
+      h.clienteNome ?? '',
+      h.numeroCnj ?? '',
+      TIPO_LABELS[h.tipo] ?? h.tipo,
+      h.valor.toFixed(2),
+      h.vencimento ?? '',
+      STATUS_LABELS[h.status] ?? h.status,
+    ]);
+    const csv = [header, ...lines].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'honorarios.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const totalPendente = filtrados
     .filter((h) => h.status === 'pendente')
     .reduce((s, h) => s + h.valor, 0);
-  const totalRecebido = honorarios
+  const totalRecebido = filtrados
     .filter((h) => h.status === 'recebido')
     .reduce((s, h) => s + h.valor, 0);
-  const totalInadimplente = honorarios
+  const totalInadimplente = filtrados
     .filter((h) => h.status === 'inadimplente')
     .reduce((s, h) => s + h.valor, 0);
 
@@ -86,12 +168,65 @@ export function FinanceiroPage() {
         title="Honorários"
         description="Controle financeiro do escritório"
         action={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} />
-            Novo honorário
-          </Button>
+          can('financeiro:editar') ? (
+            <Button onClick={() => setModalData(null)}>
+              <Plus size={16} />
+              Novo honorário
+            </Button>
+          ) : undefined
         }
       />
+
+      {/* Filtros */}
+      <div className="flex items-center gap-3 mb-4">
+        <select
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa cursor-pointer"
+        >
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="recebido">Recebido</option>
+          <option value="inadimplente">Inadimplente</option>
+        </select>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm-causa text-[var(--color-text-muted)]">De</span>
+          <input
+            type="date"
+            value={periodoInicio}
+            onChange={(e) => setPeriodoInicio(e.target.value)}
+            className="h-9 px-2 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa"
+          />
+          <span className="text-sm-causa text-[var(--color-text-muted)]">até</span>
+          <input
+            type="date"
+            value={periodoFim}
+            onChange={(e) => setPeriodoFim(e.target.value)}
+            className="h-9 px-2 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa"
+          />
+        </div>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => { setFiltroStatus(''); setPeriodoInicio(''); setPeriodoFim(''); }}
+            className="h-9 px-2 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
+            title="Limpar filtros"
+          >
+            <X size={16} />
+          </button>
+        )}
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={exportCsv}
+          disabled={filtrados.length === 0}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)] text-sm-causa hover:bg-causa-surface-alt transition-causa cursor-pointer disabled:opacity-50 disabled:cursor-default flex items-center gap-1.5"
+          title="Exportar CSV"
+        >
+          <Download size={14} />
+          CSV
+        </button>
+      </div>
 
       {/* Resumo */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -138,32 +273,20 @@ export function FinanceiroPage() {
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
                 Status
               </th>
+              <th className="w-20"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
-            ) : honorarios.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <DollarSign
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum honorário cadastrado. Comece registrando seus honorários.
-                  </p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={7} />
+            ) : filtrados.length === 0 ? (
+              <EmptyState
+                icon={DollarSign}
+                message="Nenhum honorário cadastrado. Comece registrando seus honorários."
+                colSpan={7}
+              />
             ) : (
-              honorarios.map((h) => {
-                const statusCfg =
-                  STATUS_CONFIG[h.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pendente;
+              filtrados.map((h) => {
                 return (
                   <tr
                     key={h.id}
@@ -196,12 +319,35 @@ export function FinanceiroPage() {
                             e.target.value as 'pendente' | 'recebido' | 'inadimplente',
                           )
                         }
-                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 cursor-pointer ${statusCfg.style}`}
+                        disabled={!can('financeiro:editar')}
+                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 ${can('financeiro:editar') ? 'cursor-pointer' : 'cursor-default opacity-75'} ${STATUS_STYLES[h.status] ?? ''}`}
                       >
                         <option value="pendente">Pendente</option>
                         <option value="recebido">Recebido</option>
                         <option value="inadimplente">Inadimplente</option>
                       </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        {can('financeiro:editar') && (
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(h)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        {can('financeiro:excluir') && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteId(h.id)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -212,8 +358,22 @@ export function FinanceiroPage() {
       </div>
 
       {showModal && (
-        <HonorarioModal onClose={() => setShowModal(false)} onCreated={handleCreated} />
+        <HonorarioModal
+          onClose={() => setModalData(undefined)}
+          onSaved={handleSaved}
+          editData={modalData}
+        />
       )}
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Excluir honorário"
+        message="Tem certeza que deseja excluir este honorário? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        loading={deleting}
+      />
     </div>
   );
 }

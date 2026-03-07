@@ -97,10 +97,16 @@ export class PrazoService {
     return row ?? undefined;
   }
 
-  async atualizarStatus(id: string, status: 'pendente' | 'cumprido' | 'perdido') {
+  async atualizar(id: string, input: Partial<CreatePrazoInput> & { status?: 'pendente' | 'cumprido' | 'perdido' }) {
     await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.prazos)
-      .set({ status })
+      .set({
+        ...(input.descricao !== undefined ? { descricao: input.descricao } : {}),
+        ...(input.dataFatal !== undefined ? { dataFatal: input.dataFatal } : {}),
+        ...(input.tipoPrazo !== undefined ? { tipoPrazo: input.tipoPrazo } : {}),
+        ...(input.responsavelId !== undefined ? { responsavelId: input.responsavelId } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+      })
       .where(eq(this.prazos.id, id));
   }
 

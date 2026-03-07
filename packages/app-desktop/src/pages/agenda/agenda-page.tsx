@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Calendar, Trash2 } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { EventoModal } from './evento-modal';
 import * as api from '../../lib/api';
 import type { AgendaRow } from '../../lib/api';
@@ -30,20 +34,23 @@ function formatDateTime(iso: string): string {
 }
 
 export function AgendaPage() {
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [eventos, setEventos] = useState<AgendaRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
       const data = await api.listarAgenda();
       setEventos(data);
     } catch (err) {
-      console.error('Erro ao carregar agenda:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar agenda.', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     carregar();
@@ -51,15 +58,22 @@ export function AgendaPage() {
 
   function handleCreated() {
     setShowModal(false);
+    toast('Evento criado com sucesso.', 'success');
     carregar();
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
     try {
-      await api.excluirEvento(id);
+      await api.excluirEvento(deleteId);
+      toast('Evento excluído.', 'success');
       carregar();
     } catch (err) {
-      console.error('Erro ao excluir evento:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao excluir evento.', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
     }
   }
 
@@ -100,24 +114,13 @@ export function AgendaPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={6} />
             ) : eventos.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <Calendar
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum evento cadastrado. Crie seu primeiro evento.
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Calendar}
+                message="Nenhum evento cadastrado. Crie seu primeiro evento."
+                colSpan={6}
+              />
             ) : (
               eventos.map((e) => (
                 <tr
@@ -146,7 +149,7 @@ export function AgendaPage() {
                   <td className="px-4 py-3">
                     <button
                       type="button"
-                      onClick={() => handleDelete(e.id)}
+                      onClick={() => setDeleteId(e.id)}
                       className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
                     >
                       <Trash2 size={14} />
@@ -160,6 +163,16 @@ export function AgendaPage() {
       </div>
 
       {showModal && <EventoModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Excluir evento"
+        message="Tem certeza que deseja excluir este evento? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        loading={deleting}
+      />
     </div>
   );
 }

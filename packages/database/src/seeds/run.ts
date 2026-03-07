@@ -61,6 +61,8 @@ const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   'financeiro:editar': 'Editar dados financeiros',
   'clientes:criar': 'Cadastrar novos clientes',
   'clientes:ler_todos': 'Visualizar todos os clientes',
+  'clientes:editar': 'Editar dados de clientes',
+  'clientes:excluir': 'Excluir clientes',
   'usuarios:gerenciar': 'Gerenciar usuários do sistema',
   'licenca:gerenciar': 'Gerenciar licença do software',
   'relatorios:gerenciar': 'Acessar relatórios financeiros',

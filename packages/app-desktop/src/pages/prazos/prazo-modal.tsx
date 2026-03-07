@@ -1,13 +1,26 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import { X, Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useAuth } from '../../lib/auth-context';
 import * as api from '../../lib/api';
 
+export interface PrazoEditData {
+  id: string;
+  processoId: string;
+  numeroCnj: string | null;
+  descricao: string;
+  dataFatal: string;
+  tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
+  status: 'pendente' | 'cumprido' | 'perdido';
+  responsavelId: string;
+}
+
 interface Props {
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  editData?: PrazoEditData | null;
 }
 
 interface ProcessoOption {
@@ -23,20 +36,22 @@ const TIPOS_PRAZO = [
   { value: 'outros', label: 'Outros' },
 ];
 
-export function PrazoModal({ onClose, onCreated }: Props) {
+export function PrazoModal({ onClose, onSaved, editData }: Props) {
+  const isEdit = !!editData;
   const { user } = useAuth();
   const [form, setForm] = useState({
-    processoId: '',
-    descricao: '',
-    dataFatal: '',
-    tipoPrazo: 'ncpc' as 'ncpc' | 'clt' | 'jec' | 'outros',
+    processoId: editData?.processoId ?? '',
+    descricao: editData?.descricao ?? '',
+    dataFatal: editData?.dataFatal ?? '',
+    tipoPrazo: (editData?.tipoPrazo ?? 'ncpc') as 'ncpc' | 'clt' | 'jec' | 'outros',
+    status: (editData?.status ?? 'pendente') as 'pendente' | 'cumprido' | 'perdido',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   // Processo autocomplete
   const [processoBusca, setProcessoBusca] = useState('');
-  const [processoLabel, setProcessoLabel] = useState('');
+  const [processoLabel, setProcessoLabel] = useState(editData?.numeroCnj ?? '');
   const [processoOptions, setProcessoOptions] = useState<ProcessoOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -91,14 +106,24 @@ export function PrazoModal({ onClose, onCreated }: Props) {
 
     setLoading(true);
     try {
-      await api.criarPrazo({
-        processoId: form.processoId,
-        descricao: form.descricao,
-        dataFatal: form.dataFatal,
-        tipoPrazo: form.tipoPrazo,
-        responsavelId: user?.id ?? '',
-      });
-      onCreated();
+      if (isEdit) {
+        await api.atualizarPrazo(editData.id, {
+          descricao: form.descricao,
+          dataFatal: form.dataFatal,
+          tipoPrazo: form.tipoPrazo,
+          status: form.status,
+          responsavelId: user?.id ?? '',
+        });
+      } else {
+        await api.criarPrazo({
+          processoId: form.processoId,
+          descricao: form.descricao,
+          dataFatal: form.dataFatal,
+          tipoPrazo: form.tipoPrazo,
+          responsavelId: user?.id ?? '',
+        });
+      }
+      onSaved();
     } catch (err) {
       setErrors({ geral: err instanceof Error ? err.message : 'Erro ao cadastrar.' });
     } finally {
@@ -111,21 +136,7 @@ export function PrazoModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-
-      <div className="relative bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-md)] border border-[var(--color-border)] w-full max-w-lg p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg-causa text-[var(--color-text)]">Novo prazo</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
+    <Modal open title={isEdit ? 'Editar prazo' : 'Novo prazo'} onClose={onClose} size="lg">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Processo autocomplete */}
           <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
@@ -227,6 +238,23 @@ export function PrazoModal({ onClose, onCreated }: Props) {
             </div>
           </div>
 
+          {isEdit && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Status
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) => update('status', e.target.value)}
+                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+              >
+                <option value="pendente">Pendente</option>
+                <option value="cumprido">Cumprido</option>
+                <option value="perdido">Perdido</option>
+              </select>
+            </div>
+          )}
+
           {errors.geral && (
             <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
               {errors.geral}
@@ -244,11 +272,10 @@ export function PrazoModal({ onClose, onCreated }: Props) {
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Salvando...' : 'Criar prazo'}
+              {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar prazo'}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

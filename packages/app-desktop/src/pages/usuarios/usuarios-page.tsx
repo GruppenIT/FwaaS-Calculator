@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Shield } from 'lucide-react';
+import { Plus, Shield, UserX } from 'lucide-react';
+import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { UsuarioModal } from './usuario-modal';
 import * as api from '../../lib/api';
 
@@ -26,20 +30,23 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function UsuariosPage() {
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [usuarios, setUsuarios] = useState<UsuarioRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deactivateId, setDeactivateId] = useState<string | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
       const data = await api.listarUsuarios();
       setUsuarios(data);
     } catch (err) {
-      console.error('Erro ao carregar usuários:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar usuários.', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     carregar();
@@ -47,7 +54,23 @@ export function UsuariosPage() {
 
   function handleCreated() {
     setShowModal(false);
+    toast('Usuário criado com sucesso.', 'success');
     carregar();
+  }
+
+  async function handleDeactivate() {
+    if (!deactivateId) return;
+    setDeactivating(true);
+    try {
+      await api.desativarUsuario(deactivateId);
+      toast('Usuário desativado.', 'success');
+      carregar();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao desativar usuário.', 'error');
+    } finally {
+      setDeactivating(false);
+      setDeactivateId(null);
+    }
   }
 
   return (
@@ -83,28 +106,18 @@ export function UsuariosPage() {
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
                 Status
               </th>
+              <th className="w-10"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={6} />
             ) : usuarios.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
-                  <Shield
-                    size={32}
-                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-                    strokeWidth={1}
-                  />
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    Nenhum usuário cadastrado além do administrador.
-                  </p>
-                </td>
-              </tr>
+              <EmptyState
+                icon={Shield}
+                message="Nenhum usuário cadastrado além do administrador."
+                colSpan={6}
+              />
             ) : (
               usuarios.map((user) => (
                 <tr
@@ -136,6 +149,18 @@ export function UsuariosPage() {
                       {user.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    {user.ativo && user.role !== 'admin' && (
+                      <button
+                        type="button"
+                        onClick={() => setDeactivateId(user.id)}
+                        title="Desativar usuário"
+                        className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+                      >
+                        <UserX size={14} />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))
             )}
@@ -144,6 +169,16 @@ export function UsuariosPage() {
       </div>
 
       {showModal && <UsuarioModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+
+      <ConfirmDialog
+        open={!!deactivateId}
+        onClose={() => setDeactivateId(null)}
+        onConfirm={handleDeactivate}
+        title="Desativar usuário"
+        message="Tem certeza que deseja desativar este usuário? Ele perderá acesso ao sistema."
+        confirmLabel="Desativar"
+        loading={deactivating}
+      />
     </div>
   );
 }
