@@ -1,6 +1,6 @@
 appId: "br.com.causa.erp"
 productName: "CAUSA"
-copyright: "Copyright © 2026 CAUSA"
+copyright: "Copyright © 2026 CAUSA SISTEMAS LTDA. Todos os direitos reservados."
 
 directories:
   output: "../../dist-installer"
@@ -29,6 +29,8 @@ win:
         - x64
   icon: "resources/CAUSA_icon.ico"
   artifactName: "CAUSA-Setup-${version}.${ext}"
+  publisherName: "CAUSA SISTEMAS LTDA"
+  legalTrademarks: "© 2026 CAUSA SISTEMAS LTDA. Todos os direitos reservados."
 
 nsis:
   oneClick: false
@@ -40,6 +42,8 @@ nsis:
   include: "nsis/installer.nsh"
   artifactName: "CAUSA-Setup-${version}.${ext}"
   shortcutName: "CAUSA - A sua causa, no seu escritório"
-  menuCategory: "CAUSA"
+  menuCategory: "CAUSA SISTEMAS"
   uninstallDisplayName: "CAUSA - A sua causa, no seu escritório"
   perMachine: true
+  installerSidebar: null
+  unicode: true

@@ -1,29 +1,54 @@
-CAUSA — ERP Jurídico On-Premise
+CAUSA - ERP Juridico On-Premise
+Termos de Uso e Licenca de Software
 
-Licença de Uso
+CAUSA SISTEMAS LTDA
+CNPJ: [A definir]
 
-Este software é propriedade de seus desenvolvedores e é licenciado, não vendido.
-Ao instalar e utilizar este software, você concorda com os termos desta licença.
+Ao instalar e utilizar este software, voce concorda com os termos abaixo.
 
-1. CONCESSÃO DE LICENÇA
-   O licenciante concede ao licenciado uma licença não exclusiva e intransferível
-   para instalar e utilizar o software CAUSA em conformidade com o plano contratado.
+1. CONCESSAO DE LICENCA
+   A CAUSA SISTEMAS LTDA ("Licenciante") concede ao usuario ("Licenciado")
+   uma licenca nao exclusiva, intransferivel e revogavel para instalar e
+   utilizar o software CAUSA em conformidade com o plano contratado.
+   Esta licenca nao implica transferencia de propriedade intelectual.
 
-2. RESTRIÇÕES
-   O licenciado não poderá: (a) sublicenciar, vender ou redistribuir o software;
-   (b) modificar, descompilar ou realizar engenharia reversa; (c) remover
-   notificações de direitos autorais.
+2. PROPRIEDADE INTELECTUAL
+   O software CAUSA, incluindo seu codigo-fonte, interface, documentacao
+   e marca, sao propriedade exclusiva da CAUSA SISTEMAS LTDA, protegidos
+   pela legislacao brasileira de direitos autorais (Lei 9.610/98) e de
+   software (Lei 9.609/98).
 
-3. PRIVACIDADE E DADOS
-   O CAUSA opera 100% on-premise. Nenhum dado do escritório é enviado para
-   servidores externos. Todo o armazenamento é local (SQLite) ou em servidor
-   PostgreSQL na rede local do escritório.
+3. RESTRICOES
+   O Licenciado NAO podera:
+   (a) sublicenciar, vender, alugar ou redistribuir o software;
+   (b) modificar, descompilar, desmontar ou realizar engenharia reversa;
+   (c) remover ou alterar avisos de direitos autorais ou marcas;
+   (d) utilizar o software para fins ilicitos ou em desacordo com a lei.
 
-4. SUPORTE
-   O suporte técnico está disponível conforme o plano contratado.
+4. PRIVACIDADE E DADOS
+   O CAUSA opera 100% on-premise. NENHUM dado do escritorio e enviado
+   para servidores externos. Todo o armazenamento e local (SQLite) ou
+   em servidor PostgreSQL na rede do proprio escritorio. A CAUSA SISTEMAS
+   LTDA nao tem acesso aos dados dos usuarios.
 
-5. LIMITAÇÃO DE RESPONSABILIDADE
-   O software é fornecido "como está". Os desenvolvedores não se responsabilizam
-   por danos diretos ou indiretos decorrentes do uso do software.
+5. SUPORTE TECNICO
+   O suporte tecnico esta disponivel conforme o plano contratado.
+   Atualizacoes de seguranca sao fornecidas gratuitamente durante
+   a vigencia da licenca.
 
-© 2026 CAUSA. Todos os direitos reservados.
+6. LIMITACAO DE RESPONSABILIDADE
+   O software e fornecido "como esta" (as is). A CAUSA SISTEMAS LTDA
+   nao se responsabiliza por danos diretos, indiretos, incidentais ou
+   consequenciais decorrentes do uso ou impossibilidade de uso do software,
+   incluindo perda de dados, na extensao maxima permitida pela lei.
+
+7. VIGENCIA E RESCISAO
+   Esta licenca vigora enquanto o plano estiver ativo. O descumprimento
+   de qualquer clausula resulta em rescisao automatica, devendo o
+   Licenciado cessar o uso e desinstalar o software.
+
+8. FORO
+   Fica eleito o foro da comarca de [cidade/estado], Brasil, para
+   dirimir quaisquer controversias decorrentes deste contrato.
+
+(C) 2026 CAUSA SISTEMAS LTDA. Todos os direitos reservados.
