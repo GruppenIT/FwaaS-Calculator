@@ -218,6 +218,52 @@ export function listarRoles() {
   return request<Array<{ id: string; nome: string }>>('/api/roles');
 }
 
+// === Honorários ===
+export interface HonorarioRow {
+  id: string;
+  processoId: string | null;
+  numeroCnj: string | null;
+  clienteId: string | null;
+  clienteNome: string | null;
+  tipo: 'fixo' | 'exito' | 'por_hora';
+  valor: number;
+  percentualExito: number | null;
+  status: 'pendente' | 'recebido' | 'inadimplente';
+  vencimento: string | null;
+  createdAt: string;
+}
+
+export function listarHonorarios() {
+  return request<HonorarioRow[]>('/api/honorarios');
+}
+
+export function criarHonorario(data: {
+  processoId?: string;
+  clienteId?: string;
+  tipo: 'fixo' | 'exito' | 'por_hora';
+  valor: number;
+  percentualExito?: number;
+  vencimento?: string;
+}) {
+  return request<{ id: string }>('/api/honorarios', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarStatusHonorario(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
+  return request<{ ok: boolean }>(`/api/honorarios/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function excluirHonorario(id: string) {
+  return request<{ ok: boolean }>(`/api/honorarios/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // === Dashboard ===
 export function getDashboardStats() {
   return request<{
@@ -225,5 +271,6 @@ export function getDashboardStats() {
     clientes: number;
     prazosPendentes: number;
     prazosFatais: number;
+    honorariosPendentes: number;
   }>('/api/dashboard');
 }

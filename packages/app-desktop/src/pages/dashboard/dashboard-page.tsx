@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Briefcase, Clock, AlertTriangle, Users } from 'lucide-react';
+import { Briefcase, Clock, AlertTriangle, Users, DollarSign } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import * as api from '../../lib/api';
 
@@ -32,6 +32,7 @@ export function DashboardPage() {
     clientes: 0,
     prazosPendentes: 0,
     prazosFatais: 0,
+    honorariosPendentes: 0,
   });
 
   useEffect(() => {
@@ -49,7 +50,7 @@ export function DashboardPage() {
         description="Visão geral do escritório"
       />
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-5 gap-4 mb-8">
         <StatCard
           icon={Briefcase}
           label="Processos ativos"
@@ -73,6 +74,12 @@ export function DashboardPage() {
           label="Clientes"
           value={stats.clientes}
           color="bg-causa-success/10 text-causa-success"
+        />
+        <StatCard
+          icon={DollarSign}
+          label="A receber"
+          value={stats.honorariosPendentes > 0 ? `R$ ${stats.honorariosPendentes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0'}
+          color="bg-causa-warning/10 text-causa-warning"
         />
       </div>
 

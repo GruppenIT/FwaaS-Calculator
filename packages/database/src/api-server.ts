@@ -3,12 +3,14 @@ import { createDatabase, type CausaDatabase } from './client';
 import { AuthService } from './services/auth';
 import { ClienteService } from './services/clientes';
 import { ProcessoService } from './services/processos';
+import { FinanceiroService } from './services/financeiro';
 import { setupDatabase, type SetupInput } from './services/setup';
 import { clientes } from './schema/clientes';
 import { processos, prazos } from './schema/processos';
+import { honorarios } from './schema/financeiro';
 import { users } from './schema/usuarios';
 import { roles } from './schema/rbac';
-import { count, eq } from 'drizzle-orm';
+import { count, eq, sum } from 'drizzle-orm';
 import fs from 'node:fs';
 
 const PORT = 3456;
@@ -25,6 +27,7 @@ let db: CausaDatabase | null = null;
 let authService: AuthService | null = null;
 let clienteService: ClienteService | null = null;
 let processoService: ProcessoService | null = null;
+let financeiroService: FinanceiroService | null = null;
 
 function loadApp(): boolean {
   if (db) return true;
@@ -35,6 +38,7 @@ function loadApp(): boolean {
   authService = new AuthService(db, config.jwtSecret);
   clienteService = new ClienteService(db);
   processoService = new ProcessoService(db);
+  financeiroService = new FinanceiroService(db);
   return true;
 }
 
@@ -127,6 +131,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       authService = new AuthService(db, result.jwtSecret);
       clienteService = new ClienteService(db);
       processoService = new ProcessoService(db);
+      financeiroService = new FinanceiroService(db);
 
       return json(res, { ok: true, adminId: result.adminId }, 201);
     }
@@ -262,17 +267,51 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, data);
     }
 
+    // --- Honorários ---
+    if (path === '/api/honorarios' && method === 'GET') {
+      const data = financeiroService!.listar();
+      return json(res, data);
+    }
+
+    if (path === '/api/honorarios' && method === 'POST') {
+      const body = JSON.parse(await readBody(req));
+      const id = financeiroService!.criar(body);
+      return json(res, { id }, 201);
+    }
+
+    const honorarioMatch = path.match(/^\/api\/honorarios\/([^/]+)$/);
+    if (honorarioMatch) {
+      const id = honorarioMatch[1]!;
+      if (method === 'GET') {
+        const h = financeiroService!.obterPorId(id);
+        if (!h) return error(res, 'Honorário não encontrado.', 404);
+        return json(res, h);
+      }
+      if (method === 'PUT') {
+        const body = JSON.parse(await readBody(req)) as { status: 'pendente' | 'recebido' | 'inadimplente' };
+        financeiroService!.atualizarStatus(id, body.status);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        financeiroService!.excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
     // --- Dashboard stats ---
     if (path === '/api/dashboard' && method === 'GET') {
       const [processosAtivos] = db!.select({ count: count() }).from(processos).where(eq(processos.status, 'ativo')).all();
       const [totalClientes] = db!.select({ count: count() }).from(clientes).all();
       const [prazosPendentes] = db!.select({ count: count() }).from(prazos).where(eq(prazos.status, 'pendente')).all();
 
+      const [honorariosPendentes] = db!.select({ total: sum(honorarios.valor) }).from(honorarios).where(eq(honorarios.status, 'pendente')).all();
+
       return json(res, {
         processosAtivos: processosAtivos?.count ?? 0,
         clientes: totalClientes?.count ?? 0,
         prazosPendentes: prazosPendentes?.count ?? 0,
         prazosFatais: 0,
+        honorariosPendentes: Number(honorariosPendentes?.total ?? 0),
       });
     }
 

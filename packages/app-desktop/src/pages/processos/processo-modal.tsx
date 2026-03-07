@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { X, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useAuth } from '../../lib/auth-context';
@@ -8,6 +8,12 @@ import * as api from '../../lib/api';
 interface Props {
   onClose: () => void;
   onCreated: () => void;
+}
+
+interface ClienteOption {
+  id: string;
+  nome: string;
+  cpfCnpj: string | null;
 }
 
 const AREAS = [
@@ -59,6 +65,46 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Cliente autocomplete state
+  const [clienteBusca, setClienteBusca] = useState('');
+  const [clienteNome, setClienteNome] = useState('');
+  const [clienteOptions, setClienteOptions] = useState<ClienteOption[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!clienteBusca || clienteBusca.length < 2) {
+      setClienteOptions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const data = await api.listarClientes(clienteBusca);
+        setClienteOptions(data.map((c) => ({ id: c.id, nome: c.nome, cpfCnpj: c.cpfCnpj })));
+      } catch {
+        setClienteOptions([]);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [clienteBusca]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  function selectCliente(c: ClienteOption) {
+    setForm((prev) => ({ ...prev, clienteId: c.id }));
+    setClienteNome(c.nome);
+    setClienteBusca('');
+    setShowDropdown(false);
+  }
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -125,13 +171,51 @@ export function ProcessoModal({ onClose, onCreated }: Props) {
             className="font-[var(--font-mono)]"
           />
 
-          {/* TODO: substituir por select/autocomplete de clientes reais */}
-          <Input
-            label="Cliente"
-            placeholder="Buscar cliente..."
-            value={form.clienteId}
-            onChange={(e) => update('clienteId', e.target.value)}
-          />
+          {/* Cliente autocomplete */}
+          <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Cliente</label>
+            {clienteNome ? (
+              <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
+                <span className="flex-1 text-base-causa text-[var(--color-text)]">{clienteNome}</span>
+                <button
+                  type="button"
+                  onClick={() => { setClienteNome(''); setForm((prev) => ({ ...prev, clienteId: '' })); }}
+                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <input
+                  type="text"
+                  placeholder="Buscar cliente por nome..."
+                  value={clienteBusca}
+                  onChange={(e) => { setClienteBusca(e.target.value); setShowDropdown(true); }}
+                  onFocus={() => clienteOptions.length > 0 && setShowDropdown(true)}
+                  className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
+                />
+                {showDropdown && clienteOptions.length > 0 && (
+                  <div className="absolute z-10 top-full mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-[var(--shadow-md)] max-h-40 overflow-auto">
+                    {clienteOptions.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => selectCliente(c)}
+                        className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer"
+                      >
+                        <span className="text-base-causa text-[var(--color-text)]">{c.nome}</span>
+                        {c.cpfCnpj && (
+                          <span className="ml-2 text-xs-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">{c.cpfCnpj}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Input
