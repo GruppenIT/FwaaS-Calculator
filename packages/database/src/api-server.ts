@@ -25,6 +25,7 @@ interface AppConfig {
   jwtSecret: string;
   topologia: 'solo' | 'escritorio';
   dbPath: string;
+  postgresUrl?: string;
 }
 
 let db: CausaDatabase | null = null;
@@ -41,7 +42,7 @@ function loadApp(): boolean {
   if (!fs.existsSync(CONFIG_PATH)) return false;
 
   const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-  db = createDatabase({ topologia: config.topologia, sqlitePath: config.dbPath });
+  db = createDatabase({ topologia: config.topologia, sqlitePath: config.dbPath, postgresUrl: config.postgresUrl });
   authService = new AuthService(db, config.jwtSecret);
   rbacService = new RbacService(authService);
   clienteService = new ClienteService(db);
@@ -141,6 +142,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const result = await setupDatabase({
         topologia: body.topologia,
         dbPath: DB_PATH,
+        postgresUrl: body.postgresUrl,
         admin: body.admin,
       });
 
@@ -149,6 +151,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         jwtSecret: result.jwtSecret,
         topologia: body.topologia,
         dbPath: DB_PATH,
+        postgresUrl: body.postgresUrl,
       };
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 

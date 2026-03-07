@@ -1,6 +1,9 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import Database from 'better-sqlite3';
-import * as schema from './schema/index.js';
+import pg from 'pg';
+import * as schemaSqlite from './schema/index.js';
+import * as schemaPg from './schema-pg/index.js';
 
 export type Topologia = 'solo' | 'escritorio';
 
@@ -12,28 +15,41 @@ export interface DatabaseConfig {
   postgresUrl?: string;
 }
 
-/**
- * Cria conexão com o banco de dados.
- * MVP: apenas SQLite (modo solo).
- * Fase 2: PostgreSQL (modo escritório) via driver pg.
- */
-export function createDatabase(config: DatabaseConfig) {
-  if (config.topologia === 'solo') {
-    const dbPath = config.sqlitePath ?? 'causa.db';
-    const sqlite = new Database(dbPath);
+export type SqliteDatabase = ReturnType<typeof createSqliteDatabase>;
+export type PgDatabase = ReturnType<typeof createPgDatabase>;
+export type CausaDatabase = SqliteDatabase | PgDatabase;
 
-    // WAL mode para melhor performance em leitura concorrente
-    sqlite.pragma('journal_mode = WAL');
-    // Foreign keys habilitadas (SQLite desabilita por padrão)
-    sqlite.pragma('foreign_keys = ON');
+function createSqliteDatabase(dbPath: string) {
+  const sqlite = new Database(dbPath);
 
-    return drizzle(sqlite, { schema });
-  }
+  // WAL mode para melhor performance em leitura concorrente
+  sqlite.pragma('journal_mode = WAL');
+  // Foreign keys habilitadas (SQLite desabilita por padrão)
+  sqlite.pragma('foreign_keys = ON');
 
-  // TODO: Fase 2 — PostgreSQL via drizzle-orm/node-postgres
-  throw new Error(
-    'Topologia "escritorio" (PostgreSQL) será implementada na Fase 2. Use "solo" para o MVP.',
-  );
+  return drizzleSqlite(sqlite, { schema: schemaSqlite });
 }
 
-export type CausaDatabase = ReturnType<typeof createDatabase>;
+function createPgDatabase(connectionString: string) {
+  const pool = new pg.Pool({ connectionString });
+  return drizzlePg(pool, { schema: schemaPg });
+}
+
+/**
+ * Cria conexão com o banco de dados.
+ * Solo: SQLite local (better-sqlite3).
+ * Escritório: PostgreSQL (node-postgres).
+ */
+export function createDatabase(config: DatabaseConfig): CausaDatabase {
+  if (config.topologia === 'solo') {
+    return createSqliteDatabase(config.sqlitePath ?? 'causa.db');
+  }
+
+  if (!config.postgresUrl) {
+    throw new Error(
+      'Topologia "escritorio" requer postgresUrl. Exemplo: postgresql://causa:senha@192.168.1.100:5432/causa',
+    );
+  }
+
+  return createPgDatabase(config.postgresUrl);
+}

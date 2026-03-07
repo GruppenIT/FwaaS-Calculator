@@ -1,0 +1,42 @@
+appId: "br.com.causa.erp"
+productName: "CAUSA"
+copyright: "Copyright © 2026 CAUSA"
+
+directories:
+  output: "../../dist-installer"
+  buildResources: "resources"
+  app: "../app-desktop"
+
+files:
+  - "dist/**/*"
+  - "electron/**/*.js"
+  - "package.json"
+
+extraResources:
+  - from: "../database/dist"
+    to: "database"
+  - from: "../database/src/migrations"
+    to: "migrations"
+  - from: "../database/src/migrations-pg"
+    to: "migrations-pg"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: "resources/icon.ico"
+  artifactName: "CAUSA-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: "resources/icon.ico"
+  uninstallerIcon: "resources/icon.ico"
+  installerHeaderIcon: "resources/icon.ico"
+  license: "resources/license.txt"
+  include: "nsis/installer.nsh"
+  artifactName: "CAUSA-Setup-${version}.${ext}"
+  shortcutName: "CAUSA"
+  menuCategory: "CAUSA"
+  perMachine: true

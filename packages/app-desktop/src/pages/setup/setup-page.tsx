@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { StepTopologia } from './step-topologia';
+import { StepPostgres } from './step-postgres';
 import { StepAdmin } from './step-admin';
 import { StepConclusao } from './step-conclusao';
 
@@ -7,6 +8,7 @@ export type Topologia = 'solo' | 'escritorio';
 
 export interface SetupData {
   topologia: Topologia | null;
+  postgresUrl: string | null;
   admin: {
     nome: string;
     email: string;
@@ -16,14 +18,24 @@ export interface SetupData {
   } | null;
 }
 
-const STEPS = ['Topologia', 'Administrador', 'Conclusão'] as const;
+type StepName = 'Topologia' | 'PostgreSQL' | 'Administrador' | 'Conclusão';
 
 export function SetupPage() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<SetupData>({
     topologia: null,
+    postgresUrl: null,
     admin: null,
   });
+
+  const steps: readonly StepName[] = useMemo(() => {
+    if (data.topologia === 'escritorio') {
+      return ['Topologia', 'PostgreSQL', 'Administrador', 'Conclusão'];
+    }
+    return ['Topologia', 'Administrador', 'Conclusão'];
+  }, [data.topologia]);
+
+  const currentStepName = steps[step];
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-8">
@@ -44,7 +56,7 @@ export function SetupPage() {
 
       {/* Steps indicator */}
       <div className="flex items-center gap-2 mb-8">
-        {STEPS.map((label, i) => (
+        {steps.map((label, i) => (
           <div key={label} className="flex items-center gap-2">
             <div
               className={`
@@ -64,7 +76,7 @@ export function SetupPage() {
             >
               {label}
             </span>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div
                 className={`w-8 h-px ${
                   i < step ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'
@@ -77,28 +89,38 @@ export function SetupPage() {
 
       {/* Card principal */}
       <div className="w-full max-w-lg bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] border border-[var(--color-border)] p-8">
-        {step === 0 && (
+        {currentStepName === 'Topologia' && (
           <StepTopologia
             selected={data.topologia}
             onSelect={(topologia) => {
-              setData((prev) => ({ ...prev, topologia }));
+              setData((prev) => ({ ...prev, topologia, postgresUrl: topologia === 'solo' ? null : prev.postgresUrl }));
               setStep(1);
             }}
           />
         )}
-        {step === 1 && (
-          <StepAdmin
+        {currentStepName === 'PostgreSQL' && (
+          <StepPostgres
+            postgresUrl={data.postgresUrl ?? ''}
             onBack={() => setStep(0)}
-            onSubmit={(admin) => {
-              setData((prev) => ({ ...prev, admin }));
+            onSubmit={(postgresUrl) => {
+              setData((prev) => ({ ...prev, postgresUrl }));
               setStep(2);
             }}
           />
         )}
-        {step === 2 && (
+        {currentStepName === 'Administrador' && (
+          <StepAdmin
+            onBack={() => setStep(step - 1)}
+            onSubmit={(admin) => {
+              setData((prev) => ({ ...prev, admin }));
+              setStep(step + 1);
+            }}
+          />
+        )}
+        {currentStepName === 'Conclusão' && (
           <StepConclusao
             data={data}
-            onBack={() => setStep(1)}
+            onBack={() => setStep(step - 1)}
           />
         )}
       </div>

@@ -79,6 +79,7 @@ export function checkHealth() {
 // === Setup ===
 export function setupSystem(data: {
   topologia: 'solo' | 'escritorio';
+  postgresUrl?: string;
   admin: {
     nome: string;
     email: string;

@@ -26,6 +26,7 @@ export function StepConclusao({ data, onBack }: Props) {
     try {
       await api.setupSystem({
         topologia: data.topologia,
+        ...(data.postgresUrl ? { postgresUrl: data.postgresUrl } : {}),
         admin: {
           nome: data.admin.nome,
           email: data.admin.email,
@@ -66,6 +67,22 @@ export function StepConclusao({ data, onBack }: Props) {
               {data.topologia === 'solo' ? 'CAUSA Solo' : 'CAUSA Escritório'}
             </span>
           </div>
+          {data.topologia === 'escritorio' && data.postgresUrl && (
+            <div className="flex justify-between">
+              <span className="text-sm-causa text-[var(--color-text-muted)]">Banco de dados</span>
+              <span className="text-sm-causa font-medium text-[var(--color-text)]">
+                PostgreSQL
+              </span>
+            </div>
+          )}
+          {data.topologia === 'solo' && (
+            <div className="flex justify-between">
+              <span className="text-sm-causa text-[var(--color-text-muted)]">Banco de dados</span>
+              <span className="text-sm-causa font-medium text-[var(--color-text)]">
+                SQLite (local)
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-sm-causa text-[var(--color-text-muted)]">Administrador</span>
             <span className="text-sm-causa font-medium text-[var(--color-text)]">
