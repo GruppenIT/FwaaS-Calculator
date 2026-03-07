@@ -14,11 +14,12 @@
 - [x] Exclusão com confirmação em todos os CRUDs
 - [x] Toast de sucesso/erro em todas as operações
 
-## Fase 3 — Views de Detalhe e Vínculos
-- [ ] Tela de detalhe do Processo (dados + prazos + movimentações + honorários vinculados)
-- [ ] Tela de detalhe do Cliente (dados + processos vinculados)
-- [ ] Adicionar movimentações no frontend (já existe no backend)
-- [ ] Campo de notas/observações em processos
+## Fase 3 — Views de Detalhe e Vínculos ✅
+- [x] Tela de detalhe do Processo (dados + prazos + movimentações + honorários vinculados)
+- [x] Tela de detalhe do Cliente (dados + processos vinculados)
+- [x] Movimentações visíveis no frontend (listagem na tela de detalhe do processo)
+- [x] Links de navegação: CNJ clicável na lista, nome do cliente clicável
+- [x] Rotas /app/processos/:id e /app/clientes/:id
 
 ## Fase 4 — Dashboard Funcional
 - [ ] Prazos vencendo hoje/semana no dashboard

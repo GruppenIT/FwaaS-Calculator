@@ -168,6 +168,18 @@ export function listarClientes(busca?: string) {
   >(`/api/clientes${q}`);
 }
 
+export function obterCliente(id: string) {
+  return request<{
+    id: string;
+    tipo: 'PF' | 'PJ';
+    nome: string;
+    cpfCnpj: string | null;
+    email: string | null;
+    telefone: string | null;
+    createdAt: string;
+  }>(`/api/clientes/${id}`);
+}
+
 export function criarCliente(data: {
   tipo: 'PF' | 'PJ';
   nome: string;
@@ -222,6 +234,34 @@ export function listarProcessos(busca?: string) {
       createdAt: string;
     }>
   >(`/api/processos${q}`);
+}
+
+export interface ProcessoDetail {
+  id: string;
+  numeroCnj: string;
+  clienteId: string | null;
+  advogadoResponsavelId: string | null;
+  tribunalSigla: string;
+  plataforma: string;
+  area: string;
+  fase: string;
+  status: 'ativo' | 'arquivado' | 'encerrado';
+  valorCausa: number | null;
+  ultimoSyncAt: string | null;
+  createdAt: string;
+}
+
+export function obterProcesso(id: string) {
+  return request<ProcessoDetail>(`/api/processos/${id}`);
+}
+
+export function listarPrazosDoProcesso(processoId: string) {
+  return request<PrazoRow[]>(`/api/processos/${processoId}/prazos`);
+}
+
+export function listarHonorariosDoProcesso(processoId: string) {
+  // Uses the general honorários endpoint filtered client-side for now
+  return request<HonorarioRow[]>('/api/honorarios');
 }
 
 export function criarProcesso(data: {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Briefcase, Search, Pencil, Trash2 } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
@@ -34,6 +35,7 @@ const STATUS_STYLES: Record<string, string> = {
 export function ProcessosPage() {
   const { can } = usePermission();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [modalData, setModalData] = useState<ProcessoEditData | null | undefined>(undefined);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -169,8 +171,14 @@ export function ProcessosPage() {
                   key={p.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
                 >
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-[var(--font-mono)] font-medium">
-                    {p.numeroCnj}
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/app/processos/${p.id}`)}
+                      className="text-base-causa text-[var(--color-primary)] hover:underline font-[var(--font-mono)] font-medium cursor-pointer bg-transparent border-0 p-0"
+                    >
+                      {p.numeroCnj}
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-base-causa text-[var(--color-text)]">
                     {p.clienteNome ?? '—'}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Search, Pencil, Trash2 } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
@@ -24,6 +25,7 @@ interface ClienteRow {
 export function ClientesPage() {
   const { can } = usePermission();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [modalData, setModalData] = useState<ClienteEditData | null | undefined>(undefined);
   const [clientes, setClientes] = useState<ClienteRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -147,8 +149,14 @@ export function ClientesPage() {
                   key={c.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
                 >
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">
-                    {c.nome}
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/app/clientes/${c.id}`)}
+                      className="text-base-causa text-[var(--color-primary)] hover:underline font-medium cursor-pointer bg-transparent border-0 p-0"
+                    >
+                      {c.nome}
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
