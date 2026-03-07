@@ -26,7 +26,7 @@ function registerMockConnectors() {
   console.log('[Service] Conectores registrados:', listConnectors().map((c) => c.nome).join(', '));
 }
 
-async function syncProcesso(
+async function _syncProcesso(
   connector: IConector,
   processo: ProcessoMinimo,
   certificado: CertificadoConfig,
@@ -55,7 +55,7 @@ async function pollCycle(_config: ServiceConfig) {
 
   // Em produção, buscaríamos processos ativos da API
   // Por ora, apenas logamos que o ciclo rodou
-  const demoCert: CertificadoConfig = {
+  const _demoCert: CertificadoConfig = {
     caminhoArquivo: '/mock/certificado.pfx',
     senha: 'mock-senha',
   };

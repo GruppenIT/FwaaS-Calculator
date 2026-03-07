@@ -19,6 +19,14 @@ export type SqliteDatabase = ReturnType<typeof createSqliteDatabase>;
 export type PgDatabase = ReturnType<typeof createPgDatabase>;
 export type CausaDatabase = SqliteDatabase | PgDatabase;
 
+/** Minimal query-builder interface shared by both SQLite and PG Drizzle instances. */
+export interface DatabaseQueryBuilder {
+  insert(table: unknown): { values(data: unknown): unknown };
+  select(fields?: unknown): { from(table: unknown): unknown };
+  update(table: unknown): { set(data: unknown): { where(condition: unknown): unknown } };
+  delete(table: unknown): { where(condition: unknown): unknown };
+}
+
 function createSqliteDatabase(dbPath: string) {
   const sqlite = new Database(dbPath);
 

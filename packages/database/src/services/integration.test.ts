@@ -9,7 +9,7 @@ import { ProcessoService } from './processos';
 import { AgendaService } from './agenda';
 import { PrazoService } from './prazos';
 import { FinanceiroService } from './financeiro';
-import type { CausaDatabase } from '../client';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
 import { getSchema } from '../schema-provider';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -91,7 +91,7 @@ describe('Integração: setup → login → CRUD', () => {
   it('cria um segundo usuário (advogado)', async () => {
     // Precisamos do roleId do advogado
     const { eq } = await import('drizzle-orm');
-    const [advRole] = await (db as any).select().from(schema.roles).where(eq(schema.roles.nome, 'advogado'));
+    const [advRole] = await (db as unknown as DatabaseQueryBuilder).select().from(schema.roles).where(eq(schema.roles.nome, 'advogado'));
     expect(advRole).toBeDefined();
 
     const userId = await auth.createUser({
@@ -100,7 +100,7 @@ describe('Integração: setup → login → CRUD', () => {
       senha: 'Adv0gado!',
       oabNumero: '654321',
       oabSeccional: 'RJ',
-      roleId: advRole!.id,
+      roleId: (advRole as Record<string, unknown>).id as string,
     });
     expect(userId).toBeDefined();
 
@@ -130,7 +130,7 @@ describe('Integração: setup → login → CRUD', () => {
   it('lista clientes', async () => {
     const lista = await clienteService.listar();
     expect(lista.length).toBe(1);
-    expect(lista[0]!.nome).toBe('João da Silva');
+    expect((lista[0] as Record<string, unknown>)?.nome).toBe('João da Silva');
   });
 
   it('busca cliente por nome', async () => {
@@ -141,13 +141,13 @@ describe('Integração: setup → login → CRUD', () => {
   it('obtém cliente por ID', async () => {
     const cliente = await clienteService.obterPorId(clienteId);
     expect(cliente).toBeDefined();
-    expect(cliente!.email).toBe('joao@email.com');
+    expect((cliente as Record<string, unknown>)?.email).toBe('joao@email.com');
   });
 
   it('atualiza cliente', async () => {
     await clienteService.atualizar(clienteId, { telefone: '11999990000' });
     const updated = await clienteService.obterPorId(clienteId);
-    expect(updated!.telefone).toBe('11999990000');
+    expect((updated as Record<string, unknown>)?.telefone).toBe('11999990000');
   });
 
   // --- CRUD Processos ---
@@ -170,9 +170,10 @@ describe('Integração: setup → login → CRUD', () => {
   it('lista processos com JOINs', async () => {
     const lista = await processoService.listar();
     expect(lista.length).toBe(1);
-    expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
-    expect(lista[0]!.clienteNome).toBe('João da Silva');
-    expect(lista[0]!.advogadoNome).toBe('Admin Teste');
+    const item = lista[0] as Record<string, unknown>;
+    expect(item?.numeroCnj).toBe('0001234-56.2024.8.26.0100');
+    expect(item?.clienteNome).toBe('João da Silva');
+    expect(item?.advogadoNome).toBe('Admin Teste');
   });
 
   it('busca processo por CNJ', async () => {
@@ -183,14 +184,14 @@ describe('Integração: setup → login → CRUD', () => {
   it('obtém processo por ID', async () => {
     const processo = await processoService.obterPorId(processoId);
     expect(processo).toBeDefined();
-    expect(processo!.valorCausa).toBe(50000);
+    expect((processo as Record<string, unknown>)?.valorCausa).toBe(50000);
   });
 
   it('atualiza processo (fase e status)', async () => {
     await processoService.atualizar(processoId, { fase: 'recursal', status: 'ativo', valorCausa: 75000 });
     const updated = await processoService.obterPorId(processoId);
-    expect(updated!.fase).toBe('recursal');
-    expect(updated!.valorCausa).toBe(75000);
+    expect((updated as Record<string, unknown>)?.fase).toBe('recursal');
+    expect((updated as Record<string, unknown>)?.valorCausa).toBe(75000);
   });
 
   // --- CRUD Agenda ---
@@ -211,8 +212,9 @@ describe('Integração: setup → login → CRUD', () => {
   it('lista eventos da agenda', async () => {
     const lista = await agendaService.listar();
     expect(lista.length).toBe(1);
-    expect(lista[0]!.titulo).toBe('Audiência de conciliação');
-    expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
+    const item = lista[0] as Record<string, unknown>;
+    expect(item?.titulo).toBe('Audiência de conciliação');
+    expect(item?.numeroCnj).toBe('0001234-56.2024.8.26.0100');
   });
 
   it('filtra agenda por intervalo de datas', async () => {
@@ -226,14 +228,14 @@ describe('Integração: setup → login → CRUD', () => {
   it('atualiza evento da agenda', async () => {
     await agendaService.atualizar(eventoId, { titulo: 'Audiência de instrução', local: 'Fórum Central - Sala 10' });
     const updated = await agendaService.obterPorId(eventoId);
-    expect(updated!.titulo).toBe('Audiência de instrução');
-    expect(updated!.local).toBe('Fórum Central - Sala 10');
+    expect((updated as Record<string, unknown>)?.titulo).toBe('Audiência de instrução');
+    expect((updated as Record<string, unknown>)?.local).toBe('Fórum Central - Sala 10');
   });
 
   it('obtém evento por ID', async () => {
     const evento = await agendaService.obterPorId(eventoId);
     expect(evento).toBeDefined();
-    expect(evento!.tipo).toBe('audiencia');
+    expect((evento as Record<string, unknown>)?.tipo).toBe('audiencia');
   });
 
   // --- CRUD Prazos ---
@@ -253,9 +255,10 @@ describe('Integração: setup → login → CRUD', () => {
   it('lista prazos', async () => {
     const lista = await prazoService.listar();
     expect(lista.length).toBe(1);
-    expect(lista[0]!.descricao).toBe('Contestação');
-    expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
-    expect(lista[0]!.responsavelNome).toBe('Admin Teste');
+    const item = lista[0] as Record<string, unknown>;
+    expect(item?.descricao).toBe('Contestação');
+    expect(item?.numeroCnj).toBe('0001234-56.2024.8.26.0100');
+    expect(item?.responsavelNome).toBe('Admin Teste');
   });
 
   it('filtra prazos por status', async () => {
@@ -277,7 +280,7 @@ describe('Integração: setup → login → CRUD', () => {
   it('atualiza status do prazo', async () => {
     await prazoService.atualizarStatus(prazoId, 'cumprido');
     const updated = await prazoService.obterPorId(prazoId);
-    expect(updated!.status).toBe('cumprido');
+    expect((updated as Record<string, unknown>)?.status).toBe('cumprido');
   });
 
   // --- CRUD Honorários ---
@@ -297,23 +300,25 @@ describe('Integração: setup → login → CRUD', () => {
   it('lista honorários com JOINs', async () => {
     const lista = await financeiroService.listar();
     expect(lista.length).toBe(1);
-    expect(lista[0]!.valor).toBe(5000);
-    expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
-    expect(lista[0]!.clienteNome).toBe('João da Silva');
-    expect(lista[0]!.status).toBe('pendente');
+    const item = lista[0] as Record<string, unknown>;
+    expect(item?.valor).toBe(5000);
+    expect(item?.numeroCnj).toBe('0001234-56.2024.8.26.0100');
+    expect(item?.clienteNome).toBe('João da Silva');
+    expect(item?.status).toBe('pendente');
   });
 
   it('obtém honorário por ID', async () => {
     const h = await financeiroService.obterPorId(honorarioId);
     expect(h).toBeDefined();
-    expect(h!.tipo).toBe('fixo');
-    expect(h!.vencimento).toBe('2026-04-30');
+    const record = h as Record<string, unknown>;
+    expect(record?.tipo).toBe('fixo');
+    expect(record?.vencimento).toBe('2026-04-30');
   });
 
   it('atualiza status do honorário', async () => {
     await financeiroService.atualizarStatus(honorarioId, 'recebido');
     const updated = await financeiroService.obterPorId(honorarioId);
-    expect(updated!.status).toBe('recebido');
+    expect((updated as Record<string, unknown>)?.status).toBe('recebido');
   });
 
   it('cria honorário de êxito com percentual', async () => {
@@ -324,8 +329,9 @@ describe('Integração: setup → login → CRUD', () => {
       percentualExito: 30,
     });
     const h = await financeiroService.obterPorId(id);
-    expect(h!.tipo).toBe('exito');
-    expect(h!.percentualExito).toBe(30);
+    const record = h as Record<string, unknown>;
+    expect(record?.tipo).toBe('exito');
+    expect(record?.percentualExito).toBe(30);
     await financeiroService.excluir(id);
   });
 

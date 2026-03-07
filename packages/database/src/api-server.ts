@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { createDatabase, type CausaDatabase, type Topologia } from './client';
+import { createDatabase, type CausaDatabase, type DatabaseQueryBuilder } from './client';
 import { getSchema, type CausaSchema } from './schema-provider';
 import { AuthService } from './services/auth';
 import { RbacService, type AuthenticatedUser } from './services/rbac';
@@ -33,6 +33,49 @@ let processoService: ProcessoService | null = null;
 let financeiroService: FinanceiroService | null = null;
 let agendaService: AgendaService | null = null;
 let prazoService: PrazoService | null = null;
+
+function ensureService<T>(service: T | null, name: string): T {
+  if (!service) {
+    throw new Error(`Serviço ${name} não inicializado. Execute /api/setup primeiro.`);
+  }
+  return service;
+}
+
+function getDb(): DatabaseQueryBuilder {
+  return ensureService(db, 'database') as unknown as DatabaseQueryBuilder;
+}
+
+function getAppSchema(): CausaSchema {
+  return ensureService(schema, 'schema');
+}
+
+function getAuthService(): AuthService {
+  return ensureService(authService, 'AuthService');
+}
+
+function getRbacService(): RbacService {
+  return ensureService(rbacService, 'RbacService');
+}
+
+function getClienteService(): ClienteService {
+  return ensureService(clienteService, 'ClienteService');
+}
+
+function getProcessoService(): ProcessoService {
+  return ensureService(processoService, 'ProcessoService');
+}
+
+function getFinanceiroService(): FinanceiroService {
+  return ensureService(financeiroService, 'FinanceiroService');
+}
+
+function getAgendaService(): AgendaService {
+  return ensureService(agendaService, 'AgendaService');
+}
+
+function getPrazoService(): PrazoService {
+  return ensureService(prazoService, 'PrazoService');
+}
 
 function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: string) {
   db = database;
@@ -105,7 +148,7 @@ async function requirePermission(
   user: AuthenticatedUser,
   permission: PermissionKey,
 ): Promise<boolean> {
-  if (!(await rbacService!.checkPermission(user, permission))) {
+  if (!(await getRbacService().checkPermission(user, permission))) {
     error(res, `Permissão insuficiente: ${permission}`, 403);
     return false;
   }
@@ -113,7 +156,7 @@ async function requirePermission(
 }
 
 async function hasPermission(user: AuthenticatedUser, permission: PermissionKey): Promise<boolean> {
-  return rbacService!.checkPermission(user, permission);
+  return getRbacService().checkPermission(user, permission);
 }
 
 // Simple URL routing
@@ -178,21 +221,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // === Auth ===
     if (path === '/api/login' && method === 'POST') {
       const body = JSON.parse(await readBody(req)) as { email: string; senha: string };
-      const tokens = await authService!.login(body.email, body.senha);
+      const tokens = await getAuthService().login(body.email, body.senha);
       return json(res, tokens);
     }
 
     if (path === '/api/refresh' && method === 'POST') {
       const body = JSON.parse(await readBody(req)) as { refreshToken: string };
-      const tokens = await authService!.refreshAccessToken(body.refreshToken);
+      const tokens = await getAuthService().refreshAccessToken(body.refreshToken);
       return json(res, tokens);
     }
 
     if (path === '/api/me' && method === 'GET') {
       const token = extractToken(req);
       if (!token) return error(res, 'Token não fornecido.', 401);
-      const payload = authService!.verifyToken(token);
-      const perms = await authService!.getUserPermissions(payload.sub);
+      const payload = getAuthService().verifyToken(token);
+      const perms = await getAuthService().getUserPermissions(payload.sub);
       return json(res, { ...payload, permissions: perms });
     }
 
@@ -206,35 +249,35 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/clientes' && method === 'GET') {
       if (!(await requirePermission(res, user, 'clientes:ler_todos'))) return;
       const termo = url.searchParams.get('q');
-      const data = termo ? await clienteService!.buscar(termo) : await clienteService!.listar();
+      const data = termo ? await getClienteService().buscar(termo) : await getClienteService().listar();
       return json(res, data);
     }
 
     if (path === '/api/clientes' && method === 'POST') {
       if (!(await requirePermission(res, user, 'clientes:criar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await clienteService!.criar(body, user.id);
+      const id = await getClienteService().criar(body, user.id);
       return json(res, { id }, 201);
     }
 
     const clienteMatch = path.match(/^\/api\/clientes\/([^/]+)$/);
     if (clienteMatch) {
-      const id = clienteMatch[1]!;
+      const id = clienteMatch[1] ?? '';
       if (method === 'GET') {
         if (!(await requirePermission(res, user, 'clientes:ler_todos'))) return;
-        const c = await clienteService!.obterPorId(id);
+        const c = await getClienteService().obterPorId(id);
         if (!c) return error(res, 'Cliente não encontrado.', 404);
         return json(res, c);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'clientes:criar'))) return;
         const body = JSON.parse(await readBody(req));
-        await clienteService!.atualizar(id, body);
+        await getClienteService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
         if (!(await requirePermission(res, user, 'clientes:criar'))) return;
-        await clienteService!.excluir(id);
+        await getClienteService().excluir(id);
         return json(res, { ok: true });
       }
     }
@@ -246,34 +289,34 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         return error(res, 'Permissão insuficiente: processos:ler_todos', 403);
       }
       const termo = url.searchParams.get('q');
-      const data = termo ? await processoService!.buscar(termo) : await processoService!.listar();
+      const data = termo ? await getProcessoService().buscar(termo) : await getProcessoService().listar();
       return json(res, data);
     }
 
     if (path === '/api/processos' && method === 'POST') {
       if (!(await requirePermission(res, user, 'processos:criar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await processoService!.criar(body);
+      const id = await getProcessoService().criar(body);
       return json(res, { id }, 201);
     }
 
     const processoMatch = path.match(/^\/api\/processos\/([^/]+)$/);
     if (processoMatch) {
-      const id = processoMatch[1]!;
+      const id = processoMatch[1] ?? '';
       if (method === 'GET') {
-        const p = await processoService!.obterPorId(id);
+        const p = await getProcessoService().obterPorId(id);
         if (!p) return error(res, 'Processo não encontrado.', 404);
         return json(res, p);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'processos:editar'))) return;
         const body = JSON.parse(await readBody(req));
-        await processoService!.atualizar(id, body);
+        await getProcessoService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
         if (!(await requirePermission(res, user, 'processos:excluir'))) return;
-        await processoService!.excluir(id);
+        await getProcessoService().excluir(id);
         return json(res, { ok: true });
       }
     }
@@ -281,8 +324,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // --- Usuarios ---
     if (path === '/api/usuarios' && method === 'GET') {
       if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
-      const s = schema!;
-      const data = await (db as any)
+      const s = getAppSchema();
+      const data = await getDb()
         .select({
           id: s.users.id,
           nome: s.users.nome,
@@ -300,11 +343,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     if (path === '/api/usuarios' && method === 'POST') {
       if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
-      const body = JSON.parse(await readBody(req));
-      const s = schema!;
-      const [role] = await (db as any).select().from(s.roles).where(eq(s.roles.nome, body.role as string));
-      if (!role) return error(res, `Papel "${body.role}" não encontrado.`, 400);
-      const id = await authService!.createUser({
+      const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
+      const s = getAppSchema();
+      const [role] = await getDb().select().from(s.roles).where(eq(s.roles.nome, body.role as string));
+      if (!role) return error(res, `Papel "${String(body.role)}" não encontrado.`, 400);
+      const id = await getAuthService().createUser({
         nome: body.nome,
         email: body.email,
         senha: body.senha,
@@ -317,11 +360,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     const usuarioMatch = path.match(/^\/api\/usuarios\/([^/]+)$/);
     if (usuarioMatch) {
-      const id = usuarioMatch[1]!;
+      const id = usuarioMatch[1] ?? '';
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
-        const body = JSON.parse(await readBody(req));
-        const s = schema!;
+        const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
+        const s = getAppSchema();
         const updateData: Record<string, unknown> = {};
         if (body.nome !== undefined) updateData.nome = body.nome;
         if (body.email !== undefined) updateData.email = body.email;
@@ -329,55 +372,55 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (body.oabSeccional !== undefined) updateData.oabSeccional = body.oabSeccional || null;
         if (body.ativo !== undefined) updateData.ativo = body.ativo;
         if (body.role !== undefined) {
-          const [role] = await (db as any).select().from(s.roles).where(eq(s.roles.nome, body.role as string));
-          if (!role) return error(res, `Papel "${body.role}" não encontrado.`, 400);
+          const [role] = await getDb().select().from(s.roles).where(eq(s.roles.nome, body.role as string));
+          if (!role) return error(res, `Papel "${String(body.role)}" não encontrado.`, 400);
           updateData.roleId = role.id;
         }
         if (Object.keys(updateData).length > 0) {
-          await (db as any).update(s.users).set(updateData).where(eq(s.users.id, id));
+          await getDb().update(s.users).set(updateData).where(eq(s.users.id, id));
         }
         return json(res, { ok: true });
       }
     }
 
     if (path === '/api/roles' && method === 'GET') {
-      const s = schema!;
-      const data = await (db as any).select({ id: s.roles.id, nome: s.roles.nome }).from(s.roles);
+      const s = getAppSchema();
+      const data = await getDb().select({ id: s.roles.id, nome: s.roles.nome }).from(s.roles);
       return json(res, data);
     }
 
     // --- Honorários ---
     if (path === '/api/honorarios' && method === 'GET') {
       if (!(await requirePermission(res, user, 'financeiro:ler_todos'))) return;
-      const data = await financeiroService!.listar();
+      const data = await getFinanceiroService().listar();
       return json(res, data);
     }
 
     if (path === '/api/honorarios' && method === 'POST') {
       if (!(await requirePermission(res, user, 'financeiro:editar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await financeiroService!.criar(body);
+      const id = await getFinanceiroService().criar(body);
       return json(res, { id }, 201);
     }
 
     const honorarioMatch = path.match(/^\/api\/honorarios\/([^/]+)$/);
     if (honorarioMatch) {
-      const id = honorarioMatch[1]!;
+      const id = honorarioMatch[1] ?? '';
       if (method === 'GET') {
         if (!(await requirePermission(res, user, 'financeiro:ler_todos'))) return;
-        const h = await financeiroService!.obterPorId(id);
+        const h = await getFinanceiroService().obterPorId(id);
         if (!h) return error(res, 'Honorário não encontrado.', 404);
         return json(res, h);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'financeiro:editar'))) return;
         const body = JSON.parse(await readBody(req)) as { status: 'pendente' | 'recebido' | 'inadimplente' };
-        await financeiroService!.atualizarStatus(id, body.status);
+        await getFinanceiroService().atualizarStatus(id, body.status);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
         if (!(await requirePermission(res, user, 'financeiro:editar'))) return;
-        await financeiroService!.excluir(id);
+        await getFinanceiroService().excluir(id);
         return json(res, { ok: true });
       }
     }
@@ -390,35 +433,35 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const filtros: { inicio?: string; fim?: string } = {};
       if (inicio) filtros.inicio = inicio;
       if (fim) filtros.fim = fim;
-      const data = await agendaService!.listar(filtros);
+      const data = await getAgendaService().listar(filtros);
       return json(res, data);
     }
 
     if (path === '/api/agenda' && method === 'POST') {
       if (!(await requirePermission(res, user, 'agenda:gerenciar_todos'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await agendaService!.criar(body);
+      const id = await getAgendaService().criar(body);
       return json(res, { id }, 201);
     }
 
     const agendaMatch = path.match(/^\/api\/agenda\/([^/]+)$/);
     if (agendaMatch) {
-      const id = agendaMatch[1]!;
+      const id = agendaMatch[1] ?? '';
       if (method === 'GET') {
         if (!(await requirePermission(res, user, 'agenda:gerenciar_todos'))) return;
-        const a = await agendaService!.obterPorId(id);
+        const a = await getAgendaService().obterPorId(id);
         if (!a) return error(res, 'Evento não encontrado.', 404);
         return json(res, a);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'agenda:gerenciar_todos'))) return;
         const body = JSON.parse(await readBody(req));
-        await agendaService!.atualizar(id, body);
+        await getAgendaService().atualizar(id, body);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
         if (!(await requirePermission(res, user, 'agenda:gerenciar_todos'))) return;
-        await agendaService!.excluir(id);
+        await getAgendaService().excluir(id);
         return json(res, { ok: true });
       }
     }
@@ -434,34 +477,34 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const responsavelParam = url.searchParams.get('responsavelId');
       if (statusParam) filtrosPrazo.status = statusParam;
       if (responsavelParam) filtrosPrazo.responsavelId = responsavelParam;
-      const data = await prazoService!.listar(filtrosPrazo);
+      const data = await getPrazoService().listar(filtrosPrazo);
       return json(res, data);
     }
 
     if (path === '/api/prazos' && method === 'POST') {
       if (!(await requirePermission(res, user, 'processos:editar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await prazoService!.criar(body);
+      const id = await getPrazoService().criar(body);
       return json(res, { id }, 201);
     }
 
     const prazoMatch = path.match(/^\/api\/prazos\/([^/]+)$/);
     if (prazoMatch) {
-      const id = prazoMatch[1]!;
+      const id = prazoMatch[1] ?? '';
       if (method === 'GET') {
-        const p = await prazoService!.obterPorId(id);
+        const p = await getPrazoService().obterPorId(id);
         if (!p) return error(res, 'Prazo não encontrado.', 404);
         return json(res, p);
       }
       if (method === 'PUT') {
         if (!(await requirePermission(res, user, 'processos:editar'))) return;
         const body = JSON.parse(await readBody(req)) as { status: 'pendente' | 'cumprido' | 'perdido' };
-        await prazoService!.atualizarStatus(id, body.status);
+        await getPrazoService().atualizarStatus(id, body.status);
         return json(res, { ok: true });
       }
       if (method === 'DELETE') {
         if (!(await requirePermission(res, user, 'processos:editar'))) return;
-        await prazoService!.excluir(id);
+        await getPrazoService().excluir(id);
         return json(res, { ok: true });
       }
     }
@@ -486,12 +529,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // --- Dashboard stats ---
     if (path === '/api/dashboard' && method === 'GET') {
-      const s = schema!;
-      const [processosAtivos] = await (db as any).select({ count: count() }).from(s.processos).where(eq(s.processos.status, 'ativo'));
-      const [totalClientes] = await (db as any).select({ count: count() }).from(s.clientes);
-      const [prazosPendentes] = await (db as any).select({ count: count() }).from(s.prazos).where(eq(s.prazos.status, 'pendente'));
+      const s = getAppSchema();
+      const dbq = getDb() as DatabaseQueryBuilder;
+      const [processosAtivos] = await dbq.select({ count: count() }).from(s.processos).where(eq(s.processos.status, 'ativo'));
+      const [totalClientes] = await dbq.select({ count: count() }).from(s.clientes);
+      const [prazosPendentes] = await dbq.select({ count: count() }).from(s.prazos).where(eq(s.prazos.status, 'pendente'));
 
-      const [honorariosPendentes] = await (db as any).select({ total: sum(s.honorarios.valor) }).from(s.honorarios).where(eq(s.honorarios.status, 'pendente'));
+      const [honorariosPendentes] = await dbq.select({ total: sum(s.honorarios.valor) }).from(s.honorarios).where(eq(s.honorarios.status, 'pendente'));
 
       return json(res, {
         processosAtivos: processosAtivos?.count ?? 0,

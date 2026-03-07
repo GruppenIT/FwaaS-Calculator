@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import type { CausaDatabase } from '../client';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
 import type { CausaSchema } from '../schema-provider';
 
 export interface AuditEntry {
@@ -22,7 +22,7 @@ export class AuditService {
    * O audit log é append-only — sem UPDATE ou DELETE.
    */
   async registrar(entry: AuditEntry): Promise<void> {
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .insert(this.auditLog)
       .values({
         id: uuid(),

@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDatabase } from '../client';
+import { createDatabase, type DatabaseQueryBuilder } from '../client';
 import { getSchema } from '../schema-provider';
 import { AuthService } from './auth';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { v4 as uuid } from 'uuid';
 import fs from 'node:fs';
 
@@ -23,11 +24,11 @@ describe('AuthService', () => {
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 
     db = createDatabase({ topologia: 'solo', sqlitePath: TEST_DB });
-    migrate(db as any, { migrationsFolder: MIGRATIONS_DIR });
+    migrate(db as unknown as BetterSQLite3Database, { migrationsFolder: MIGRATIONS_DIR });
 
     // Criar papel admin para testes
     adminRoleId = uuid();
-    await (db as any).insert(schema.roles)
+    await (db as unknown as DatabaseQueryBuilder).insert(schema.roles)
       .values({ id: adminRoleId, nome: 'admin', descricao: 'Admin', isSystemRole: true });
 
     auth = new AuthService(db, JWT_SECRET, schema);

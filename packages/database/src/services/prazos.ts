@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { eq, and } from 'drizzle-orm';
-import type { CausaDatabase } from '../client';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
 import type { CausaSchema } from '../schema-provider';
 
 export interface CreatePrazoInput {
@@ -25,7 +25,7 @@ export class PrazoService {
 
   async criar(input: CreatePrazoInput): Promise<string> {
     const id = uuid();
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .insert(this.prazos)
       .values({
         id,
@@ -50,7 +50,7 @@ export class PrazoService {
       conditions.push(eq(this.prazos.responsavelId, filtros.responsavelId));
     }
 
-    const query = (this.db as any)
+    const query = (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.prazos.id,
         processoId: this.prazos.processoId,
@@ -74,7 +74,7 @@ export class PrazoService {
   }
 
   async obterPorId(id: string) {
-    const [row] = await (this.db as any)
+    const [row] = await (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.prazos.id,
         processoId: this.prazos.processoId,
@@ -95,13 +95,13 @@ export class PrazoService {
   }
 
   async atualizarStatus(id: string, status: 'pendente' | 'cumprido' | 'perdido') {
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.prazos)
       .set({ status })
       .where(eq(this.prazos.id, id));
   }
 
   async excluir(id: string) {
-    await (this.db as any).delete(this.prazos).where(eq(this.prazos.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder).delete(this.prazos).where(eq(this.prazos.id, id));
   }
 }
