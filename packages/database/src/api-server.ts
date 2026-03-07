@@ -260,6 +260,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (!p) return error(res, 'Processo não encontrado.', 404);
         return json(res, p);
       }
+      if (method === 'PUT') {
+        if (!requirePermission(res, user, 'processos:editar')) return;
+        const body = JSON.parse(await readBody(req));
+        processoService!.atualizar(id, body);
+        return json(res, { ok: true });
+      }
       if (method === 'DELETE') {
         if (!requirePermission(res, user, 'processos:excluir')) return;
         processoService!.excluir(id);
@@ -301,6 +307,30 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         roleId: role.id,
       });
       return json(res, { id }, 201);
+    }
+
+    const usuarioMatch = path.match(/^\/api\/usuarios\/([^/]+)$/);
+    if (usuarioMatch) {
+      const id = usuarioMatch[1]!;
+      if (method === 'PUT') {
+        if (!requirePermission(res, user, 'usuarios:gerenciar')) return;
+        const body = JSON.parse(await readBody(req));
+        const updateData: Record<string, unknown> = {};
+        if (body.nome !== undefined) updateData.nome = body.nome;
+        if (body.email !== undefined) updateData.email = body.email;
+        if (body.oabNumero !== undefined) updateData.oabNumero = body.oabNumero || null;
+        if (body.oabSeccional !== undefined) updateData.oabSeccional = body.oabSeccional || null;
+        if (body.ativo !== undefined) updateData.ativo = body.ativo;
+        if (body.role !== undefined) {
+          const role = db!.select().from(roles).where(eq(roles.nome, body.role as string)).get();
+          if (!role) return error(res, `Papel "${body.role}" não encontrado.`, 400);
+          updateData.roleId = role.id;
+        }
+        if (Object.keys(updateData).length > 0) {
+          db!.update(users).set(updateData).where(eq(users.id, id)).run();
+        }
+        return json(res, { ok: true });
+      }
     }
 
     if (path === '/api/roles' && method === 'GET') {

@@ -180,6 +180,23 @@ export function criarProcesso(data: {
   });
 }
 
+export function atualizarProcesso(id: string, data: Partial<{
+  numeroCnj: string;
+  clienteId: string;
+  advogadoResponsavelId: string;
+  tribunalSigla: string;
+  plataforma: string;
+  area: string;
+  fase: string;
+  status: 'ativo' | 'arquivado' | 'encerrado';
+  valorCausa: number;
+}>) {
+  return request<{ ok: boolean }>(`/api/processos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 export function excluirProcesso(id: string) {
   return request<{ ok: boolean }>(`/api/processos/${id}`, {
     method: 'DELETE',
@@ -210,6 +227,20 @@ export function criarUsuario(data: {
 }) {
   return request<{ id: string }>('/api/usuarios', {
     method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarUsuario(id: string, data: Partial<{
+  nome: string;
+  email: string;
+  oabNumero: string;
+  oabSeccional: string;
+  role: string;
+  ativo: boolean;
+}>) {
+  return request<{ ok: boolean }>(`/api/usuarios/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(data),
   });
 }

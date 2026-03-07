@@ -6,6 +6,9 @@ import { setupDatabase } from './setup';
 import { AuthService } from './auth';
 import { ClienteService } from './clientes';
 import { ProcessoService } from './processos';
+import { AgendaService } from './agenda';
+import { PrazoService } from './prazos';
+import { FinanceiroService } from './financeiro';
 import type { CausaDatabase } from '../client';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,6 +21,9 @@ describe('Integração: setup → login → CRUD', () => {
   let auth: AuthService;
   let clienteService: ClienteService;
   let processoService: ProcessoService;
+  let agendaService: AgendaService;
+  let prazoService: PrazoService;
+  let financeiroService: FinanceiroService;
   let accessToken: string;
 
   beforeAll(async () => {
@@ -42,6 +48,9 @@ describe('Integração: setup → login → CRUD', () => {
     auth = new AuthService(db, jwtSecret);
     clienteService = new ClienteService(db);
     processoService = new ProcessoService(db);
+    agendaService = new AgendaService(db);
+    prazoService = new PrazoService(db);
+    financeiroService = new FinanceiroService(db);
   });
 
   afterAll(() => {
@@ -176,7 +185,168 @@ describe('Integração: setup → login → CRUD', () => {
     expect(processo!.valorCausa).toBe(50000);
   });
 
+  it('atualiza processo (fase e status)', () => {
+    processoService.atualizar(processoId, { fase: 'recursal', status: 'ativo', valorCausa: 75000 });
+    const updated = processoService.obterPorId(processoId);
+    expect(updated!.fase).toBe('recursal');
+    expect(updated!.valorCausa).toBe(75000);
+  });
+
+  // --- CRUD Agenda ---
+  let eventoId: string;
+
+  it('cria evento na agenda', () => {
+    eventoId = agendaService.criar({
+      titulo: 'Audiência de conciliação',
+      tipo: 'audiencia',
+      dataHoraInicio: '2026-04-15T14:00:00',
+      dataHoraFim: '2026-04-15T15:00:00',
+      processoId,
+      local: 'Fórum Central - Sala 5',
+    });
+    expect(eventoId).toBeDefined();
+  });
+
+  it('lista eventos da agenda', () => {
+    const lista = agendaService.listar();
+    expect(lista.length).toBe(1);
+    expect(lista[0]!.titulo).toBe('Audiência de conciliação');
+    expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
+  });
+
+  it('filtra agenda por intervalo de datas', () => {
+    const lista = agendaService.listar({ inicio: '2026-04-01', fim: '2026-04-30' });
+    expect(lista.length).toBe(1);
+
+    const vazio = agendaService.listar({ inicio: '2025-01-01', fim: '2025-01-31' });
+    expect(vazio.length).toBe(0);
+  });
+
+  it('atualiza evento da agenda', () => {
+    agendaService.atualizar(eventoId, { titulo: 'Audiência de instrução', local: 'Fórum Central - Sala 10' });
+    const updated = agendaService.obterPorId(eventoId);
+    expect(updated!.titulo).toBe('Audiência de instrução');
+    expect(updated!.local).toBe('Fórum Central - Sala 10');
+  });
+
+  it('obtém evento por ID', () => {
+    const evento = agendaService.obterPorId(eventoId);
+    expect(evento).toBeDefined();
+    expect(evento!.tipo).toBe('audiencia');
+  });
+
+  // --- CRUD Prazos ---
+  let prazoId: string;
+
+  it('cria prazo', () => {
+    prazoId = prazoService.criar({
+      processoId,
+      descricao: 'Contestação',
+      dataFatal: '2026-05-01',
+      tipoPrazo: 'ncpc',
+      responsavelId: adminId,
+    });
+    expect(prazoId).toBeDefined();
+  });
+
+  it('lista prazos', () => {
+    const lista = prazoService.listar();
+    expect(lista.length).toBe(1);
+    expect(lista[0]!.descricao).toBe('Contestação');
+    expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
+    expect(lista[0]!.responsavelNome).toBe('Admin Teste');
+  });
+
+  it('filtra prazos por status', () => {
+    const pendentes = prazoService.listar({ status: 'pendente' });
+    expect(pendentes.length).toBe(1);
+
+    const cumpridos = prazoService.listar({ status: 'cumprido' });
+    expect(cumpridos.length).toBe(0);
+  });
+
+  it('filtra prazos por responsável', () => {
+    const lista = prazoService.listar({ responsavelId: adminId });
+    expect(lista.length).toBe(1);
+
+    const vazio = prazoService.listar({ responsavelId: 'id-inexistente' });
+    expect(vazio.length).toBe(0);
+  });
+
+  it('atualiza status do prazo', () => {
+    prazoService.atualizarStatus(prazoId, 'cumprido');
+    const updated = prazoService.obterPorId(prazoId);
+    expect(updated!.status).toBe('cumprido');
+  });
+
+  // --- CRUD Honorários ---
+  let honorarioId: string;
+
+  it('cria honorário', () => {
+    honorarioId = financeiroService.criar({
+      processoId,
+      clienteId,
+      tipo: 'fixo',
+      valor: 5000,
+      vencimento: '2026-04-30',
+    });
+    expect(honorarioId).toBeDefined();
+  });
+
+  it('lista honorários com JOINs', () => {
+    const lista = financeiroService.listar();
+    expect(lista.length).toBe(1);
+    expect(lista[0]!.valor).toBe(5000);
+    expect(lista[0]!.numeroCnj).toBe('0001234-56.2024.8.26.0100');
+    expect(lista[0]!.clienteNome).toBe('João da Silva');
+    expect(lista[0]!.status).toBe('pendente');
+  });
+
+  it('obtém honorário por ID', () => {
+    const h = financeiroService.obterPorId(honorarioId);
+    expect(h).toBeDefined();
+    expect(h!.tipo).toBe('fixo');
+    expect(h!.vencimento).toBe('2026-04-30');
+  });
+
+  it('atualiza status do honorário', () => {
+    financeiroService.atualizarStatus(honorarioId, 'recebido');
+    const updated = financeiroService.obterPorId(honorarioId);
+    expect(updated!.status).toBe('recebido');
+  });
+
+  it('cria honorário de êxito com percentual', () => {
+    const id = financeiroService.criar({
+      processoId,
+      tipo: 'exito',
+      valor: 100000,
+      percentualExito: 30,
+    });
+    const h = financeiroService.obterPorId(id);
+    expect(h!.tipo).toBe('exito');
+    expect(h!.percentualExito).toBe(30);
+    financeiroService.excluir(id);
+  });
+
   // --- Cleanup ---
+  it('exclui honorário', () => {
+    financeiroService.excluir(honorarioId);
+    const lista = financeiroService.listar();
+    expect(lista.length).toBe(0);
+  });
+
+  it('exclui prazo', () => {
+    prazoService.excluir(prazoId);
+    const lista = prazoService.listar();
+    expect(lista.length).toBe(0);
+  });
+
+  it('exclui evento da agenda', () => {
+    agendaService.excluir(eventoId);
+    const lista = agendaService.listar();
+    expect(lista.length).toBe(0);
+  });
+
   it('exclui processo', () => {
     processoService.excluir(processoId);
     const lista = processoService.listar();

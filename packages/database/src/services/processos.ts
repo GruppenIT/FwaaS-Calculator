@@ -118,6 +118,26 @@ export class ProcessoService {
       .all();
   }
 
+  atualizar(id: string, input: Partial<CreateProcessoInput> & { status?: 'ativo' | 'arquivado' | 'encerrado' }) {
+    this.db
+      .update(processos)
+      .set({
+        ...(input.numeroCnj !== undefined ? { numeroCnj: input.numeroCnj } : {}),
+        ...(input.clienteId !== undefined ? { clienteId: input.clienteId } : {}),
+        ...(input.advogadoResponsavelId !== undefined ? { advogadoResponsavelId: input.advogadoResponsavelId } : {}),
+        ...(input.tribunalSigla !== undefined ? { tribunalSigla: input.tribunalSigla } : {}),
+        ...(input.plataforma !== undefined ? { plataforma: input.plataforma } : {}),
+        ...(input.area !== undefined ? { area: input.area } : {}),
+        ...(input.fase !== undefined ? { fase: input.fase } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        ...(input.valorCausa !== undefined ? { valorCausa: input.valorCausa ?? null } : {}),
+        ...(input.poloAtivo !== undefined ? { poloAtivo: input.poloAtivo ?? null } : {}),
+        ...(input.poloPassivo !== undefined ? { poloPassivo: input.poloPassivo ?? null } : {}),
+      })
+      .where(eq(processos.id, id))
+      .run();
+  }
+
   excluir(id: string) {
     this.db.delete(processos).where(eq(processos.id, id)).run();
   }
