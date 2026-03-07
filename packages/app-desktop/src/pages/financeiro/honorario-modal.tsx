@@ -5,9 +5,23 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import * as api from '../../lib/api';
 
+export interface HonorarioEditData {
+  id: string;
+  clienteId: string | null;
+  clienteNome: string | null;
+  processoId: string | null;
+  numeroCnj: string | null;
+  tipo: 'fixo' | 'exito' | 'por_hora';
+  valor: number;
+  percentualExito: number | null;
+  vencimento: string | null;
+  status: 'pendente' | 'recebido' | 'inadimplente';
+}
+
 interface Props {
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  editData?: HonorarioEditData | null;
 }
 
 interface ClienteOption {
@@ -21,28 +35,30 @@ const TIPOS = [
   { value: 'por_hora', label: 'Por hora' },
 ];
 
-export function HonorarioModal({ onClose, onCreated }: Props) {
+export function HonorarioModal({ onClose, onSaved, editData }: Props) {
+  const isEdit = !!editData;
   const [form, setForm] = useState({
-    clienteId: '',
-    processoId: '',
-    tipo: 'fixo' as 'fixo' | 'exito' | 'por_hora',
-    valor: '',
-    percentualExito: '',
-    vencimento: '',
+    clienteId: editData?.clienteId ?? '',
+    processoId: editData?.processoId ?? '',
+    tipo: (editData?.tipo ?? 'fixo') as 'fixo' | 'exito' | 'por_hora',
+    valor: editData ? String(editData.valor) : '',
+    percentualExito: editData?.percentualExito ? String(editData.percentualExito) : '',
+    vencimento: editData?.vencimento ?? '',
+    status: (editData?.status ?? 'pendente') as 'pendente' | 'recebido' | 'inadimplente',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   // Cliente autocomplete
   const [clienteBusca, setClienteBusca] = useState('');
-  const [clienteNome, setClienteNome] = useState('');
+  const [clienteNome, setClienteNome] = useState(editData?.clienteNome ?? '');
   const [clienteOptions, setClienteOptions] = useState<ClienteOption[]>([]);
   const [showClienteDropdown, setShowClienteDropdown] = useState(false);
   const clienteRef = useRef<HTMLDivElement>(null);
 
   // Processo autocomplete
   const [processoBusca, setProcessoBusca] = useState('');
-  const [processoLabel, setProcessoLabel] = useState('');
+  const [processoLabel, setProcessoLabel] = useState(editData?.numeroCnj ?? '');
   const [processoOptions, setProcessoOptions] = useState<{ id: string; numeroCnj: string }[]>([]);
   const [showProcessoDropdown, setShowProcessoDropdown] = useState(false);
   const processoRef = useRef<HTMLDivElement>(null);
@@ -109,17 +125,31 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
     setLoading(true);
     try {
       const valor = parseFloat(form.valor.replace(/[^\d.,]/g, '').replace(',', '.'));
-      await api.criarHonorario({
-        tipo: form.tipo,
-        valor,
-        ...(form.clienteId ? { clienteId: form.clienteId } : {}),
-        ...(form.processoId ? { processoId: form.processoId } : {}),
-        ...(form.tipo === 'exito' && form.percentualExito
-          ? { percentualExito: parseFloat(form.percentualExito) }
-          : {}),
-        ...(form.vencimento ? { vencimento: form.vencimento } : {}),
-      });
-      onCreated();
+      if (isEdit) {
+        await api.atualizarHonorario(editData.id, {
+          tipo: form.tipo,
+          valor,
+          status: form.status,
+          ...(form.clienteId ? { clienteId: form.clienteId } : {}),
+          ...(form.processoId ? { processoId: form.processoId } : {}),
+          ...(form.tipo === 'exito' && form.percentualExito
+            ? { percentualExito: parseFloat(form.percentualExito) }
+            : {}),
+          ...(form.vencimento ? { vencimento: form.vencimento } : {}),
+        });
+      } else {
+        await api.criarHonorario({
+          tipo: form.tipo,
+          valor,
+          ...(form.clienteId ? { clienteId: form.clienteId } : {}),
+          ...(form.processoId ? { processoId: form.processoId } : {}),
+          ...(form.tipo === 'exito' && form.percentualExito
+            ? { percentualExito: parseFloat(form.percentualExito) }
+            : {}),
+          ...(form.vencimento ? { vencimento: form.vencimento } : {}),
+        });
+      }
+      onSaved();
     } catch (err) {
       setErrors({ geral: err instanceof Error ? err.message : 'Erro ao cadastrar.' });
     } finally {
@@ -128,7 +158,7 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <Modal open title="Novo honorário" onClose={onClose}>
+    <Modal open title={isEdit ? 'Editar honorário' : 'Novo honorário'} onClose={onClose}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Cliente autocomplete */}
           <div className="flex flex-col gap-1 relative" ref={clienteRef}>
@@ -297,6 +327,28 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
             onChange={(e) => setForm((p) => ({ ...p, vencimento: e.target.value }))}
           />
 
+          {isEdit && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Status
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    status: e.target.value as 'pendente' | 'recebido' | 'inadimplente',
+                  }))
+                }
+                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+              >
+                <option value="pendente">Pendente</option>
+                <option value="recebido">Recebido</option>
+                <option value="inadimplente">Inadimplente</option>
+              </select>
+            </div>
+          )}
+
           {errors.geral && (
             <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
               {errors.geral}
@@ -314,7 +366,7 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Salvando...' : 'Registrar honorário'}
+              {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Registrar honorário'}
             </Button>
           </div>
         </form>

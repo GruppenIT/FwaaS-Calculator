@@ -181,6 +181,22 @@ export function criarCliente(data: {
   });
 }
 
+export function atualizarCliente(
+  id: string,
+  data: Partial<{
+    tipo: 'PF' | 'PJ';
+    nome: string;
+    cpfCnpj: string;
+    email: string;
+    telefone: string;
+  }>,
+) {
+  return request<{ ok: boolean }>(`/api/clientes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 export function excluirCliente(id: string) {
   return request<{ ok: boolean }>(`/api/clientes/${id}`, {
     method: 'DELETE',

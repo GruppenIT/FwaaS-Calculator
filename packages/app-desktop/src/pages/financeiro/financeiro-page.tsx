@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, DollarSign, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Plus, DollarSign, Pencil, Trash2 } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { HonorarioModal } from './honorario-modal';
+import type { HonorarioEditData } from './honorario-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { HonorarioRow } from '../../lib/api';
@@ -16,18 +18,16 @@ const TIPO_LABELS: Record<string, string> = {
   por_hora: 'Por hora',
 };
 
-const STATUS_CONFIG = {
-  pendente: { label: 'Pendente', style: 'bg-causa-warning/10 text-causa-warning', icon: Clock },
-  recebido: {
-    label: 'Recebido',
-    style: 'bg-causa-success/10 text-causa-success',
-    icon: CheckCircle,
-  },
-  inadimplente: {
-    label: 'Inadimplente',
-    style: 'bg-causa-danger/10 text-causa-danger',
-    icon: AlertTriangle,
-  },
+const STATUS_STYLES: Record<string, string> = {
+  pendente: 'bg-causa-warning/10 text-causa-warning',
+  recebido: 'bg-causa-success/10 text-causa-success',
+  inadimplente: 'bg-causa-danger/10 text-causa-danger',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  pendente: 'Pendente',
+  recebido: 'Recebido',
+  inadimplente: 'Inadimplente',
 };
 
 function formatCurrency(value: number): string {
@@ -43,9 +43,13 @@ function formatDate(iso: string | null): string {
 export function FinanceiroPage() {
   const { can } = usePermission();
   const { toast } = useToast();
-  const [showModal, setShowModal] = useState(false);
+  const [modalData, setModalData] = useState<HonorarioEditData | null | undefined>(undefined);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const showModal = modalData !== undefined;
 
   const carregar = useCallback(async () => {
     try {
@@ -62,19 +66,50 @@ export function FinanceiroPage() {
     carregar();
   }, [carregar]);
 
-  function handleCreated() {
-    setShowModal(false);
-    toast('Honorário registrado com sucesso.', 'success');
+  function handleSaved() {
+    const isEdit = !!modalData;
+    setModalData(undefined);
+    toast(isEdit ? 'Honorário atualizado com sucesso.' : 'Honorário registrado com sucesso.', 'success');
     carregar();
+  }
+
+  function handleEdit(h: HonorarioRow) {
+    setModalData({
+      id: h.id,
+      clienteId: h.clienteId,
+      clienteNome: h.clienteNome,
+      processoId: h.processoId,
+      numeroCnj: h.numeroCnj,
+      tipo: h.tipo,
+      valor: h.valor,
+      percentualExito: h.percentualExito,
+      vencimento: h.vencimento,
+      status: h.status,
+    });
   }
 
   async function handleStatusChange(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
     try {
-      await api.atualizarStatusHonorario(id, status);
+      await api.atualizarHonorario(id, { status });
       toast('Status atualizado.', 'success');
       carregar();
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao atualizar status.', 'error');
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await api.excluirHonorario(deleteId);
+      toast('Honorário excluído.', 'success');
+      carregar();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao excluir honorário.', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
     }
   }
 
@@ -95,7 +130,7 @@ export function FinanceiroPage() {
         description="Controle financeiro do escritório"
         action={
           can('financeiro:editar') ? (
-            <Button onClick={() => setShowModal(true)}>
+            <Button onClick={() => setModalData(null)}>
               <Plus size={16} />
               Novo honorário
             </Button>
@@ -148,21 +183,20 @@ export function FinanceiroPage() {
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
                 Status
               </th>
+              <th className="w-20"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <SkeletonTableRows rows={5} cols={6} />
+              <SkeletonTableRows rows={5} cols={7} />
             ) : honorarios.length === 0 ? (
               <EmptyState
                 icon={DollarSign}
                 message="Nenhum honorário cadastrado. Comece registrando seus honorários."
-                colSpan={6}
+                colSpan={7}
               />
             ) : (
               honorarios.map((h) => {
-                const statusCfg =
-                  STATUS_CONFIG[h.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pendente;
                 return (
                   <tr
                     key={h.id}
@@ -196,12 +230,34 @@ export function FinanceiroPage() {
                           )
                         }
                         disabled={!can('financeiro:editar')}
-                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 ${can('financeiro:editar') ? 'cursor-pointer' : 'cursor-default opacity-75'} ${statusCfg.style}`}
+                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 ${can('financeiro:editar') ? 'cursor-pointer' : 'cursor-default opacity-75'} ${STATUS_STYLES[h.status] ?? ''}`}
                       >
                         <option value="pendente">Pendente</option>
                         <option value="recebido">Recebido</option>
                         <option value="inadimplente">Inadimplente</option>
                       </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        {can('financeiro:editar') && (
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(h)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        {can('financeiro:excluir') && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteId(h.id)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -212,8 +268,22 @@ export function FinanceiroPage() {
       </div>
 
       {showModal && (
-        <HonorarioModal onClose={() => setShowModal(false)} onCreated={handleCreated} />
+        <HonorarioModal
+          onClose={() => setModalData(undefined)}
+          onSaved={handleSaved}
+          editData={modalData}
+        />
       )}
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Excluir honorário"
+        message="Tem certeza que deseja excluir este honorário? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        loading={deleting}
+      />
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Briefcase, Search } from 'lucide-react';
+import { Plus, Briefcase, Search, Pencil, Trash2 } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ProcessoModal } from './processo-modal';
+import type { ProcessoEditData } from './processo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 
@@ -15,8 +17,11 @@ interface ProcessoRow {
   clienteNome: string | null;
   advogadoNome: string | null;
   tribunalSigla: string;
+  plataforma: string;
   area: string;
+  fase: string;
   status: 'ativo' | 'arquivado' | 'encerrado';
+  valorCausa: number | null;
   ultimoSyncAt: string | null;
 }
 
@@ -29,10 +34,14 @@ const STATUS_STYLES: Record<string, string> = {
 export function ProcessosPage() {
   const { can } = usePermission();
   const { toast } = useToast();
-  const [showModal, setShowModal] = useState(false);
+  const [modalData, setModalData] = useState<ProcessoEditData | null | undefined>(undefined);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
   const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const showModal = modalData !== undefined;
 
   const carregar = useCallback(async () => {
     try {
@@ -50,10 +59,41 @@ export function ProcessosPage() {
     return () => clearTimeout(timer);
   }, [carregar, busca]);
 
-  function handleCreated() {
-    setShowModal(false);
-    toast('Processo cadastrado com sucesso.', 'success');
+  function handleSaved() {
+    const isEdit = !!modalData;
+    setModalData(undefined);
+    toast(isEdit ? 'Processo atualizado com sucesso.' : 'Processo cadastrado com sucesso.', 'success');
     carregar();
+  }
+
+  function handleEdit(p: ProcessoRow) {
+    setModalData({
+      id: p.id,
+      numeroCnj: p.numeroCnj,
+      clienteId: '',
+      clienteNome: p.clienteNome,
+      tribunalSigla: p.tribunalSigla,
+      plataforma: p.plataforma,
+      area: p.area,
+      fase: p.fase,
+      status: p.status,
+      valorCausa: p.valorCausa,
+    });
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await api.excluirProcesso(deleteId);
+      toast('Processo excluído.', 'success');
+      carregar();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao excluir processo.', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
   }
 
   return (
@@ -63,7 +103,7 @@ export function ProcessosPage() {
         description="Acompanhe todos os processos do escritório"
         action={
           can('processos:criar') ? (
-            <Button onClick={() => setShowModal(true)}>
+            <Button onClick={() => setModalData(null)}>
               <Plus size={16} />
               Novo processo
             </Button>
@@ -111,22 +151,23 @@ export function ProcessosPage() {
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
                 Status
               </th>
+              <th className="w-20"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <SkeletonTableRows rows={5} cols={6} />
+              <SkeletonTableRows rows={5} cols={7} />
             ) : processos.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
                 message={busca ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'}
-                colSpan={6}
+                colSpan={7}
               />
             ) : (
               processos.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa cursor-pointer"
+                  className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
                 >
                   <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-[var(--font-mono)] font-medium">
                     {p.numeroCnj}
@@ -152,6 +193,28 @@ export function ProcessosPage() {
                       {p.status}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      {can('processos:editar') && (
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(p)}
+                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      )}
+                      {can('processos:excluir') && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(p.id)}
+                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -159,7 +222,23 @@ export function ProcessosPage() {
         </table>
       </div>
 
-      {showModal && <ProcessoModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+      {showModal && (
+        <ProcessoModal
+          onClose={() => setModalData(undefined)}
+          onSaved={handleSaved}
+          editData={modalData}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Excluir processo"
+        message="Tem certeza que deseja excluir este processo? Prazos e honorários vinculados podem ser afetados."
+        confirmLabel="Excluir"
+        loading={deleting}
+      />
     </div>
   );
 }

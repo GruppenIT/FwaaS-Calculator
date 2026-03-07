@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Clock, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, Trash2, Pencil, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -7,6 +7,7 @@ import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { PrazoModal } from './prazo-modal';
+import type { PrazoEditData } from './prazo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { PrazoRow } from '../../lib/api';
@@ -45,7 +46,7 @@ function diasRestantes(dataFatal: string): number {
 export function PrazosPage() {
   const { can } = usePermission();
   const { toast } = useToast();
-  const [showModal, setShowModal] = useState(false);
+  const [modalData, setModalData] = useState<PrazoEditData | null | undefined>(undefined);
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
@@ -67,10 +68,26 @@ export function PrazosPage() {
     carregar();
   }, [carregar]);
 
-  function handleCreated() {
-    setShowModal(false);
-    toast('Prazo criado com sucesso.', 'success');
+  const showModal = modalData !== undefined;
+
+  function handleSaved() {
+    const isEdit = !!modalData;
+    setModalData(undefined);
+    toast(isEdit ? 'Prazo atualizado com sucesso.' : 'Prazo criado com sucesso.', 'success');
     carregar();
+  }
+
+  function handleEdit(p: PrazoRow) {
+    setModalData({
+      id: p.id,
+      processoId: p.processoId,
+      numeroCnj: p.numeroCnj,
+      descricao: p.descricao,
+      dataFatal: p.dataFatal,
+      tipoPrazo: p.tipoPrazo,
+      status: p.status,
+      responsavelId: p.responsavelId,
+    });
   }
 
   async function handleStatusChange(id: string, status: 'cumprido' | 'perdido') {
@@ -105,7 +122,7 @@ export function PrazosPage() {
         description="Prazos processuais e alertas"
         action={
           can('processos:editar') ? (
-            <Button onClick={() => setShowModal(true)}>
+            <Button onClick={() => setModalData(null)}>
               <Plus size={16} />
               Novo prazo
             </Button>
@@ -226,6 +243,15 @@ export function PrazosPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
+                        {can('processos:editar') && (
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(p)}
+                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
                         {p.status === 'pendente' && can('processos:editar') && (
                           <button
                             type="button"
@@ -255,7 +281,13 @@ export function PrazosPage() {
         </table>
       </div>
 
-      {showModal && <PrazoModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+      {showModal && (
+        <PrazoModal
+          onClose={() => setModalData(undefined)}
+          onSaved={handleSaved}
+          editData={modalData}
+        />
+      )}
 
       <ConfirmDialog
         open={!!deleteId}
