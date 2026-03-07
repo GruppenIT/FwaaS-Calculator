@@ -2,9 +2,12 @@ import { useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { useAuth } from '../../lib/auth-context';
+import * as api from '../../lib/api';
 
 interface Props {
   onClose: () => void;
+  onCreated: () => void;
 }
 
 const AREAS = [
@@ -43,7 +46,8 @@ function formatCnj(value: string): string {
   return result;
 }
 
-export function ProcessoModal({ onClose }: Props) {
+export function ProcessoModal({ onClose, onCreated }: Props) {
+  const { user } = useAuth();
   const [form, setForm] = useState({
     numeroCnj: '',
     clienteId: '',
@@ -54,6 +58,7 @@ export function ProcessoModal({ onClose }: Props) {
     valorCausa: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -64,11 +69,29 @@ export function ProcessoModal({ onClose }: Props) {
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(ev: FormEvent) {
+  async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
-    // TODO: chamar backend via IPC
-    onClose();
+
+    setLoading(true);
+    try {
+      const valor = form.valorCausa ? parseFloat(form.valorCausa.replace(/[^\d.,]/g, '').replace(',', '.')) : undefined;
+      await api.criarProcesso({
+        numeroCnj: form.numeroCnj,
+        clienteId: form.clienteId,
+        advogadoResponsavelId: user?.id ?? '',
+        tribunalSigla: form.tribunalSigla,
+        plataforma: form.plataforma,
+        area: form.area,
+        fase: form.fase,
+        ...(valor ? { valorCausa: valor } : {}),
+      });
+      onCreated();
+    } catch (err) {
+      setErrors({ geral: err instanceof Error ? err.message : 'Erro ao cadastrar.' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function update(field: string, value: string) {
@@ -166,12 +189,18 @@ export function ProcessoModal({ onClose }: Props) {
             onChange={(e) => update('valorCausa', e.target.value)}
           />
 
+          {errors.geral && (
+            <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
+              {errors.geral}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} className="flex-1">
+            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Cadastrar processo
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? 'Cadastrando...' : 'Cadastrar processo'}
             </Button>
           </div>
         </form>

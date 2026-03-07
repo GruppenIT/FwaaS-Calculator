@@ -9,13 +9,13 @@ export const clientes = sqliteTable('clientes', {
   email: text('email'),
   telefone: text('telefone'),
   endereco: text('endereco', { mode: 'json' }).$type<{
-    logradouro?: string;
-    numero?: string;
-    complemento?: string;
-    bairro?: string;
-    cidade?: string;
-    uf?: string;
-    cep?: string;
+    logradouro?: string | undefined;
+    numero?: string | undefined;
+    complemento?: string | undefined;
+    bairro?: string | undefined;
+    cidade?: string | undefined;
+    uf?: string | undefined;
+    cep?: string | undefined;
   }>(),
   createdBy: text('created_by')
     .notNull()

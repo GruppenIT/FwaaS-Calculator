@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
+import { useAuth } from '../../lib/auth-context';
+import * as api from '../../lib/api';
 import type { SetupData } from './setup-page';
 
 interface Props {
@@ -10,11 +13,34 @@ interface Props {
 
 export function StepConclusao({ data, onBack }: Props) {
   const navigate = useNavigate();
+  const { setConfigured } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  function handleFinish() {
-    // TODO: chamar API para persistir configuração + criar usuário admin
-    // Por enquanto, redireciona para login
-    navigate('/login');
+  async function handleFinish() {
+    if (!data.topologia || !data.admin) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await api.setupSystem({
+        topologia: data.topologia,
+        admin: {
+          nome: data.admin.nome,
+          email: data.admin.email,
+          senha: data.admin.senha,
+          ...(data.admin.oabNumero ? { oabNumero: data.admin.oabNumero } : {}),
+          ...(data.admin.oabSeccional ? { oabSeccional: data.admin.oabSeccional } : {}),
+        },
+      });
+      setConfigured();
+      navigate('/login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao configurar sistema.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -63,12 +89,18 @@ export function StepConclusao({ data, onBack }: Props) {
         </div>
       </div>
 
+      {error && (
+        <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20 mb-4">
+          {error}
+        </div>
+      )}
+
       <div className="flex gap-3">
-        <Button variant="secondary" onClick={onBack} className="flex-1">
+        <Button variant="secondary" onClick={onBack} disabled={loading} className="flex-1">
           Voltar
         </Button>
-        <Button onClick={handleFinish} className="flex-1">
-          Finalizar configuração
+        <Button onClick={handleFinish} disabled={loading} className="flex-1">
+          {loading ? 'Configurando...' : 'Finalizar configuração'}
         </Button>
       </div>
     </div>

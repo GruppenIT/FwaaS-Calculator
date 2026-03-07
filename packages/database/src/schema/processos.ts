@@ -21,10 +21,10 @@ export const processos = sqliteTable('processos', {
     .notNull()
     .default('ativo'),
   poloAtivo: text('polo_ativo', { mode: 'json' }).$type<
-    Array<{ nome: string; cpfCnpj?: string; tipo: string }>
+    Array<{ nome: string; cpfCnpj?: string | undefined; tipo: string }>
   >(),
   poloPassivo: text('polo_passivo', { mode: 'json' }).$type<
-    Array<{ nome: string; cpfCnpj?: string; tipo: string }>
+    Array<{ nome: string; cpfCnpj?: string | undefined; tipo: string }>
   >(),
   valorCausa: real('valor_causa'),
   ultimoSyncAt: text('ultimo_sync_at'),

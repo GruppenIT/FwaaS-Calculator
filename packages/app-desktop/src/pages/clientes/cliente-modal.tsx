@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import * as api from '../../lib/api';
 
 interface Props {
   onClose: () => void;
+  onCreated: () => void;
 }
 
 function formatCpf(value: string): string {
@@ -24,7 +26,7 @@ function formatCnpj(value: string): string {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
-export function ClienteModal({ onClose }: Props) {
+export function ClienteModal({ onClose, onCreated }: Props) {
   const [tipo, setTipo] = useState<'PF' | 'PJ'>('PF');
   const [form, setForm] = useState({
     nome: '',
@@ -33,6 +35,7 @@ export function ClienteModal({ onClose }: Props) {
     telefone: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -46,11 +49,25 @@ export function ClienteModal({ onClose }: Props) {
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(ev: FormEvent) {
+  async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
-    // TODO: chamar backend via IPC
-    onClose();
+
+    setLoading(true);
+    try {
+      await api.criarCliente({
+        tipo,
+        nome: form.nome,
+        ...(form.cpfCnpj ? { cpfCnpj: form.cpfCnpj } : {}),
+        ...(form.email ? { email: form.email } : {}),
+        ...(form.telefone ? { telefone: form.telefone } : {}),
+      });
+      onCreated();
+    } catch (err) {
+      setErrors({ geral: err instanceof Error ? err.message : 'Erro ao cadastrar.' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function update(field: string, value: string) {
@@ -127,12 +144,18 @@ export function ClienteModal({ onClose }: Props) {
             placeholder="(11) 99999-0000"
           />
 
+          {errors.geral && (
+            <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
+              {errors.geral}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} className="flex-1">
+            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Cadastrar
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? 'Cadastrando...' : 'Cadastrar'}
             </Button>
           </div>
         </form>

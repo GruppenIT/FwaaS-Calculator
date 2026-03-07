@@ -11,7 +11,8 @@
     "test": "vitest run",
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
-    "seed": "tsx src/seeds/run.ts"
+    "seed": "tsx src/seeds/run.ts",
+    "dev:api": "tsx src/api-server.ts"
   },
   "dependencies": {
     "@causa/shared": "workspace:*",

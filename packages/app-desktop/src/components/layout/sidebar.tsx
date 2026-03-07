@@ -14,6 +14,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../lib/auth-context';
 
 interface NavItem {
   to: string;
@@ -54,6 +55,7 @@ const NAV_SECTIONS: NavSection[] = [
 
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
 
   return (
     <aside className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
@@ -107,6 +109,7 @@ export function Sidebar() {
         </button>
         <button
           type="button"
+          onClick={logout}
           className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
           title="Sair"
         >

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../lib/auth-context';
 import { Moon, Sun } from 'lucide-react';
 
 export function LoginPage() {
@@ -10,24 +11,22 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { login } = useAuth();
 
   async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     setError('');
-    setLoading(true);
 
+    if (!email || !senha) {
+      setError('Preencha todos os campos.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      // TODO: chamar AuthService.login via IPC
-      // Simulação por enquanto
-      await new Promise((r) => setTimeout(r, 500));
-      if (!email || !senha) {
-        setError('Preencha todos os campos.');
-        return;
-      }
-      // TODO: navegar para dashboard após login
-      setError('Login ainda não conectado ao backend.');
-    } catch {
-      setError('Credenciais inválidas.');
+      await login(email, senha);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Credenciais inválidas.');
     } finally {
       setLoading(false);
     }

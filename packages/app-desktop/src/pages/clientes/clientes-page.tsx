@@ -1,34 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Users, Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { ClienteModal } from './cliente-modal';
+import * as api from '../../lib/api';
 
-export interface ClienteRow {
+interface ClienteRow {
   id: string;
   tipo: 'PF' | 'PJ';
   nome: string;
   cpfCnpj: string | null;
   email: string | null;
   telefone: string | null;
-  processosAtivos: number;
   createdAt: string;
 }
 
-// TODO: dados reais
-const MOCK_CLIENTES: ClienteRow[] = [];
-
 export function ClientesPage() {
   const [showModal, setShowModal] = useState(false);
-  const [clientes] = useState<ClienteRow[]>(MOCK_CLIENTES);
+  const [clientes, setClientes] = useState<ClienteRow[]>([]);
   const [busca, setBusca] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const filtered = clientes.filter(
-    (c) =>
-      c.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      c.cpfCnpj?.includes(busca) ||
-      c.email?.toLowerCase().includes(busca.toLowerCase()),
-  );
+  const carregar = useCallback(async () => {
+    try {
+      const data = await api.listarClientes(busca || undefined);
+      setClientes(data);
+    } catch (err) {
+      console.error('Erro ao carregar clientes:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [busca]);
+
+  useEffect(() => {
+    const timer = setTimeout(carregar, busca ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [carregar, busca]);
+
+  function handleCreated() {
+    setShowModal(false);
+    carregar();
+  }
 
   return (
     <div>
@@ -64,13 +76,18 @@ export function ClientesPage() {
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Tipo</th>
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">CPF/CNPJ</th>
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Contato</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Processos</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
+                <td colSpan={4} className="px-4 py-12 text-center">
+                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
+                </td>
+              </tr>
+            ) : clientes.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-12 text-center">
                   <Users size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
                   <p className="text-sm-causa text-[var(--color-text-muted)]">
                     {busca ? 'Nenhum cliente encontrado.' : 'Cadastre seu primeiro cliente para começar.'}
@@ -78,7 +95,7 @@ export function ClientesPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => (
+              clientes.map((c) => (
                 <tr key={c.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa cursor-pointer">
                   <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">{c.nome}</td>
                   <td className="px-4 py-3">
@@ -88,7 +105,6 @@ export function ClientesPage() {
                   </td>
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">{c.cpfCnpj ?? '—'}</td>
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{c.email ?? c.telefone ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text)]">{c.processosAtivos}</td>
                 </tr>
               ))
             )}
@@ -96,7 +112,7 @@ export function ClientesPage() {
         </table>
       </div>
 
-      {showModal && <ClienteModal onClose={() => setShowModal(false)} />}
+      {showModal && <ClienteModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
     </div>
   );
 }

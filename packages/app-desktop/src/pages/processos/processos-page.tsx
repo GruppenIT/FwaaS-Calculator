@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { Plus, Briefcase, Search, Filter } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Briefcase, Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { ProcessoModal } from './processo-modal';
+import * as api from '../../lib/api';
 
-export interface ProcessoRow {
+interface ProcessoRow {
   id: string;
   numeroCnj: string;
-  clienteNome: string;
-  advogadoNome: string;
+  clienteNome: string | null;
+  advogadoNome: string | null;
   tribunalSigla: string;
   area: string;
   status: 'ativo' | 'arquivado' | 'encerrado';
@@ -21,19 +22,32 @@ const STATUS_STYLES: Record<string, string> = {
   encerrado: 'bg-causa-warning/10 text-causa-warning',
 };
 
-// TODO: dados reais
-const MOCK_PROCESSOS: ProcessoRow[] = [];
-
 export function ProcessosPage() {
   const [showModal, setShowModal] = useState(false);
-  const [processos] = useState<ProcessoRow[]>(MOCK_PROCESSOS);
+  const [processos, setProcessos] = useState<ProcessoRow[]>([]);
   const [busca, setBusca] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const filtered = processos.filter(
-    (p) =>
-      p.numeroCnj.includes(busca) ||
-      p.clienteNome.toLowerCase().includes(busca.toLowerCase()),
-  );
+  const carregar = useCallback(async () => {
+    try {
+      const data = await api.listarProcessos(busca || undefined);
+      setProcessos(data);
+    } catch (err) {
+      console.error('Erro ao carregar processos:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [busca]);
+
+  useEffect(() => {
+    const timer = setTimeout(carregar, busca ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [carregar, busca]);
+
+  function handleCreated() {
+    setShowModal(false);
+    carregar();
+  }
 
   return (
     <div>
@@ -60,10 +74,6 @@ export function ProcessosPage() {
             className="w-full h-9 pl-9 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
           />
         </div>
-        <Button variant="secondary">
-          <Filter size={16} />
-          Filtros
-        </Button>
       </div>
 
       {/* Tabela */}
@@ -80,7 +90,13 @@ export function ProcessosPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center">
+                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
+                </td>
+              </tr>
+            ) : processos.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center">
                   <Briefcase size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
@@ -90,11 +106,11 @@ export function ProcessosPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((p) => (
+              processos.map((p) => (
                 <tr key={p.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa cursor-pointer">
                   <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-[var(--font-mono)] font-medium">{p.numeroCnj}</td>
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)]">{p.clienteNome}</td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{p.advogadoNome}</td>
+                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)]">{p.clienteNome ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{p.advogadoNome ?? '—'}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
                       {p.tribunalSigla}
@@ -113,7 +129,7 @@ export function ProcessosPage() {
         </table>
       </div>
 
-      {showModal && <ProcessoModal onClose={() => setShowModal(false)} />}
+      {showModal && <ProcessoModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
     </div>
   );
 }

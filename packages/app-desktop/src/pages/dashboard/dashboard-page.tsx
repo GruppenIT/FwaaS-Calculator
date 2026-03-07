@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Briefcase, Clock, AlertTriangle, Users } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
+import * as api from '../../lib/api';
 
 interface StatCardProps {
   icon: typeof Briefcase;
@@ -25,7 +27,21 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
 }
 
 export function DashboardPage() {
-  // TODO: dados reais via query ao banco
+  const [stats, setStats] = useState({
+    processosAtivos: 0,
+    clientes: 0,
+    prazosPendentes: 0,
+    prazosFatais: 0,
+  });
+
+  useEffect(() => {
+    api.getDashboardStats()
+      .then(setStats)
+      .catch((err) => console.error('Erro ao carregar dashboard:', err));
+  }, []);
+
+  const total = stats.processosAtivos + stats.clientes;
+
   return (
     <div>
       <PageHeader
@@ -37,39 +53,40 @@ export function DashboardPage() {
         <StatCard
           icon={Briefcase}
           label="Processos ativos"
-          value={0}
+          value={stats.processosAtivos}
           color="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
         />
         <StatCard
           icon={Clock}
-          label="Prazos esta semana"
-          value={0}
+          label="Prazos pendentes"
+          value={stats.prazosPendentes}
           color="bg-causa-warning/10 text-causa-warning"
         />
         <StatCard
           icon={AlertTriangle}
           label="Prazos fatais"
-          value={0}
+          value={stats.prazosFatais}
           color="bg-causa-danger/10 text-causa-danger"
         />
         <StatCard
           icon={Users}
           label="Clientes"
-          value={0}
+          value={stats.clientes}
           color="bg-causa-success/10 text-causa-success"
         />
       </div>
 
-      {/* Estado vazio */}
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-12 text-center">
-        <Briefcase size={48} className="mx-auto text-[var(--color-text-muted)]/30 mb-4" strokeWidth={1} />
-        <h2 className="text-lg-causa text-[var(--color-text)] mb-1">
-          Nenhum processo cadastrado
-        </h2>
-        <p className="text-sm-causa text-[var(--color-text-muted)]">
-          Comece cadastrando seu primeiro cliente e importando um processo.
-        </p>
-      </div>
+      {total === 0 && (
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-12 text-center">
+          <Briefcase size={48} className="mx-auto text-[var(--color-text-muted)]/30 mb-4" strokeWidth={1} />
+          <h2 className="text-lg-causa text-[var(--color-text)] mb-1">
+            Nenhum processo cadastrado
+          </h2>
+          <p className="text-sm-causa text-[var(--color-text-muted)]">
+            Comece cadastrando seu primeiro cliente e importando um processo.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

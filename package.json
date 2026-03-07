@@ -15,7 +15,8 @@
     "db:generate": "pnpm --filter @causa/database run generate",
     "db:migrate": "pnpm --filter @causa/database run migrate",
     "db:seed": "pnpm --filter @causa/database run seed",
-    "dev:desktop": "pnpm --filter @causa/app-desktop run dev"
+    "dev:desktop": "pnpm --filter @causa/app-desktop run dev",
+    "dev:api": "pnpm --filter @causa/database run dev:api"
   },
   "engines": {
     "node": ">=20.0.0",
