@@ -8,4 +8,5 @@ export type {
   ResultadoPeticionamento,
   StatusConector,
   ConnectorLog,
+  Movimentacao,
 } from '@causa/shared';
