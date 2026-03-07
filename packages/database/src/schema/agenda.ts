@@ -1,5 +1,5 @@
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { processos } from './processos';
+import { processos } from './processos.js';
 
 export const agenda = sqliteTable('agenda', {
   id: text('id').primaryKey(),

@@ -1,5 +1,5 @@
 import type { PermissionKey } from '@causa/shared';
-import type { AuthService } from './auth';
+import type { AuthService } from './auth.js';
 
 export interface AuthenticatedUser {
   id: string;

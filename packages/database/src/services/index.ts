@@ -1,9 +1,9 @@
-export { AuthService, type AuthTokens, type JwtPayload, type CreateUserInput } from './auth';
-export { RbacService, type AuthenticatedUser } from './rbac';
-export { AuditService, type AuditEntry } from './audit';
-export { ClienteService } from './clientes';
-export { ProcessoService } from './processos';
-export { FinanceiroService, type CreateHonorarioInput } from './financeiro';
-export { AgendaService, type CreateAgendaInput } from './agenda';
-export { PrazoService, type CreatePrazoInput } from './prazos';
-export { setupDatabase, type SetupInput, type SetupResult } from './setup';
+export { AuthService, type AuthTokens, type JwtPayload, type CreateUserInput } from './auth.js';
+export { RbacService, type AuthenticatedUser } from './rbac.js';
+export { AuditService, type AuditEntry } from './audit.js';
+export { ClienteService } from './clientes.js';
+export { ProcessoService } from './processos.js';
+export { FinanceiroService, type CreateHonorarioInput } from './financeiro.js';
+export { AgendaService, type CreateAgendaInput } from './agenda.js';
+export { PrazoService, type CreatePrazoInput } from './prazos.js';
+export { setupDatabase, type SetupInput, type SetupResult } from './setup.js';

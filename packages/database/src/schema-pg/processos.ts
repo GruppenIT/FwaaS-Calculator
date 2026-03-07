@@ -1,6 +1,6 @@
 import { pgTable, text, doublePrecision, boolean, jsonb } from 'drizzle-orm/pg-core';
-import { clientes } from './clientes';
-import { users } from './usuarios';
+import { clientes } from './clientes.js';
+import { users } from './usuarios.js';
 
 export const processos = pgTable('processos', {
   id: text('id').primaryKey(),

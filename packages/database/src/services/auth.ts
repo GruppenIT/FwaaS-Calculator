@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
 import { eq } from 'drizzle-orm';
-import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
-import type { CausaSchema } from '../schema-provider';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client.js';
+import type { CausaSchema } from '../schema-provider.js';
 
 const BCRYPT_COST = 12;
 const JWT_EXPIRY = '8h';

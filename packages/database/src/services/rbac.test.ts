@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDatabase, type DatabaseQueryBuilder } from '../client';
-import { getSchema } from '../schema-provider';
-import { AuthService } from './auth';
-import { RbacService, type AuthenticatedUser } from './rbac';
+import { createDatabase, type DatabaseQueryBuilder } from '../client.js';
+import { getSchema } from '../schema-provider.js';
+import { AuthService } from './auth.js';
+import { RbacService, type AuthenticatedUser } from './rbac.js';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { v4 as uuid } from 'uuid';

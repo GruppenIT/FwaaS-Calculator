@@ -1,6 +1,6 @@
 import { pgTable, text, doublePrecision } from 'drizzle-orm/pg-core';
-import { processos } from './processos';
-import { clientes } from './clientes';
+import { processos } from './processos.js';
+import { clientes } from './clientes.js';
 
 export const honorarios = pgTable('honorarios', {
   id: text('id').primaryKey(),
