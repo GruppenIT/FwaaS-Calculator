@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CAUSA</title>
   <style>
+    /* Fontes locais — Inter e Lora (woff2 no bundle) */
+    @font-face {
+      font-family: 'Lora';
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+      src: url('fonts/Lora-SemiBold.woff2') format('woff2');
+    }
+
+    @font-face {
+      font-family: 'Inter';
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+      src: url('fonts/Inter-Regular.woff2') format('woff2');
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
@@ -14,180 +31,198 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: #0F1829;
       overflow: hidden;
       -webkit-app-region: drag;
       user-select: none;
+      position: relative;
     }
 
-    /* Animated background particles */
-    .bg-glow {
+    /* Imagem de fundo */
+    .splash-bg {
       position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.15;
-      animation: float 6s ease-in-out infinite;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('CAUSA_splash_bg.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: 0;
     }
 
-    .bg-glow:nth-child(1) {
-      width: 300px; height: 300px;
-      background: #6366f1;
-      top: -80px; left: -80px;
-      animation-delay: 0s;
+    /* Container principal */
+    .content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
     }
 
-    .bg-glow:nth-child(2) {
-      width: 250px; height: 250px;
-      background: #8b5cf6;
-      bottom: -60px; right: -60px;
-      animation-delay: -3s;
-    }
-
-    .bg-glow:nth-child(3) {
-      width: 200px; height: 200px;
-      background: #a78bfa;
-      top: 50%; left: 50%;
+    /* Nome CAUSA */
+    .brand-name {
+      position: absolute;
+      top: 45%;
+      left: 50%;
       transform: translate(-50%, -50%);
-      animation-delay: -1.5s;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(20px, -20px) scale(1.1); }
-    }
-
-    /* Logo container */
-    .logo-wrapper {
-      position: relative;
-      z-index: 2;
-      animation: logoEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0;
-      transform: scale(0.8) translateY(20px);
-    }
-
-    @keyframes logoEntry {
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    .logo-wrapper img {
-      width: 120px;
-      height: 120px;
-      filter: drop-shadow(0 8px 32px rgba(99, 102, 241, 0.4));
-    }
-
-    /* Ring pulse around logo */
-    .logo-ring {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 140px; height: 140px;
-      margin: -70px 0 0 -70px;
-      border: 2px solid rgba(99, 102, 241, 0.3);
-      border-radius: 50%;
-      animation: ringPulse 2s ease-out infinite;
-    }
-
-    @keyframes ringPulse {
-      0% { transform: scale(0.9); opacity: 0.6; }
-      100% { transform: scale(1.6); opacity: 0; }
-    }
-
-    /* Brand text */
-    .brand {
-      position: relative;
-      z-index: 2;
-      margin-top: 28px;
-      animation: textEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
-      opacity: 0;
-      transform: translateY(15px);
-    }
-
-    @keyframes textEntry {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .brand h1 {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: 8px;
-      color: #ffffff;
-      text-shadow: 0 2px 20px rgba(99, 102, 241, 0.5);
-    }
-
-    .brand p {
-      margin-top: 8px;
-      font-size: 12px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.5);
       text-align: center;
     }
 
-    /* Loading bar */
-    .loader {
-      position: absolute;
-      bottom: 40px;
-      z-index: 2;
-      width: 200px;
-      animation: textEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+    .brand-name h1 {
+      font-family: 'Lora', 'Georgia', 'Times New Roman', serif;
+      font-weight: 600;
+      font-size: 48px;
+      letter-spacing: 0.15em;
+      color: #FFFFFF;
+      margin: 0;
+      animation: fadeIn 0.8s ease-out forwards;
       opacity: 0;
-      transform: translateY(15px);
     }
 
-    .loader-track {
+    .brand-name .tagline {
+      margin-top: 12px;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-weight: 400;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.65);
+      animation: fadeIn 0.8s ease-out 0.3s forwards;
+      opacity: 0;
+    }
+
+    /* Barra de progresso */
+    .progress-area {
+      position: absolute;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      text-align: center;
+      animation: fadeIn 0.8s ease-out 0.5s forwards;
+      opacity: 0;
+    }
+
+    .status-text {
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-weight: 400;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.50);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
       width: 100%;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 3px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
       overflow: hidden;
     }
 
-    .loader-bar {
-      width: 40%;
+    .progress-bar {
+      width: 0%;
       height: 100%;
-      background: linear-gradient(90deg, #6366f1, #a78bfa);
-      border-radius: 3px;
-      animation: loading 1.5s ease-in-out infinite;
+      background: #2563A8;
+      border-radius: 2px;
+      transition: width 0.4s ease-out;
     }
 
-    @keyframes loading {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(350%); }
-    }
-
-    .loader-text {
-      margin-top: 10px;
+    /* Versão */
+    .version {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-weight: 400;
       font-size: 11px;
       color: rgba(255, 255, 255, 0.35);
-      text-align: center;
-      letter-spacing: 1px;
+      z-index: 1;
+      animation: fadeIn 0.8s ease-out 0.5s forwards;
+      opacity: 0;
+    }
+
+    /* Animações */
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    /* Fade out ao fechar */
+    body.fade-out {
+      animation: fadeOut 200ms ease-out forwards;
+    }
+
+    @keyframes fadeOut {
+      to { opacity: 0; }
     }
   </style>
 </head>
 <body>
-  <!-- Background glows -->
-  <div class="bg-glow"></div>
-  <div class="bg-glow"></div>
-  <div class="bg-glow"></div>
+  <div class="splash-bg"></div>
 
-  <!-- Logo -->
-  <div class="logo-wrapper">
-    <div class="logo-ring"></div>
-    <img src="CAUSA_icon.png" alt="CAUSA">
-  </div>
-
-  <!-- Brand -->
-  <div class="brand">
-    <h1>CAUSA</h1>
-    <p>A sua causa, no seu escritório</p>
-  </div>
-
-  <!-- Loading indicator -->
-  <div class="loader">
-    <div class="loader-track">
-      <div class="loader-bar"></div>
+  <div class="content">
+    <div class="brand-name">
+      <h1>CAUSA</h1>
+      <p class="tagline">A sua causa, no seu escritório.</p>
     </div>
-    <p class="loader-text">Carregando...</p>
+
+    <div class="progress-area">
+      <p class="status-text" id="status">Iniciando...</p>
+      <div class="progress-track">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <span class="version" id="version">v0.1.0</span>
   </div>
+
+  <script>
+    // Progresso simulado com etapas reais via IPC
+    const bar = document.getElementById('progress-bar');
+    const status = document.getElementById('status');
+
+    // Progresso inicial automático (simula carregamento enquanto aguarda IPC)
+    let currentProgress = 0;
+
+    function setProgress(percent, text) {
+      currentProgress = percent;
+      bar.style.width = percent + '%';
+      if (text) status.textContent = text;
+    }
+
+    // Progresso gradual automático caso não receba IPC
+    const steps = [
+      { at: 300,  pct: 10, text: 'Iniciando...' },
+      { at: 800,  pct: 25, text: 'Carregando módulos...' },
+      { at: 1500, pct: 40, text: 'Conectando ao banco de dados...' },
+      { at: 2200, pct: 60, text: 'Preparando interface...' },
+      { at: 2800, pct: 80, text: 'Quase pronto...' },
+    ];
+
+    steps.forEach(step => {
+      setTimeout(() => {
+        // Só avança se o progresso IPC não tiver ultrapassado
+        if (currentProgress < step.pct) {
+          setProgress(step.pct, step.text);
+        }
+      }, step.at);
+    });
+
+    // Listener para progresso real via IPC (se preload expuser)
+    if (window.electronAPI && window.electronAPI.onSplashProgress) {
+      window.electronAPI.onSplashProgress((data) => {
+        setProgress(data.percent, data.text);
+      });
+    }
+
+    // Listener para fade out antes de fechar
+    if (window.electronAPI && window.electronAPI.onSplashClose) {
+      window.electronAPI.onSplashClose(() => {
+        document.body.classList.add('fade-out');
+      });
+    }
+  </script>
 </body>
 </html>
