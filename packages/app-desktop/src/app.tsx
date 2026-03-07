@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth-context';
+import { ToastProvider } from './components/ui/toast';
 import { usePermission } from './hooks/use-permission';
 import { SetupPage } from './pages/setup/setup-page';
 import { LoginPage } from './pages/login/login-page';
@@ -76,7 +77,9 @@ export function App() {
   return (
     <HashRouter>
       <AuthProvider>
-        <AppRoutes />
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
       </AuthProvider>
     </HashRouter>
   );

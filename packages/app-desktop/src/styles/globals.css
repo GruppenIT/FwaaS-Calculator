@@ -153,3 +153,22 @@ body {
   transition-duration: 120ms;
   transition-timing-function: ease-out;
 }
+
+/*
+ * Animações funcionais — toast slide-in e skeleton pulse
+ */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
