@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Users, Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
@@ -18,6 +20,7 @@ interface ClienteRow {
 
 export function ClientesPage() {
   const { can } = usePermission();
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [clientes, setClientes] = useState<ClienteRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -28,11 +31,11 @@ export function ClientesPage() {
       const data = await api.listarClientes(busca || undefined);
       setClientes(data);
     } catch (err) {
-      console.error('Erro ao carregar clientes:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar clientes.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [busca]);
+  }, [busca, toast]);
 
   useEffect(() => {
     const timer = setTimeout(carregar, busca ? 300 : 0);
@@ -95,11 +98,7 @@ export function ClientesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={4} />
             ) : clientes.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-12 text-center">

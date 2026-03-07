@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Clock, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { PrazoModal } from './prazo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
@@ -40,21 +43,24 @@ function diasRestantes(dataFatal: string): number {
 
 export function PrazosPage() {
   const { can } = usePermission();
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
       const data = await api.listarPrazos(filtroStatus ? { status: filtroStatus } : undefined);
       setPrazos(data);
     } catch (err) {
-      console.error('Erro ao carregar prazos:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar prazos.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [filtroStatus]);
+  }, [filtroStatus, toast]);
 
   useEffect(() => {
     carregar();
@@ -62,24 +68,32 @@ export function PrazosPage() {
 
   function handleCreated() {
     setShowModal(false);
+    toast('Prazo criado com sucesso.', 'success');
     carregar();
   }
 
   async function handleStatusChange(id: string, status: 'cumprido' | 'perdido') {
     try {
       await api.atualizarStatusPrazo(id, status);
+      toast('Status atualizado.', 'success');
       carregar();
     } catch (err) {
-      console.error('Erro ao atualizar prazo:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao atualizar prazo.', 'error');
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
     try {
-      await api.excluirPrazo(id);
+      await api.excluirPrazo(deleteId);
+      toast('Prazo excluído.', 'success');
       carregar();
     } catch (err) {
-      console.error('Erro ao excluir prazo:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao excluir prazo.', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
     }
   }
 
@@ -151,11 +165,7 @@ export function PrazosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={7} />
             ) : prazos.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center">
@@ -235,7 +245,7 @@ export function PrazosPage() {
                         {can('processos:excluir') && (
                           <button
                             type="button"
-                            onClick={() => handleDelete(p.id)}
+                            onClick={() => setDeleteId(p.id)}
                             className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
                           >
                             <Trash2 size={14} />
@@ -252,6 +262,16 @@ export function PrazosPage() {
       </div>
 
       {showModal && <PrazoModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Excluir prazo"
+        message="Tem certeza que deseja excluir este prazo? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        loading={deleting}
+      />
     </div>
   );
 }

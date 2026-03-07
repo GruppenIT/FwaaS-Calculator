@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Shield } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
 import { UsuarioModal } from './usuario-modal';
 import * as api from '../../lib/api';
 
@@ -26,6 +28,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function UsuariosPage() {
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [usuarios, setUsuarios] = useState<UsuarioRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,11 +38,11 @@ export function UsuariosPage() {
       const data = await api.listarUsuarios();
       setUsuarios(data);
     } catch (err) {
-      console.error('Erro ao carregar usuários:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar usuários.', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     carregar();
@@ -87,11 +90,7 @@ export function UsuariosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={5} />
             ) : usuarios.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center">

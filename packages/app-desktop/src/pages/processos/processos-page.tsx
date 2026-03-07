@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Briefcase, Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
 import { ProcessoModal } from './processo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
@@ -25,6 +27,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export function ProcessosPage() {
   const { can } = usePermission();
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -35,11 +38,11 @@ export function ProcessosPage() {
       const data = await api.listarProcessos(busca || undefined);
       setProcessos(data);
     } catch (err) {
-      console.error('Erro ao carregar processos:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar processos.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [busca]);
+  }, [busca, toast]);
 
   useEffect(() => {
     const timer = setTimeout(carregar, busca ? 300 : 0);
@@ -110,11 +113,7 @@ export function ProcessosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={6} />
             ) : processos.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center">

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, DollarSign, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
 import { HonorarioModal } from './honorario-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
@@ -39,6 +41,7 @@ function formatDate(iso: string | null): string {
 
 export function FinanceiroPage() {
   const { can } = usePermission();
+  const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,11 +51,11 @@ export function FinanceiroPage() {
       const data = await api.listarHonorarios();
       setHonorarios(data);
     } catch (err) {
-      console.error('Erro ao carregar honorários:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao carregar honorários.', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     carregar();
@@ -66,9 +69,10 @@ export function FinanceiroPage() {
   async function handleStatusChange(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
     try {
       await api.atualizarStatusHonorario(id, status);
+      toast('Status atualizado.', 'success');
       carregar();
     } catch (err) {
-      console.error('Erro ao atualizar status:', err);
+      toast(err instanceof Error ? err.message : 'Erro ao atualizar status.', 'error');
     }
   }
 
@@ -146,11 +150,7 @@ export function FinanceiroPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
-                </td>
-              </tr>
+              <SkeletonTableRows rows={5} cols={6} />
             ) : honorarios.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center">

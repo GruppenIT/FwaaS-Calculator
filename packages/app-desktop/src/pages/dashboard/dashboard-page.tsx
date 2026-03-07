@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Briefcase, Clock, AlertTriangle, Users, DollarSign } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
+import { Skeleton } from '../../components/ui/skeleton';
+import { useToast } from '../../components/ui/toast';
 import * as api from '../../lib/api';
 
 interface StatCardProps {
@@ -29,6 +31,8 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
 }
 
 export function DashboardPage() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     processosAtivos: 0,
     clientes: 0,
@@ -41,8 +45,9 @@ export function DashboardPage() {
     api
       .getDashboardStats()
       .then(setStats)
-      .catch((err) => console.error('Erro ao carregar dashboard:', err));
-  }, []);
+      .catch((err) => toast(err instanceof Error ? err.message : 'Erro ao carregar dashboard.', 'error'))
+      .finally(() => setLoading(false));
+  }, [toast]);
 
   const total = stats.processosAtivos + stats.clientes;
 
@@ -51,40 +56,56 @@ export function DashboardPage() {
       <PageHeader title="Dashboard" description="Visão geral do escritório" />
 
       <div className="grid grid-cols-5 gap-4 mb-8">
-        <StatCard
-          icon={Briefcase}
-          label="Processos ativos"
-          value={stats.processosAtivos}
-          color="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-        />
-        <StatCard
-          icon={Clock}
-          label="Prazos pendentes"
-          value={stats.prazosPendentes}
-          color="bg-causa-warning/10 text-causa-warning"
-        />
-        <StatCard
-          icon={AlertTriangle}
-          label="Prazos fatais"
-          value={stats.prazosFatais}
-          color="bg-causa-danger/10 text-causa-danger"
-        />
-        <StatCard
-          icon={Users}
-          label="Clientes"
-          value={stats.clientes}
-          color="bg-causa-success/10 text-causa-success"
-        />
-        <StatCard
-          icon={DollarSign}
-          label="A receber"
-          value={
-            stats.honorariosPendentes > 0
-              ? `R$ ${stats.honorariosPendentes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-              : 'R$ 0'
-          }
-          color="bg-causa-warning/10 text-causa-warning"
-        />
+        {loading ? (
+          Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-10 h-10 rounded-[var(--radius-md)]" />
+                <div className="flex-1">
+                  <Skeleton className="h-7 w-12 mb-1" />
+                  <Skeleton className="h-3.5 w-24" />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <>
+            <StatCard
+              icon={Briefcase}
+              label="Processos ativos"
+              value={stats.processosAtivos}
+              color="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+            />
+            <StatCard
+              icon={Clock}
+              label="Prazos pendentes"
+              value={stats.prazosPendentes}
+              color="bg-causa-warning/10 text-causa-warning"
+            />
+            <StatCard
+              icon={AlertTriangle}
+              label="Prazos fatais"
+              value={stats.prazosFatais}
+              color="bg-causa-danger/10 text-causa-danger"
+            />
+            <StatCard
+              icon={Users}
+              label="Clientes"
+              value={stats.clientes}
+              color="bg-causa-success/10 text-causa-success"
+            />
+            <StatCard
+              icon={DollarSign}
+              label="A receber"
+              value={
+                stats.honorariosPendentes > 0
+                  ? `R$ ${stats.honorariosPendentes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                  : 'R$ 0'
+              }
+              color="bg-causa-warning/10 text-causa-warning"
+            />
+          </>
+        )}
       </div>
 
       {total === 0 && (
