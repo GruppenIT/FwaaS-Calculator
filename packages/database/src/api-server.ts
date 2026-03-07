@@ -348,11 +348,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const [role] = await getDb().select().from(s.roles).where(eq(s.roles.nome, body.role as string));
       if (!role) return error(res, `Papel "${String(body.role)}" não encontrado.`, 400);
       const id = await getAuthService().createUser({
-        nome: body.nome,
-        email: body.email,
-        senha: body.senha,
-        ...(body.oabNumero ? { oabNumero: body.oabNumero } : {}),
-        ...(body.oabSeccional ? { oabSeccional: body.oabSeccional } : {}),
+        nome: body.nome as string,
+        email: body.email as string,
+        senha: body.senha as string,
+        ...(body.oabNumero ? { oabNumero: body.oabNumero as string } : {}),
+        ...(body.oabSeccional ? { oabSeccional: body.oabSeccional as string } : {}),
         roleId: role.id,
       });
       return json(res, { id }, 201);
