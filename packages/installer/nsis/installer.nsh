@@ -228,6 +228,9 @@ FunctionEnd
 !macroend
 
 !macro preInit
+  ; Definir diretório de instalação padrão: C:\Program Files\CAUSA SISTEMAS\CAUSA
+  StrCpy $INSTDIR "$PROGRAMFILES\CAUSA SISTEMAS\CAUSA"
+
   ; Inicializar variáveis
   StrCpy $Topologia "solo"
   StrCpy $PgHost "192.168.1.100"
