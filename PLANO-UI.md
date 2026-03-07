@@ -21,11 +21,11 @@
 - [x] Links de navegação: CNJ clicável na lista, nome do cliente clicável
 - [x] Rotas /app/processos/:id e /app/clientes/:id
 
-## Fase 4 — Dashboard Funcional
-- [ ] Prazos vencendo hoje/semana no dashboard
-- [ ] Resumo financeiro (pendente/recebido/inadimplente do mês)
-- [ ] Contadores (total de processos ativos, clientes, prazos pendentes)
-- [ ] Alertas visuais para prazos urgentes
+## Fase 4 — Dashboard Funcional ✅
+- [x] Prazos vencendo hoje/semana no dashboard (com badges de urgência)
+- [x] Resumo financeiro com barras de progresso (pendente/recebido/inadimplente)
+- [x] Contadores clicáveis (processos ativos, clientes, prazos pendentes, fatais, a receber)
+- [x] Alertas visuais para prazos urgentes (cores: vencido, hoje, próximos 3d)
 
 ## Fase 5 — Filtros, Busca e Relatórios
 - [ ] Filtros avançados em processos (status, área, tribunal, período)
