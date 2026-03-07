@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   Users,
   Briefcase,
-  FolderOpen,
+
   Calendar,
   DollarSign,
   Clock,

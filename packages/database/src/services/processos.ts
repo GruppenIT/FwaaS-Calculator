@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { eq, like, or, and } from 'drizzle-orm';
-import type { CausaDatabase } from '../client';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
 import type { CausaSchema } from '../schema-provider';
 import type { CreateProcessoInput } from '@causa/shared';
 
@@ -21,7 +21,7 @@ export class ProcessoService {
 
   async criar(input: CreateProcessoInput): Promise<string> {
     const id = uuid();
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .insert(this.processos)
       .values({
         id,
@@ -49,7 +49,7 @@ export class ProcessoService {
       conditions.push(eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'));
     }
 
-    const query = (this.db as any)
+    const query = (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.processos.id,
         numeroCnj: this.processos.numeroCnj,
@@ -76,7 +76,7 @@ export class ProcessoService {
 
   async buscar(termo: string) {
     const pattern = `%${termo}%`;
-    return (this.db as any)
+    return (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.processos.id,
         numeroCnj: this.processos.numeroCnj,
@@ -103,7 +103,7 @@ export class ProcessoService {
   }
 
   async obterPorId(id: string) {
-    const [row] = await (this.db as any)
+    const [row] = await (this.db as unknown as DatabaseQueryBuilder)
       .select()
       .from(this.processos)
       .where(eq(this.processos.id, id));
@@ -111,21 +111,21 @@ export class ProcessoService {
   }
 
   async listarMovimentacoes(processoId: string) {
-    return (this.db as any)
+    return (this.db as unknown as DatabaseQueryBuilder)
       .select()
       .from(this.movimentacoes)
       .where(eq(this.movimentacoes.processoId, processoId));
   }
 
   async listarPrazos(processoId: string) {
-    return (this.db as any)
+    return (this.db as unknown as DatabaseQueryBuilder)
       .select()
       .from(this.prazos)
       .where(eq(this.prazos.processoId, processoId));
   }
 
   async atualizar(id: string, input: Partial<CreateProcessoInput> & { status?: 'ativo' | 'arquivado' | 'encerrado' }) {
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.processos)
       .set({
         ...(input.numeroCnj !== undefined ? { numeroCnj: input.numeroCnj } : {}),
@@ -144,6 +144,6 @@ export class ProcessoService {
   }
 
   async excluir(id: string) {
-    await (this.db as any).delete(this.processos).where(eq(this.processos.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder).delete(this.processos).where(eq(this.processos.id, id));
   }
 }

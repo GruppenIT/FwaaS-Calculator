@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { eq } from 'drizzle-orm';
-import type { CausaDatabase } from '../client';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
 import type { CausaSchema } from '../schema-provider';
 
 export interface CreateHonorarioInput {
@@ -25,7 +25,7 @@ export class FinanceiroService {
 
   async criar(input: CreateHonorarioInput): Promise<string> {
     const id = uuid();
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .insert(this.honorarios)
       .values({
         id,
@@ -41,7 +41,7 @@ export class FinanceiroService {
   }
 
   async listar() {
-    return (this.db as any)
+    return (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.honorarios.id,
         processoId: this.honorarios.processoId,
@@ -61,7 +61,7 @@ export class FinanceiroService {
   }
 
   async obterPorId(id: string) {
-    const [row] = await (this.db as any)
+    const [row] = await (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.honorarios.id,
         processoId: this.honorarios.processoId,
@@ -83,13 +83,13 @@ export class FinanceiroService {
   }
 
   async atualizarStatus(id: string, status: 'pendente' | 'recebido' | 'inadimplente') {
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.honorarios)
       .set({ status })
       .where(eq(this.honorarios.id, id));
   }
 
   async excluir(id: string) {
-    await (this.db as any).delete(this.honorarios).where(eq(this.honorarios.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder).delete(this.honorarios).where(eq(this.honorarios.id, id));
   }
 }

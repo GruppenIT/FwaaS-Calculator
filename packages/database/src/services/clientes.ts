@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { eq, like, or } from 'drizzle-orm';
-import type { CausaDatabase } from '../client';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
 import type { CausaSchema } from '../schema-provider';
 import type { CreateClienteInput } from '@causa/shared';
 
@@ -13,7 +13,7 @@ export class ClienteService {
 
   async criar(input: CreateClienteInput, userId: string): Promise<string> {
     const id = uuid();
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .insert(this.clientes)
       .values({
         id,
@@ -29,12 +29,12 @@ export class ClienteService {
   }
 
   async listar() {
-    return (this.db as any).select().from(this.clientes);
+    return (this.db as unknown as DatabaseQueryBuilder).select().from(this.clientes);
   }
 
   async buscar(termo: string) {
     const pattern = `%${termo}%`;
-    return (this.db as any)
+    return (this.db as unknown as DatabaseQueryBuilder)
       .select()
       .from(this.clientes)
       .where(
@@ -47,12 +47,12 @@ export class ClienteService {
   }
 
   async obterPorId(id: string) {
-    const [row] = await (this.db as any).select().from(this.clientes).where(eq(this.clientes.id, id));
+    const [row] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.clientes).where(eq(this.clientes.id, id));
     return row ?? undefined;
   }
 
   async atualizar(id: string, input: Partial<CreateClienteInput>) {
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.clientes)
       .set({
         ...(input.nome !== undefined ? { nome: input.nome } : {}),
@@ -65,6 +65,6 @@ export class ClienteService {
   }
 
   async excluir(id: string) {
-    await (this.db as any).delete(this.clientes).where(eq(this.clientes.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder).delete(this.clientes).where(eq(this.clientes.id, id));
   }
 }

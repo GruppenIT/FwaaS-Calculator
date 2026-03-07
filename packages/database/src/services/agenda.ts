@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { eq, and, gte, lte } from 'drizzle-orm';
-import type { CausaDatabase } from '../client';
+import type { CausaDatabase, DatabaseQueryBuilder } from '../client';
 import type { CausaSchema } from '../schema-provider';
 
 export interface CreateAgendaInput {
@@ -24,7 +24,7 @@ export class AgendaService {
 
   async criar(input: CreateAgendaInput): Promise<string> {
     const id = uuid();
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .insert(this.agenda)
       .values({
         id,
@@ -48,7 +48,7 @@ export class AgendaService {
       conditions.push(lte(this.agenda.dataHoraInicio, filtros.fim));
     }
 
-    const query = (this.db as any)
+    const query = (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.agenda.id,
         titulo: this.agenda.titulo,
@@ -71,7 +71,7 @@ export class AgendaService {
   }
 
   async obterPorId(id: string) {
-    const [row] = await (this.db as any)
+    const [row] = await (this.db as unknown as DatabaseQueryBuilder)
       .select({
         id: this.agenda.id,
         titulo: this.agenda.titulo,
@@ -91,7 +91,7 @@ export class AgendaService {
   }
 
   async atualizar(id: string, input: Partial<CreateAgendaInput>) {
-    await (this.db as any)
+    await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.agenda)
       .set({
         ...(input.titulo !== undefined ? { titulo: input.titulo } : {}),
@@ -106,6 +106,6 @@ export class AgendaService {
   }
 
   async excluir(id: string) {
-    await (this.db as any).delete(this.agenda).where(eq(this.agenda.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder).delete(this.agenda).where(eq(this.agenda.id, id));
   }
 }
