@@ -8,11 +8,11 @@
     /* Fontes locais — Inter e Lora (ttf ou woff2 no bundle) */
     @font-face {
       font-family: 'Lora';
-      font-weight: 400;
+      font-weight: 600;
       font-style: normal;
       font-display: swap;
-      src: url('fonts/Lora-Regular.woff2') format('woff2'),
-           url('fonts/Lora-Regular.ttf') format('truetype');
+      src: url('fonts/Lora-SemiBold.woff2') format('woff2'),
+           url('fonts/Lora-SemiBold.ttf') format('truetype');
     }
 
     @font-face {
@@ -66,13 +66,26 @@
       height: 100%;
     }
 
-    /* Nome CAUSA */
+    /* Nome CAUSA + ícone */
     .brand-name {
       position: absolute;
       top: 45%;
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-name .brand-icon {
+      width: 96px;        /* ajuste conforme preferir (ex: 72, 96, 128) */
+      height: 96px;
+      border-radius: 22%;
+      margin-bottom: 20px;
+      animation: fadeIn 0.8s ease-out forwards;
+      opacity: 0;
     }
 
     .brand-name h1 {
@@ -82,7 +95,7 @@
       letter-spacing: 0.15em;
       color: #FFFFFF;
       margin: 0;
-      animation: fadeIn 0.8s ease-out forwards;
+      animation: fadeIn 0.8s ease-out 0.1s forwards;
       opacity: 0;
     }
 
@@ -166,6 +179,7 @@
 
   <div class="content">
     <div class="brand-name">
+      <img src="./CAUSA_icon.png" alt="Ícone CAUSA" class="brand-icon">
       <h1>CAUSA</h1>
       <p class="tagline">A sua causa, no seu escritório.</p>
     </div>
