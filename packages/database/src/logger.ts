@@ -6,12 +6,12 @@ import os from 'node:os';
  * Logger de debug para CAUSA.
  *
  * Diretório de logs (por prioridade):
- *   1. Diretório configurado via setLogDirectory() (recomendado: app.getPath('userData'))
- *   2. Windows: %LOCALAPPDATA%\CAUSA\logs  (sem precisar de admin)
- *   3. Linux/macOS: ~/.causa/logs/
+ *   1. Diretório configurado via setLogDirectory() (recomendado: getSharedDataDir())
+ *   2. Windows: %PROGRAMDATA%\CAUSA SISTEMAS\CAUSA\logs (compartilhado entre usuários)
+ *   3. Windows fallback: %LOCALAPPDATA%\CAUSA\logs (per-user)
+ *   4. Linux/macOS: ~/.causa/logs/
  *
- * Fallback: se nenhum diretório for gravável, tenta C:\ProgramData\CAUSA\logs (Windows)
- * e se falhar, desabilita escrita em arquivo (mantém console).
+ * Fallback: se nenhum diretório for gravável, desabilita escrita em arquivo (mantém console).
  */
 
 let logDir: string | null = null;
@@ -34,19 +34,14 @@ function resolveLogDir(): string {
   const candidates: string[] = [];
 
   if (os.platform() === 'win32') {
-    // %LOCALAPPDATA% — sempre gravável pelo usuário
+    // %PROGRAMDATA% — compartilhado entre todos os usuários do sistema
+    const programData = process.env.PROGRAMDATA || 'C:\\ProgramData';
+    candidates.push(path.join(programData, 'CAUSA SISTEMAS', 'CAUSA', 'logs'));
+    // Fallback: %LOCALAPPDATA% — per-user, sempre gravável
     const localAppData = process.env.LOCALAPPDATA;
     if (localAppData) {
       candidates.push(path.join(localAppData, 'CAUSA', 'logs'));
     }
-    // %APPDATA% — também gravável
-    const appData = process.env.APPDATA;
-    if (appData) {
-      candidates.push(path.join(appData, 'CAUSA', 'logs'));
-    }
-    // Fallback: ProgramData (pode precisar de admin)
-    const programData = process.env.PROGRAMDATA || 'C:\\ProgramData';
-    candidates.push(path.join(programData, 'CAUSA', 'logs'));
   } else {
     candidates.push(path.join(os.homedir(), '.causa', 'logs'));
   }

@@ -7,10 +7,26 @@ import { setupAutoUpdater } from './auto-updater.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Retorna o diretório de dados compartilhado do CAUSA.
+ * Windows: C:\ProgramData\CAUSA SISTEMAS\CAUSA
+ * Linux/macOS: usa o userData padrão do Electron (fallback)
+ *
+ * ProgramData é acessível por todos os usuários do sistema,
+ * permitindo que múltiplos usuários Windows compartilhem os dados.
+ */
+function getSharedDataDir(): string {
+  if (process.platform === 'win32') {
+    const programData = process.env.PROGRAMDATA || 'C:\\ProgramData';
+    return path.join(programData, 'CAUSA SISTEMAS', 'CAUSA');
+  }
+  return app.getPath('userData');
+}
+
 // Ler topologia do instalador (gravada em causa-install.json)
 function getInstallConfig(): { topologia: 'solo' | 'escritorio'; postgresUrl?: string } {
   const configPaths = [
-    path.join(app.getPath('userData'), 'causa-install.json'),
+    path.join(getSharedDataDir(), 'causa-install.json'),
     path.join(path.dirname(app.getPath('exe')), 'causa-install.json'),
   ];
 
@@ -34,9 +50,9 @@ let apiStarted = false;
 
 async function startApi() {
   const { startServer, logger, setLogDirectory } = await import('@causa/database');
-  const dataDir = app.getPath('userData');
+  const dataDir = getSharedDataDir();
 
-  // Configurar diretório de logs para o userData (sempre gravável)
+  // Configurar diretório de logs para o diretório compartilhado
   setLogDirectory(dataDir);
 
   logger.info('Electron', 'Iniciando API...', {
@@ -173,7 +189,7 @@ app.whenReady().then(async () => {
 
     // Tenta escrever o erro em um arquivo de log emergencial
     try {
-      const logDir = path.join(app.getPath('userData'), 'logs');
+      const logDir = path.join(getSharedDataDir(), 'logs');
       if (!fs.existsSync(logDir)) {
         fs.mkdirSync(logDir, { recursive: true });
       }
@@ -191,7 +207,7 @@ app.whenReady().then(async () => {
       'CAUSA — Erro ao iniciar',
       `Não foi possível iniciar o serviço interno da aplicação.\n\n` +
         `Erro: ${errorMsg}\n\n` +
-        `Logs: ${path.join(app.getPath('userData'), 'logs')}\n\n` +
+        `Logs: ${path.join(getSharedDataDir(), 'logs')}\n\n` +
         `Tente reiniciar a aplicação. Se o problema persistir, verifique se outra instância do CAUSA não está rodando.`,
     );
   }
