@@ -16,7 +16,7 @@ function loadConfig(): ServiceConfig {
   return {
     apiUrl: API_URL,
     pollIntervalMs: POLL_INTERVAL_MS,
-    accessToken: process.env.CAUSA_SERVICE_TOKEN,
+    ...(process.env.CAUSA_SERVICE_TOKEN != null && { accessToken: process.env.CAUSA_SERVICE_TOKEN }),
   };
 }
 
