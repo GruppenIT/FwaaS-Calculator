@@ -530,7 +530,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // --- Dashboard stats ---
     if (path === '/api/dashboard' && method === 'GET') {
       const s = getAppSchema();
-      const dbq = getDb() as DatabaseQueryBuilder;
+      const dbq = getDb();
       const [processosAtivos] = await dbq.select({ count: count() }).from(s.processos).where(eq(s.processos.status, 'ativo'));
       const [totalClientes] = await dbq.select({ count: count() }).from(s.clientes);
       const [prazosPendentes] = await dbq.select({ count: count() }).from(s.prazos).where(eq(s.prazos.status, 'pendente'));
