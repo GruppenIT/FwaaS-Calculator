@@ -31,32 +31,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const navigate = useNavigate();
 
-  // Check system status on mount
+  // Check system status on mount (retry while API is starting)
   useEffect(() => {
-    api
-      .checkHealth()
-      .then(async (health) => {
-        if (!health.configured) {
-          setState({ user: null, loading: false, configured: false });
-          return;
-        }
-        setState((prev) => ({ ...prev, configured: true }));
+    let cancelled = false;
 
-        // If we have a token, try to fetch user
-        if (api.getAccessToken()) {
-          const me = await api.getMe();
-          setState({
-            user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
-            loading: false,
-            configured: true,
-          });
-        } else {
-          setState((prev) => ({ ...prev, loading: false }));
+    async function pollHealth(retries = 10, delay = 500) {
+      for (let i = 0; i < retries; i++) {
+        if (cancelled) return;
+        try {
+          const health = await api.checkHealth();
+
+          if (cancelled) return;
+
+          if (!health.configured) {
+            setState({ user: null, loading: false, configured: false });
+            return;
+          }
+
+          setState((prev) => ({ ...prev, configured: true }));
+
+          if (api.getAccessToken()) {
+            const me = await api.getMe();
+            setState({
+              user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
+              loading: false,
+              configured: true,
+            });
+          } else {
+            setState((prev) => ({ ...prev, loading: false }));
+          }
+          return;
+        } catch {
+          // API not ready yet — wait and retry
+          if (i < retries - 1) {
+            await new Promise((r) => setTimeout(r, delay));
+          }
         }
-      })
-      .catch(() => {
-        setState({ user: null, loading: false, configured: null });
-      });
+      }
+
+      // All retries exhausted — treat as not configured
+      if (!cancelled) {
+        setState({ user: null, loading: false, configured: false });
+      }
+    }
+
+    pollHealth();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loginFn = useCallback(
