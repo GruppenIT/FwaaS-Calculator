@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import * as api from '../../lib/api';
 
 interface Props {
   onClose: () => void;
+  onCreated: () => void;
 }
 
 const ROLES = [
@@ -20,16 +22,17 @@ const UF_OPTIONS = [
   'PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO',
 ];
 
-export function UsuarioModal({ onClose }: Props) {
+export function UsuarioModal({ onClose, onCreated }: Props) {
   const [form, setForm] = useState({
     nome: '',
     email: '',
     senha: '',
     oabNumero: '',
     oabSeccional: '',
-    roleId: 'advogado',
+    role: 'advogado',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -41,11 +44,26 @@ export function UsuarioModal({ onClose }: Props) {
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(ev: FormEvent) {
+  async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
-    // TODO: chamar AuthService.createUser via IPC
-    onClose();
+
+    setLoading(true);
+    try {
+      await api.criarUsuario({
+        nome: form.nome,
+        email: form.email,
+        senha: form.senha,
+        role: form.role,
+        ...(form.oabNumero ? { oabNumero: form.oabNumero } : {}),
+        ...(form.oabSeccional ? { oabSeccional: form.oabSeccional } : {}),
+      });
+      onCreated();
+    } catch (err) {
+      setErrors({ geral: err instanceof Error ? err.message : 'Erro ao criar usuário.' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function update(field: string, value: string) {
@@ -98,8 +116,8 @@ export function UsuarioModal({ onClose }: Props) {
           <div className="flex flex-col gap-1">
             <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Papel</label>
             <select
-              value={form.roleId}
-              onChange={(e) => update('roleId', e.target.value)}
+              value={form.role}
+              onChange={(e) => update('role', e.target.value)}
               className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
             >
               {ROLES.map((r) => (
@@ -130,12 +148,18 @@ export function UsuarioModal({ onClose }: Props) {
             </div>
           </div>
 
+          {errors.geral && (
+            <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
+              {errors.geral}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} className="flex-1">
+            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Criar usuário
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? 'Criando...' : 'Criar usuário'}
             </Button>
           </div>
         </form>

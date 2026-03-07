@@ -1,16 +1,17 @@
-import { useState } from 'react';
-import { Plus, MoreHorizontal, Shield, Pencil, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Shield } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { UsuarioModal } from './usuario-modal';
+import * as api from '../../lib/api';
 
-export interface UsuarioRow {
+interface UsuarioRow {
   id: string;
   nome: string;
   email: string;
   oabNumero: string | null;
   oabSeccional: string | null;
-  role: string;
+  role: string | null;
   ativo: boolean;
   createdAt: string;
 }
@@ -24,12 +25,30 @@ const ROLE_LABELS: Record<string, string> = {
   financeiro: 'Financeiro',
 };
 
-// TODO: dados reais via IPC/banco
-const MOCK_USERS: UsuarioRow[] = [];
-
 export function UsuariosPage() {
   const [showModal, setShowModal] = useState(false);
-  const [users] = useState<UsuarioRow[]>(MOCK_USERS);
+  const [usuarios, setUsuarios] = useState<UsuarioRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const carregar = useCallback(async () => {
+    try {
+      const data = await api.listarUsuarios();
+      setUsuarios(data);
+    } catch (err) {
+      console.error('Erro ao carregar usuários:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  function handleCreated() {
+    setShowModal(false);
+    carregar();
+  }
 
   return (
     <div>
@@ -54,13 +73,18 @@ export function UsuariosPage() {
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">OAB</th>
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Papel</th>
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Status</th>
-              <th className="w-12"></th>
             </tr>
           </thead>
           <tbody>
-            {users.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
+                <td colSpan={5} className="px-4 py-12 text-center">
+                  <p className="text-sm-causa text-[var(--color-text-muted)]">Carregando...</p>
+                </td>
+              </tr>
+            ) : usuarios.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-12 text-center">
                   <Shield size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
                   <p className="text-sm-causa text-[var(--color-text-muted)]">
                     Nenhum usuário cadastrado além do administrador.
@@ -68,7 +92,7 @@ export function UsuariosPage() {
                 </td>
               </tr>
             ) : (
-              users.map((user) => (
+              usuarios.map((user) => (
                 <tr key={user.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa">
                   <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">{user.nome}</td>
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{user.email}</td>
@@ -77,7 +101,7 @@ export function UsuariosPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--color-primary)]/8 text-[var(--color-primary)] text-xs-causa font-medium">
-                      {ROLE_LABELS[user.role] ?? user.role}
+                      {ROLE_LABELS[user.role ?? ''] ?? user.role}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -89,11 +113,6 @@ export function UsuariosPage() {
                       {user.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <button type="button" className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]">
-                      <MoreHorizontal size={16} />
-                    </button>
-                  </td>
                 </tr>
               ))
             )}
@@ -101,7 +120,7 @@ export function UsuariosPage() {
         </table>
       </div>
 
-      {showModal && <UsuarioModal onClose={() => setShowModal(false)} />}
+      {showModal && <UsuarioModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
     </div>
   );
 }

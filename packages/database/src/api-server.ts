@@ -6,6 +6,8 @@ import { ProcessoService } from './services/processos';
 import { setupDatabase, type SetupInput } from './services/setup';
 import { clientes } from './schema/clientes';
 import { processos, prazos } from './schema/processos';
+import { users } from './schema/usuarios';
+import { roles } from './schema/rbac';
 import { count, eq } from 'drizzle-orm';
 import fs from 'node:fs';
 
@@ -218,6 +220,46 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         processoService!.excluir(id);
         return json(res, { ok: true });
       }
+    }
+
+    // --- Usuarios ---
+    if (path === '/api/usuarios' && method === 'GET') {
+      const data = db!
+        .select({
+          id: users.id,
+          nome: users.nome,
+          email: users.email,
+          oabNumero: users.oabNumero,
+          oabSeccional: users.oabSeccional,
+          role: roles.nome,
+          ativo: users.ativo,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .leftJoin(roles, eq(users.roleId, roles.id))
+        .all();
+      return json(res, data);
+    }
+
+    if (path === '/api/usuarios' && method === 'POST') {
+      const body = JSON.parse(await readBody(req));
+      // Find roleId by role name
+      const role = db!.select().from(roles).where(eq(roles.nome, body.role as string)).get();
+      if (!role) return error(res, `Papel "${body.role}" não encontrado.`, 400);
+      const id = await authService!.createUser({
+        nome: body.nome,
+        email: body.email,
+        senha: body.senha,
+        ...(body.oabNumero ? { oabNumero: body.oabNumero } : {}),
+        ...(body.oabSeccional ? { oabSeccional: body.oabSeccional } : {}),
+        roleId: role.id,
+      });
+      return json(res, { id }, 201);
+    }
+
+    if (path === '/api/roles' && method === 'GET') {
+      const data = db!.select({ id: roles.id, nome: roles.nome }).from(roles).all();
+      return json(res, data);
     }
 
     // --- Dashboard stats ---

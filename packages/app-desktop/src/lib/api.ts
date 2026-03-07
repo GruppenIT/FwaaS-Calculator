@@ -186,6 +186,38 @@ export function excluirProcesso(id: string) {
   });
 }
 
+// === Usuarios ===
+export function listarUsuarios() {
+  return request<Array<{
+    id: string;
+    nome: string;
+    email: string;
+    oabNumero: string | null;
+    oabSeccional: string | null;
+    role: string | null;
+    ativo: boolean;
+    createdAt: string;
+  }>>('/api/usuarios');
+}
+
+export function criarUsuario(data: {
+  nome: string;
+  email: string;
+  senha: string;
+  role: string;
+  oabNumero?: string;
+  oabSeccional?: string;
+}) {
+  return request<{ id: string }>('/api/usuarios', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function listarRoles() {
+  return request<Array<{ id: string; nome: string }>>('/api/roles');
+}
+
 // === Dashboard ===
 export function getDashboardStats() {
   return request<{
