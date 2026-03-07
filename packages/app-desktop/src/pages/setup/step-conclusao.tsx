@@ -52,9 +52,7 @@ export function StepConclusao({ data, onBack }: Props) {
         </div>
       </div>
 
-      <h2 className="text-xl-causa text-[var(--color-text)] mb-1">
-        Tudo pronto!
-      </h2>
+      <h2 className="text-xl-causa text-[var(--color-text)] mb-1">Tudo pronto!</h2>
       <p className="text-sm-causa text-[var(--color-text-muted)] mb-6">
         Confira os dados antes de finalizar.
       </p>
@@ -70,9 +68,7 @@ export function StepConclusao({ data, onBack }: Props) {
           {data.topologia === 'escritorio' && data.postgresUrl && (
             <div className="flex justify-between">
               <span className="text-sm-causa text-[var(--color-text-muted)]">Banco de dados</span>
-              <span className="text-sm-causa font-medium text-[var(--color-text)]">
-                PostgreSQL
-              </span>
+              <span className="text-sm-causa font-medium text-[var(--color-text)]">PostgreSQL</span>
             </div>
           )}
           {data.topologia === 'solo' && (

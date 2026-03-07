@@ -57,7 +57,10 @@ export function ClientesPage() {
 
       {/* Busca */}
       <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+        />
         <input
           type="text"
           placeholder="Buscar por nome, CPF/CNPJ ou email..."
@@ -72,10 +75,18 @@ export function ClientesPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Nome / Razão Social</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Tipo</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">CPF/CNPJ</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Contato</th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Nome / Razão Social
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Tipo
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                CPF/CNPJ
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Contato
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -88,23 +99,38 @@ export function ClientesPage() {
             ) : clientes.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-12 text-center">
-                  <Users size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
+                  <Users
+                    size={32}
+                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
+                    strokeWidth={1}
+                  />
                   <p className="text-sm-causa text-[var(--color-text-muted)]">
-                    {busca ? 'Nenhum cliente encontrado.' : 'Cadastre seu primeiro cliente para começar.'}
+                    {busca
+                      ? 'Nenhum cliente encontrado.'
+                      : 'Cadastre seu primeiro cliente para começar.'}
                   </p>
                 </td>
               </tr>
             ) : (
               clientes.map((c) => (
-                <tr key={c.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa cursor-pointer">
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">{c.nome}</td>
+                <tr
+                  key={c.id}
+                  className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa cursor-pointer"
+                >
+                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">
+                    {c.nome}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
                       {c.tipo}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">{c.cpfCnpj ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{c.email ?? c.telefone ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
+                    {c.cpfCnpj ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
+                    {c.email ?? c.telefone ?? '—'}
+                  </td>
                 </tr>
               ))
             )}

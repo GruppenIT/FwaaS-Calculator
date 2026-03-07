@@ -46,11 +46,13 @@ function AppRoutes() {
       <Route
         path="*"
         element={
-          configured === false
-            ? <Navigate to="/setup" replace />
-            : user
-              ? <Navigate to="/app" replace />
-              : <Navigate to="/login" replace />
+          configured === false ? (
+            <Navigate to="/setup" replace />
+          ) : user ? (
+            <Navigate to="/app" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
         }
       />
     </Routes>

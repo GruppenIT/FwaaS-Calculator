@@ -22,7 +22,8 @@ function formatCnpj(value: string): string {
   if (digits.length <= 2) return digits;
   if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
   if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
-  if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+  if (digits.length <= 12)
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
@@ -102,7 +103,10 @@ export function ClienteModal({ onClose, onCreated }: Props) {
               <button
                 key={t}
                 type="button"
-                onClick={() => { setTipo(t); setForm((prev) => ({ ...prev, cpfCnpj: '' })); }}
+                onClick={() => {
+                  setTipo(t);
+                  setForm((prev) => ({ ...prev, cpfCnpj: '' }));
+                }}
                 className={`flex-1 py-1.5 text-sm-causa font-medium rounded-[var(--radius-sm)] transition-causa cursor-pointer ${
                   tipo === t
                     ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-sm)]'
@@ -151,7 +155,13 @@ export function ClienteModal({ onClose, onCreated }: Props) {
           )}
 
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">

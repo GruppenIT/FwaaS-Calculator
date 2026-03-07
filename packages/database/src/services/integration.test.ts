@@ -91,7 +91,10 @@ describe('Integração: setup → login → CRUD', () => {
   it('cria um segundo usuário (advogado)', async () => {
     // Precisamos do roleId do advogado
     const { eq } = await import('drizzle-orm');
-    const [advRole] = await (db as unknown as DatabaseQueryBuilder).select().from(schema.roles).where(eq(schema.roles.nome, 'advogado'));
+    const [advRole] = await (db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(schema.roles)
+      .where(eq(schema.roles.nome, 'advogado'));
     expect(advRole).toBeDefined();
 
     const userId = await auth.createUser({
@@ -188,7 +191,11 @@ describe('Integração: setup → login → CRUD', () => {
   });
 
   it('atualiza processo (fase e status)', async () => {
-    await processoService.atualizar(processoId, { fase: 'recursal', status: 'ativo', valorCausa: 75000 });
+    await processoService.atualizar(processoId, {
+      fase: 'recursal',
+      status: 'ativo',
+      valorCausa: 75000,
+    });
     const updated = await processoService.obterPorId(processoId);
     expect((updated as Record<string, unknown>)?.fase).toBe('recursal');
     expect((updated as Record<string, unknown>)?.valorCausa).toBe(75000);
@@ -226,7 +233,10 @@ describe('Integração: setup → login → CRUD', () => {
   });
 
   it('atualiza evento da agenda', async () => {
-    await agendaService.atualizar(eventoId, { titulo: 'Audiência de instrução', local: 'Fórum Central - Sala 10' });
+    await agendaService.atualizar(eventoId, {
+      titulo: 'Audiência de instrução',
+      local: 'Fórum Central - Sala 10',
+    });
     const updated = await agendaService.obterPorId(eventoId);
     expect((updated as Record<string, unknown>)?.titulo).toBe('Audiência de instrução');
     expect((updated as Record<string, unknown>)?.local).toBe('Fórum Central - Sala 10');

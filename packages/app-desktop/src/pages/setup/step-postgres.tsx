@@ -69,9 +69,7 @@ export function StepPostgres({ postgresUrl: initial, onBack, onSubmit }: Props) 
 
       <div className="flex items-center gap-2 mb-1">
         <Database size={20} className="text-[var(--color-primary)]" />
-        <h2 className="text-xl-causa text-[var(--color-text)]">
-          Conexão PostgreSQL
-        </h2>
+        <h2 className="text-xl-causa text-[var(--color-text)]">Conexão PostgreSQL</h2>
       </div>
       <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
         Configure a conexão com o servidor PostgreSQL do escritório.

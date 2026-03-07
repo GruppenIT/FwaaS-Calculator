@@ -24,7 +24,10 @@ export class RbacService {
   /**
    * Verifica se o usuário tem TODAS as permissões listadas.
    */
-  async checkAllPermissions(user: AuthenticatedUser, requiredPermissions: PermissionKey[]): Promise<boolean> {
+  async checkAllPermissions(
+    user: AuthenticatedUser,
+    requiredPermissions: PermissionKey[],
+  ): Promise<boolean> {
     const perms = await this.getUserPermissionSet(user.id);
     return requiredPermissions.every((p) => perms.has(p));
   }
@@ -32,7 +35,10 @@ export class RbacService {
   /**
    * Verifica se o usuário tem PELO MENOS UMA das permissões listadas.
    */
-  async checkAnyPermission(user: AuthenticatedUser, requiredPermissions: PermissionKey[]): Promise<boolean> {
+  async checkAnyPermission(
+    user: AuthenticatedUser,
+    requiredPermissions: PermissionKey[],
+  ): Promise<boolean> {
     const perms = await this.getUserPermissionSet(user.id);
     return requiredPermissions.some((p) => perms.has(p));
   }

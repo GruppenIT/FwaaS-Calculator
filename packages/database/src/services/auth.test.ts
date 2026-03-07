@@ -28,7 +28,8 @@ describe('AuthService', () => {
 
     // Criar papel admin para testes
     adminRoleId = uuid();
-    await (db as unknown as DatabaseQueryBuilder).insert(schema.roles)
+    await (db as unknown as DatabaseQueryBuilder)
+      .insert(schema.roles)
       .values({ id: adminRoleId, nome: 'admin', descricao: 'Admin', isSystemRole: true });
 
     auth = new AuthService(db, JWT_SECRET, schema);

@@ -25,8 +25,11 @@ function validarCnpj(cnpj: string): boolean {
   let sum = 0;
   for (let i = 0; i < 12; i++) sum += parseInt(digits.charAt(i)) * (weights1[i] ?? 0);
   let rest = sum % 11;
-  if (rest < 2) { if (parseInt(digits.charAt(12)) !== 0) return false; }
-  else { if (parseInt(digits.charAt(12)) !== 11 - rest) return false; }
+  if (rest < 2) {
+    if (parseInt(digits.charAt(12)) !== 0) return false;
+  } else {
+    if (parseInt(digits.charAt(12)) !== 11 - rest) return false;
+  }
   sum = 0;
   for (let i = 0; i < 13; i++) sum += parseInt(digits.charAt(i)) * (weights2[i] ?? 0);
   rest = sum % 11;
@@ -37,27 +40,32 @@ function validarCnpj(cnpj: string): boolean {
 export const createClienteSchema = z.object({
   tipo: z.enum(['PF', 'PJ']),
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(300),
-  cpfCnpj: z.string().optional().refine(
-    (val) => {
-      if (!val) return true;
-      const digits = val.replace(/\D/g, '');
-      if (digits.length === 11) return validarCpf(val);
-      if (digits.length === 14) return validarCnpj(val);
-      return false;
-    },
-    { message: 'CPF ou CNPJ inválido' },
-  ),
+  cpfCnpj: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const digits = val.replace(/\D/g, '');
+        if (digits.length === 11) return validarCpf(val);
+        if (digits.length === 14) return validarCnpj(val);
+        return false;
+      },
+      { message: 'CPF ou CNPJ inválido' },
+    ),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   telefone: z.string().max(20).optional(),
-  endereco: z.object({
-    logradouro: z.string().optional(),
-    numero: z.string().optional(),
-    complemento: z.string().optional(),
-    bairro: z.string().optional(),
-    cidade: z.string().optional(),
-    uf: z.string().length(2).optional(),
-    cep: z.string().optional(),
-  }).optional(),
+  endereco: z
+    .object({
+      logradouro: z.string().optional(),
+      numero: z.string().optional(),
+      complemento: z.string().optional(),
+      bairro: z.string().optional(),
+      cidade: z.string().optional(),
+      uf: z.string().length(2).optional(),
+      cep: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type CreateClienteInput = z.infer<typeof createClienteSchema>;

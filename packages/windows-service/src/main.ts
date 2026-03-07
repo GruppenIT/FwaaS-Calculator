@@ -1,5 +1,15 @@
-import { registerConnector, PjeMockConnector, EsajMockConnector, listConnectors } from '@causa/connectors';
-import type { IConector, ProcessoMinimo, CertificadoConfig, ConfigConector } from '@causa/connectors';
+import {
+  registerConnector,
+  PjeMockConnector,
+  EsajMockConnector,
+  listConnectors,
+} from '@causa/connectors';
+import type {
+  IConector,
+  ProcessoMinimo,
+  CertificadoConfig,
+  ConfigConector,
+} from '@causa/connectors';
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 const API_URL = process.env.CAUSA_API_URL ?? 'http://localhost:3456';
@@ -16,14 +26,21 @@ function loadConfig(): ServiceConfig {
   return {
     apiUrl: API_URL,
     pollIntervalMs: POLL_INTERVAL_MS,
-    ...(process.env.CAUSA_SERVICE_TOKEN != null && { accessToken: process.env.CAUSA_SERVICE_TOKEN }),
+    ...(process.env.CAUSA_SERVICE_TOKEN != null && {
+      accessToken: process.env.CAUSA_SERVICE_TOKEN,
+    }),
   };
 }
 
 function registerMockConnectors() {
   registerConnector(new PjeMockConnector());
   registerConnector(new EsajMockConnector());
-  console.log('[Service] Conectores registrados:', listConnectors().map((c) => c.nome).join(', '));
+  console.log(
+    '[Service] Conectores registrados:',
+    listConnectors()
+      .map((c) => c.nome)
+      .join(', '),
+  );
 }
 
 async function _syncProcesso(
@@ -35,11 +52,16 @@ async function _syncProcesso(
   try {
     const movimentacoes = await connector.buscarMovimentacoes(processo, certificado, ultimoSync);
     if (movimentacoes.length > 0) {
-      console.log(`[Service] ${processo.numeroCnj}: ${movimentacoes.length} nova(s) movimentação(ões)`);
+      console.log(
+        `[Service] ${processo.numeroCnj}: ${movimentacoes.length} nova(s) movimentação(ões)`,
+      );
     }
     return movimentacoes.length;
   } catch (err) {
-    console.error(`[Service] Erro ao sincronizar ${processo.numeroCnj}:`, err instanceof Error ? err.message : err);
+    console.error(
+      `[Service] Erro ao sincronizar ${processo.numeroCnj}:`,
+      err instanceof Error ? err.message : err,
+    );
     return 0;
   }
 }

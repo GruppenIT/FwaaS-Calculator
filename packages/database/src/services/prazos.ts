@@ -17,7 +17,10 @@ export class PrazoService {
   private processos;
   private users;
 
-  constructor(private db: CausaDatabase, schema: CausaSchema) {
+  constructor(
+    private db: CausaDatabase,
+    schema: CausaSchema,
+  ) {
     this.prazos = schema.prazos;
     this.processos = schema.processos;
     this.users = schema.users;
@@ -25,26 +28,26 @@ export class PrazoService {
 
   async criar(input: CreatePrazoInput): Promise<string> {
     const id = uuid();
-    await (this.db as unknown as DatabaseQueryBuilder)
-      .insert(this.prazos)
-      .values({
-        id,
-        processoId: input.processoId,
-        movimentacaoId: input.movimentacaoId ?? null,
-        descricao: input.descricao,
-        dataFatal: input.dataFatal,
-        tipoPrazo: input.tipoPrazo,
-        responsavelId: input.responsavelId,
-        status: 'pendente',
-        alertasEnviados: { dias: [7, 3, 1], enviados: [] },
-      });
+    await (this.db as unknown as DatabaseQueryBuilder).insert(this.prazos).values({
+      id,
+      processoId: input.processoId,
+      movimentacaoId: input.movimentacaoId ?? null,
+      descricao: input.descricao,
+      dataFatal: input.dataFatal,
+      tipoPrazo: input.tipoPrazo,
+      responsavelId: input.responsavelId,
+      status: 'pendente',
+      alertasEnviados: { dias: [7, 3, 1], enviados: [] },
+    });
     return id;
   }
 
   async listar(filtros?: { status?: string; responsavelId?: string }) {
     const conditions = [];
     if (filtros?.status) {
-      conditions.push(eq(this.prazos.status, filtros.status as 'pendente' | 'cumprido' | 'perdido'));
+      conditions.push(
+        eq(this.prazos.status, filtros.status as 'pendente' | 'cumprido' | 'perdido'),
+      );
     }
     if (filtros?.responsavelId) {
       conditions.push(eq(this.prazos.responsavelId, filtros.responsavelId));
@@ -102,6 +105,8 @@ export class PrazoService {
   }
 
   async excluir(id: string) {
-    await (this.db as unknown as DatabaseQueryBuilder).delete(this.prazos).where(eq(this.prazos.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder)
+      .delete(this.prazos)
+      .where(eq(this.prazos.id, id));
   }
 }

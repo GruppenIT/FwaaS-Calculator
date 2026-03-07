@@ -57,7 +57,10 @@ export class AuthService {
   }
 
   async createUser(input: CreateUserInput): Promise<string> {
-    const [existing] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.users).where(eq(this.users.email, input.email));
+    const [existing] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(this.users)
+      .where(eq(this.users.email, input.email));
     if (existing) {
       throw new Error('Email já cadastrado.');
     }
@@ -65,24 +68,25 @@ export class AuthService {
     const id = uuid();
     const senhaHash = await this.hashPassword(input.senha);
 
-    await (this.db as unknown as DatabaseQueryBuilder)
-      .insert(this.users)
-      .values({
-        id,
-        nome: input.nome,
-        email: input.email,
-        senhaHash,
-        oabNumero: input.oabNumero ?? null,
-        oabSeccional: input.oabSeccional ?? null,
-        roleId: input.roleId,
-        ativo: true,
-      });
+    await (this.db as unknown as DatabaseQueryBuilder).insert(this.users).values({
+      id,
+      nome: input.nome,
+      email: input.email,
+      senhaHash,
+      oabNumero: input.oabNumero ?? null,
+      oabSeccional: input.oabSeccional ?? null,
+      roleId: input.roleId,
+      ativo: true,
+    });
 
     return id;
   }
 
   async login(email: string, senha: string): Promise<AuthTokens> {
-    const [user] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.users).where(eq(this.users.email, email));
+    const [user] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(this.users)
+      .where(eq(this.users.email, email));
 
     if (!user) {
       throw new Error('Credenciais inválidas.');
@@ -98,7 +102,10 @@ export class AuthService {
     }
 
     // Buscar nome do papel
-    const [role] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.roles).where(eq(this.roles.id, user.roleId));
+    const [role] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(this.roles)
+      .where(eq(this.roles.id, user.roleId));
 
     return this.generateTokens(user.id, user.email, role?.nome ?? 'unknown');
   }
@@ -135,17 +142,26 @@ export class AuthService {
       throw new Error('Token fornecido não é um refresh token.');
     }
 
-    const [user] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.users).where(eq(this.users.id, payload.sub));
+    const [user] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(this.users)
+      .where(eq(this.users.id, payload.sub));
     if (!user || !user.ativo) {
       throw new Error('Usuário não encontrado ou desativado.');
     }
 
-    const [role] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.roles).where(eq(this.roles.id, user.roleId));
+    const [role] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(this.roles)
+      .where(eq(this.roles.id, user.roleId));
     return this.generateTokens(user.id, user.email, role?.nome ?? 'unknown');
   }
 
   async getUserPermissions(userId: string): Promise<string[]> {
-    const [user] = await (this.db as unknown as DatabaseQueryBuilder).select().from(this.users).where(eq(this.users.id, userId));
+    const [user] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select()
+      .from(this.users)
+      .where(eq(this.users.id, userId));
     if (!user) return [];
 
     const results = await (this.db as unknown as DatabaseQueryBuilder)

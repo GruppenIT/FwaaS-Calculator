@@ -7,24 +7,24 @@
 
 @theme {
   /* Cores primárias */
-  --color-causa-primary: #2563A8;
-  --color-causa-primary-hover: #1D4E8F;
-  --color-causa-primary-light: oklch(from #2563A8 l c h / 0.08);
-  --color-causa-bg: #F7F6F3;
-  --color-causa-surface: #FFFFFF;
-  --color-causa-surface-alt: #F3F4F6;
+  --color-causa-primary: #2563a8;
+  --color-causa-primary-hover: #1d4e8f;
+  --color-causa-primary-light: oklch(from #2563a8 l c h / 0.08);
+  --color-causa-bg: #f7f6f3;
+  --color-causa-surface: #ffffff;
+  --color-causa-surface-alt: #f3f4f6;
 
   /* Cores de estado */
-  --color-causa-success: #2A9D8F;
-  --color-causa-warning: #E9A800;
-  --color-causa-danger: #DC2626;
+  --color-causa-success: #2a9d8f;
+  --color-causa-warning: #e9a800;
+  --color-causa-danger: #dc2626;
 
   /* Texto */
-  --color-causa-text: #1E1E2E;
-  --color-causa-text-muted: #6B7280;
+  --color-causa-text: #1e1e2e;
+  --color-causa-text-muted: #6b7280;
 
   /* Bordas */
-  --color-causa-border: #E5E7EB;
+  --color-causa-border: #e5e7eb;
 
   /* Tipografia */
   --font-ui: 'Inter', system-ui, sans-serif;
@@ -38,7 +38,7 @@
 
   /* Sombras */
   --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.08);
-  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.10);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.1);
 
   /* Sidebar */
   --sidebar-width: 240px;
@@ -49,25 +49,25 @@
  * Usadas diretamente em componentes via var()
  */
 :root {
-  --color-bg: #F7F6F3;
-  --color-surface: #FFFFFF;
-  --color-text: #1E1E2E;
-  --color-text-muted: #6B7280;
-  --color-border: #E5E7EB;
-  --color-primary: #2563A8;
-  --color-primary-hover: #1D4E8F;
+  --color-bg: #f7f6f3;
+  --color-surface: #ffffff;
+  --color-text: #1e1e2e;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-primary: #2563a8;
+  --color-primary-hover: #1d4e8f;
 
   color-scheme: light;
 }
 
 .dark {
-  --color-bg: #0F0F1A;
-  --color-surface: #1A1A2E;
-  --color-text: #E8E8F0;
-  --color-text-muted: #9CA3AF;
-  --color-border: #2D2D42;
-  --color-primary: #3B82F6;
-  --color-primary-hover: #2563A8;
+  --color-bg: #0f0f1a;
+  --color-surface: #1a1a2e;
+  --color-text: #e8e8f0;
+  --color-text-muted: #9ca3af;
+  --color-border: #2d2d42;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563a8;
 
   color-scheme: dark;
 }
@@ -139,7 +139,7 @@ body {
 @utility focus-causa {
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px oklch(from #2563A8 l c h / 0.15);
+    box-shadow: 0 0 0 3px oklch(from #2563a8 l c h / 0.15);
     border-color: var(--color-primary);
   }
 }

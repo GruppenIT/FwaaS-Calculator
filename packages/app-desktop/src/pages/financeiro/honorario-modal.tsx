@@ -47,31 +47,43 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
   const processoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!clienteBusca || clienteBusca.length < 2) { setClienteOptions([]); return; }
+    if (!clienteBusca || clienteBusca.length < 2) {
+      setClienteOptions([]);
+      return;
+    }
     const t = setTimeout(async () => {
       try {
         const data = await api.listarClientes(clienteBusca);
         setClienteOptions(data.map((c) => ({ id: c.id, nome: c.nome })));
-      } catch { setClienteOptions([]); }
+      } catch {
+        setClienteOptions([]);
+      }
     }, 250);
     return () => clearTimeout(t);
   }, [clienteBusca]);
 
   useEffect(() => {
-    if (!processoBusca || processoBusca.length < 2) { setProcessoOptions([]); return; }
+    if (!processoBusca || processoBusca.length < 2) {
+      setProcessoOptions([]);
+      return;
+    }
     const t = setTimeout(async () => {
       try {
         const data = await api.listarProcessos(processoBusca);
         setProcessoOptions(data.map((p) => ({ id: p.id, numeroCnj: p.numeroCnj })));
-      } catch { setProcessoOptions([]); }
+      } catch {
+        setProcessoOptions([]);
+      }
     }, 250);
     return () => clearTimeout(t);
   }, [processoBusca]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (clienteRef.current && !clienteRef.current.contains(e.target as Node)) setShowClienteDropdown(false);
-      if (processoRef.current && !processoRef.current.contains(e.target as Node)) setShowProcessoDropdown(false);
+      if (clienteRef.current && !clienteRef.current.contains(e.target as Node))
+        setShowClienteDropdown(false);
+      if (processoRef.current && !processoRef.current.contains(e.target as Node))
+        setShowProcessoDropdown(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -101,7 +113,9 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
         valor,
         ...(form.clienteId ? { clienteId: form.clienteId } : {}),
         ...(form.processoId ? { processoId: form.processoId } : {}),
-        ...(form.tipo === 'exito' && form.percentualExito ? { percentualExito: parseFloat(form.percentualExito) } : {}),
+        ...(form.tipo === 'exito' && form.percentualExito
+          ? { percentualExito: parseFloat(form.percentualExito) }
+          : {}),
         ...(form.vencimento ? { vencimento: form.vencimento } : {}),
       });
       onCreated();
@@ -119,7 +133,11 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
       <div className="relative bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-md)] border border-[var(--color-border)] w-full max-w-md p-6 animate-[fadeIn_180ms_ease-out]">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg-causa text-[var(--color-text)]">Novo honorário</h2>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]"
+          >
             <X size={18} />
           </button>
         </div>
@@ -127,27 +145,56 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Cliente autocomplete */}
           <div className="flex flex-col gap-1 relative" ref={clienteRef}>
-            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Cliente (opcional)</label>
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Cliente (opcional)
+            </label>
             {clienteNome ? (
               <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <span className="flex-1 text-base-causa text-[var(--color-text)]">{clienteNome}</span>
-                <button type="button" onClick={() => { setClienteNome(''); setForm((p) => ({ ...p, clienteId: '' })); }} className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer">
+                <span className="flex-1 text-base-causa text-[var(--color-text)]">
+                  {clienteNome}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClienteNome('');
+                    setForm((p) => ({ ...p, clienteId: '' }));
+                  }}
+                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
+                >
                   <X size={14} />
                 </button>
               </div>
             ) : (
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                <input type="text" placeholder="Buscar cliente..." value={clienteBusca}
-                  onChange={(e) => { setClienteBusca(e.target.value); setShowClienteDropdown(true); }}
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar cliente..."
+                  value={clienteBusca}
+                  onChange={(e) => {
+                    setClienteBusca(e.target.value);
+                    setShowClienteDropdown(true);
+                  }}
                   onFocus={() => clienteOptions.length > 0 && setShowClienteDropdown(true)}
                   className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
                 />
                 {showClienteDropdown && clienteOptions.length > 0 && (
                   <div className="absolute z-10 top-full mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-[var(--shadow-md)] max-h-32 overflow-auto">
                     {clienteOptions.map((c) => (
-                      <button key={c.id} type="button" onClick={() => { setForm((p) => ({ ...p, clienteId: c.id })); setClienteNome(c.nome); setClienteBusca(''); setShowClienteDropdown(false); }}
-                        className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer text-base-causa text-[var(--color-text)]">
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setForm((p) => ({ ...p, clienteId: c.id }));
+                          setClienteNome(c.nome);
+                          setClienteBusca('');
+                          setShowClienteDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer text-base-causa text-[var(--color-text)]"
+                      >
                         {c.nome}
                       </button>
                     ))}
@@ -159,27 +206,56 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
 
           {/* Processo autocomplete */}
           <div className="flex flex-col gap-1 relative" ref={processoRef}>
-            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Processo (opcional)</label>
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Processo (opcional)
+            </label>
             {processoLabel ? (
               <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <span className="flex-1 text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">{processoLabel}</span>
-                <button type="button" onClick={() => { setProcessoLabel(''); setForm((p) => ({ ...p, processoId: '' })); }} className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer">
+                <span className="flex-1 text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
+                  {processoLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProcessoLabel('');
+                    setForm((p) => ({ ...p, processoId: '' }));
+                  }}
+                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
+                >
                   <X size={14} />
                 </button>
               </div>
             ) : (
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                <input type="text" placeholder="Buscar processo por CNJ..." value={processoBusca}
-                  onChange={(e) => { setProcessoBusca(e.target.value); setShowProcessoDropdown(true); }}
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar processo por CNJ..."
+                  value={processoBusca}
+                  onChange={(e) => {
+                    setProcessoBusca(e.target.value);
+                    setShowProcessoDropdown(true);
+                  }}
                   onFocus={() => processoOptions.length > 0 && setShowProcessoDropdown(true)}
                   className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60 font-[var(--font-mono)]"
                 />
                 {showProcessoDropdown && processoOptions.length > 0 && (
                   <div className="absolute z-10 top-full mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-[var(--shadow-md)] max-h-32 overflow-auto">
                     {processoOptions.map((p) => (
-                      <button key={p.id} type="button" onClick={() => { setForm((prev) => ({ ...prev, processoId: p.id })); setProcessoLabel(p.numeroCnj); setProcessoBusca(''); setShowProcessoDropdown(false); }}
-                        className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, processoId: p.id }));
+                          setProcessoLabel(p.numeroCnj);
+                          setProcessoBusca('');
+                          setShowProcessoDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer text-base-causa text-[var(--color-text)] font-[var(--font-mono)]"
+                      >
                         {p.numeroCnj}
                       </button>
                     ))}
@@ -191,14 +267,20 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Tipo</label>
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Tipo
+              </label>
               <select
                 value={form.tipo}
-                onChange={(e) => setForm((p) => ({ ...p, tipo: e.target.value as 'fixo' | 'exito' | 'por_hora' }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, tipo: e.target.value as 'fixo' | 'exito' | 'por_hora' }))
+                }
                 className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
               >
                 {TIPOS.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -235,7 +317,13 @@ export function HonorarioModal({ onClose, onCreated }: Props) {
           )}
 
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">

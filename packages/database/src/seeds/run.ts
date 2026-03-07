@@ -18,8 +18,7 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
     'Acesso pleno a processos próprios. Leitura de processos da equipe. Sem acesso a financeiro de terceiros.',
   estagiario: 'Leitura de processos atribuídos. Sem peticionamento. Sem acesso financeiro.',
   secretaria: 'Gestão de agenda, clientes, documentos. Sem acesso a financeiro nem conectores.',
-  financeiro:
-    'Acesso exclusivo ao módulo financeiro. Leitura de processos (sem movimentações).',
+  financeiro: 'Acesso exclusivo ao módulo financeiro. Leitura de processos (sem movimentações).',
 };
 
 // 1. Criar papéis
@@ -100,10 +99,7 @@ for (const roleName of SYSTEM_ROLES) {
     const permissionId = permissionMap.get(permKey);
     if (!permissionId) continue;
 
-    db.insert(rolePermissions)
-      .values({ roleId, permissionId })
-      .onConflictDoNothing()
-      .run();
+    db.insert(rolePermissions).values({ roleId, permissionId }).onConflictDoNothing().run();
     vinculacoes++;
   }
 }

@@ -18,8 +18,33 @@ const ROLES = [
 ];
 
 const UF_OPTIONS = [
-  'AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT',
-  'PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO',
+  'AC',
+  'AL',
+  'AM',
+  'AP',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MG',
+  'MS',
+  'MT',
+  'PA',
+  'PB',
+  'PE',
+  'PI',
+  'PR',
+  'RJ',
+  'RN',
+  'RO',
+  'RR',
+  'RS',
+  'SC',
+  'SE',
+  'SP',
+  'TO',
 ];
 
 export function UsuarioModal({ onClose, onCreated }: Props) {
@@ -114,14 +139,18 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
           />
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Papel</label>
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Papel
+            </label>
             <select
               value={form.role}
               onChange={(e) => update('role', e.target.value)}
               className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
             >
               {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
               ))}
             </select>
           </div>
@@ -134,7 +163,9 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
               onChange={(e) => update('oabNumero', e.target.value)}
             />
             <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Seccional</label>
+              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+                Seccional
+              </label>
               <select
                 value={form.oabSeccional}
                 onChange={(e) => update('oabSeccional', e.target.value)}
@@ -142,7 +173,9 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
               >
                 <option value="">—</option>
                 {UF_OPTIONS.map((uf) => (
-                  <option key={uf} value={uf}>{uf}</option>
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
                 ))}
               </select>
             </div>
@@ -155,7 +188,13 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
           )}
 
           <div className="flex gap-3 mt-2">
-            <Button variant="secondary" type="button" onClick={onClose} disabled={loading} className="flex-1">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">

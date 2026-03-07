@@ -58,9 +58,7 @@ export function LoginPage() {
 
       {/* Card de login */}
       <div className="w-full max-w-sm bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] border border-[var(--color-border)] p-8">
-        <h2 className="text-xl-causa text-[var(--color-text)] mb-1 text-center">
-          Entrar
-        </h2>
+        <h2 className="text-xl-causa text-[var(--color-text)] mb-1 text-center">Entrar</h2>
         <p className="text-sm-causa text-[var(--color-text-muted)] mb-6 text-center">
           Acesse seu escritório
         </p>
@@ -95,9 +93,7 @@ export function LoginPage() {
       </div>
 
       {/* Versão */}
-      <p className="mt-6 text-xs-causa text-[var(--color-text-muted)]/50">
-        CAUSA v0.1.0
-      </p>
+      <p className="mt-6 text-xs-causa text-[var(--color-text-muted)]/50">CAUSA v0.1.0</p>
     </div>
   );
 }

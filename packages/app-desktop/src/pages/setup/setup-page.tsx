@@ -61,9 +61,10 @@ export function SetupPage() {
             <div
               className={`
                 w-7 h-7 rounded-full flex items-center justify-center text-xs-causa font-semibold
-                ${i <= step
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+                ${
+                  i <= step
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
                 }
               `}
             >
@@ -93,7 +94,11 @@ export function SetupPage() {
           <StepTopologia
             selected={data.topologia}
             onSelect={(topologia) => {
-              setData((prev) => ({ ...prev, topologia, postgresUrl: topologia === 'solo' ? null : prev.postgresUrl }));
+              setData((prev) => ({
+                ...prev,
+                topologia,
+                postgresUrl: topologia === 'solo' ? null : prev.postgresUrl,
+              }));
               setStep(1);
             }}
           />
@@ -118,10 +123,7 @@ export function SetupPage() {
           />
         )}
         {currentStepName === 'Conclusão' && (
-          <StepConclusao
-            data={data}
-            onBack={() => setStep(step - 1)}
-          />
+          <StepConclusao data={data} onBack={() => setStep(step - 1)} />
         )}
       </div>
     </div>

@@ -68,11 +68,21 @@ export function UsuariosPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Nome</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Email</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">OAB</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Papel</th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">Status</th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Nome
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Email
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                OAB
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Papel
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -85,7 +95,11 @@ export function UsuariosPage() {
             ) : usuarios.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center">
-                  <Shield size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
+                  <Shield
+                    size={32}
+                    className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
+                    strokeWidth={1}
+                  />
                   <p className="text-sm-causa text-[var(--color-text-muted)]">
                     Nenhum usuário cadastrado além do administrador.
                   </p>
@@ -93,9 +107,16 @@ export function UsuariosPage() {
               </tr>
             ) : (
               usuarios.map((user) => (
-                <tr key={user.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa">
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">{user.nome}</td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">{user.email}</td>
+                <tr
+                  key={user.id}
+                  className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
+                >
+                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">
+                    {user.nome}
+                  </td>
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
+                    {user.email}
+                  </td>
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
                     {user.oabNumero ? `${user.oabNumero}/${user.oabSeccional}` : '—'}
                   </td>
@@ -105,11 +126,13 @@ export function UsuariosPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${
-                      user.ativo
-                        ? 'bg-causa-success/10 text-causa-success'
-                        : 'bg-causa-surface-alt text-[var(--color-text-muted)]'
-                    }`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${
+                        user.ativo
+                          ? 'bg-causa-success/10 text-causa-success'
+                          : 'bg-causa-surface-alt text-[var(--color-text-muted)]'
+                      }`}
+                    >
                       {user.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </td>

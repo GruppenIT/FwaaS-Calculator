@@ -11,7 +11,10 @@ export class ProcessoService {
   private clientes;
   private users;
 
-  constructor(private db: CausaDatabase, schema: CausaSchema) {
+  constructor(
+    private db: CausaDatabase,
+    schema: CausaSchema,
+  ) {
     this.processos = schema.processos;
     this.movimentacoes = schema.movimentacoes;
     this.prazos = schema.prazos;
@@ -21,22 +24,20 @@ export class ProcessoService {
 
   async criar(input: CreateProcessoInput): Promise<string> {
     const id = uuid();
-    await (this.db as unknown as DatabaseQueryBuilder)
-      .insert(this.processos)
-      .values({
-        id,
-        numeroCnj: input.numeroCnj,
-        clienteId: input.clienteId,
-        advogadoResponsavelId: input.advogadoResponsavelId,
-        tribunalSigla: input.tribunalSigla,
-        plataforma: input.plataforma,
-        area: input.area,
-        fase: input.fase,
-        status: 'ativo',
-        valorCausa: input.valorCausa ?? null,
-        poloAtivo: input.poloAtivo ?? null,
-        poloPassivo: input.poloPassivo ?? null,
-      });
+    await (this.db as unknown as DatabaseQueryBuilder).insert(this.processos).values({
+      id,
+      numeroCnj: input.numeroCnj,
+      clienteId: input.clienteId,
+      advogadoResponsavelId: input.advogadoResponsavelId,
+      tribunalSigla: input.tribunalSigla,
+      plataforma: input.plataforma,
+      area: input.area,
+      fase: input.fase,
+      status: 'ativo',
+      valorCausa: input.valorCausa ?? null,
+      poloAtivo: input.poloAtivo ?? null,
+      poloPassivo: input.poloPassivo ?? null,
+    });
     return id;
   }
 
@@ -46,7 +47,9 @@ export class ProcessoService {
       conditions.push(eq(this.processos.advogadoResponsavelId, filtros.advogadoId));
     }
     if (filtros?.status) {
-      conditions.push(eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'));
+      conditions.push(
+        eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'),
+      );
     }
 
     const query = (this.db as unknown as DatabaseQueryBuilder)
@@ -94,12 +97,7 @@ export class ProcessoService {
       .from(this.processos)
       .leftJoin(this.clientes, eq(this.processos.clienteId, this.clientes.id))
       .leftJoin(this.users, eq(this.processos.advogadoResponsavelId, this.users.id))
-      .where(
-        or(
-          like(this.processos.numeroCnj, pattern),
-          like(this.clientes.nome, pattern),
-        ),
-      );
+      .where(or(like(this.processos.numeroCnj, pattern), like(this.clientes.nome, pattern)));
   }
 
   async obterPorId(id: string) {
@@ -124,13 +122,18 @@ export class ProcessoService {
       .where(eq(this.prazos.processoId, processoId));
   }
 
-  async atualizar(id: string, input: Partial<CreateProcessoInput> & { status?: 'ativo' | 'arquivado' | 'encerrado' }) {
+  async atualizar(
+    id: string,
+    input: Partial<CreateProcessoInput> & { status?: 'ativo' | 'arquivado' | 'encerrado' },
+  ) {
     await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.processos)
       .set({
         ...(input.numeroCnj !== undefined ? { numeroCnj: input.numeroCnj } : {}),
         ...(input.clienteId !== undefined ? { clienteId: input.clienteId } : {}),
-        ...(input.advogadoResponsavelId !== undefined ? { advogadoResponsavelId: input.advogadoResponsavelId } : {}),
+        ...(input.advogadoResponsavelId !== undefined
+          ? { advogadoResponsavelId: input.advogadoResponsavelId }
+          : {}),
         ...(input.tribunalSigla !== undefined ? { tribunalSigla: input.tribunalSigla } : {}),
         ...(input.plataforma !== undefined ? { plataforma: input.plataforma } : {}),
         ...(input.area !== undefined ? { area: input.area } : {}),
@@ -144,6 +147,8 @@ export class ProcessoService {
   }
 
   async excluir(id: string) {
-    await (this.db as unknown as DatabaseQueryBuilder).delete(this.processos).where(eq(this.processos.id, id));
+    await (this.db as unknown as DatabaseQueryBuilder)
+      .delete(this.processos)
+      .where(eq(this.processos.id, id));
   }
 }
