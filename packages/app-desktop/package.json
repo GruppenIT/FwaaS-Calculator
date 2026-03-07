@@ -2,6 +2,12 @@
   "name": "@causa/app-desktop",
   "version": "0.1.0",
   "private": true,
+  "description": "CAUSA — ERP jurídico on-premise. Aplicação desktop.",
+  "author": "GruppenIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GruppenIT/FwaaS-Calculator.git"
+  },
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
