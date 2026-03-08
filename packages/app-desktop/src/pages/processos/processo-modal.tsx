@@ -178,184 +178,178 @@ export function ProcessoModal({ onClose, onSaved, editData }: Props) {
 
   return (
     <Modal open title={isEdit ? 'Editar processo' : 'Novo processo'} onClose={onClose} size="lg">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Número CNJ"
-            placeholder="0000000-00.0000.0.00.0000"
-            value={form.numeroCnj}
-            onChange={(e) => update('numeroCnj', formatCnj(e.target.value))}
-            error={errors.numeroCnj}
-            autoFocus
-            className="font-[var(--font-mono)]"
-          />
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          label="Número CNJ"
+          placeholder="0000000-00.0000.0.00.0000"
+          value={form.numeroCnj}
+          onChange={(e) => update('numeroCnj', formatCnj(e.target.value))}
+          error={errors.numeroCnj}
+          autoFocus
+          className="font-[var(--font-mono)]"
+        />
 
-          {/* Cliente autocomplete */}
-          <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
+        {/* Cliente autocomplete */}
+        <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
+          <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+            Cliente
+          </label>
+          {clienteNome ? (
+            <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <span className="flex-1 text-base-causa text-[var(--color-text)]">{clienteNome}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setClienteNome('');
+                  setForm((prev) => ({ ...prev, clienteId: '' }));
+                }}
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              />
+              <input
+                type="text"
+                placeholder="Buscar cliente por nome..."
+                value={clienteBusca}
+                onChange={(e) => {
+                  setClienteBusca(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => clienteOptions.length > 0 && setShowDropdown(true)}
+                className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
+              />
+              {showDropdown && clienteOptions.length > 0 && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-[var(--shadow-md)] max-h-40 overflow-auto">
+                  {clienteOptions.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => selectCliente(c)}
+                      className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer"
+                    >
+                      <span className="text-base-causa text-[var(--color-text)]">{c.nome}</span>
+                      {c.cpfCnpj && (
+                        <span className="ml-2 text-xs-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
+                          {c.cpfCnpj}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Tribunal"
+            placeholder="Ex: TJSP, TRF3"
+            value={form.tribunalSigla}
+            onChange={(e) => update('tribunalSigla', e.target.value.toUpperCase())}
+            error={errors.tribunalSigla}
+          />
+          <div className="flex flex-col gap-1">
             <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-              Cliente
+              Plataforma
             </label>
-            {clienteNome ? (
-              <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <span className="flex-1 text-base-causa text-[var(--color-text)]">
-                  {clienteNome}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setClienteNome('');
-                    setForm((prev) => ({ ...prev, clienteId: '' }));
-                  }}
-                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Search
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar cliente por nome..."
-                  value={clienteBusca}
-                  onChange={(e) => {
-                    setClienteBusca(e.target.value);
-                    setShowDropdown(true);
-                  }}
-                  onFocus={() => clienteOptions.length > 0 && setShowDropdown(true)}
-                  className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
-                />
-                {showDropdown && clienteOptions.length > 0 && (
-                  <div className="absolute z-10 top-full mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-[var(--shadow-md)] max-h-40 overflow-auto">
-                    {clienteOptions.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => selectCliente(c)}
-                        className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer"
-                      >
-                        <span className="text-base-causa text-[var(--color-text)]">{c.nome}</span>
-                        {c.cpfCnpj && (
-                          <span className="ml-2 text-xs-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
-                            {c.cpfCnpj}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Tribunal"
-              placeholder="Ex: TJSP, TRF3"
-              value={form.tribunalSigla}
-              onChange={(e) => update('tribunalSigla', e.target.value.toUpperCase())}
-              error={errors.tribunalSigla}
-            />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-                Plataforma
-              </label>
-              <select
-                value={form.plataforma}
-                onChange={(e) => update('plataforma', e.target.value)}
-                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
-              >
-                {PLATAFORMAS.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-                Área
-              </label>
-              <select
-                value={form.area}
-                onChange={(e) => update('area', e.target.value)}
-                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
-              >
-                {AREAS.map((a) => (
-                  <option key={a.value} value={a.value}>
-                    {a.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-                Fase
-              </label>
-              <select
-                value={form.fase}
-                onChange={(e) => update('fase', e.target.value)}
-                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
-              >
-                {FASES.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <Input
-            label="Valor da causa (opcional)"
-            placeholder="R$ 0,00"
-            value={form.valorCausa}
-            onChange={(e) => update('valorCausa', e.target.value)}
-          />
-
-          {isEdit && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-                Status
-              </label>
-              <select
-                value={form.status}
-                onChange={(e) => update('status', e.target.value)}
-                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
-              >
-                <option value="ativo">Ativo</option>
-                <option value="arquivado">Arquivado</option>
-                <option value="encerrado">Encerrado</option>
-              </select>
-            </div>
-          )}
-
-          {errors.geral && (
-            <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
-              {errors.geral}
-            </div>
-          )}
-
-          <div className="flex gap-3 mt-2">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1"
+            <select
+              value={form.plataforma}
+              onChange={(e) => update('plataforma', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
             >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar processo'}
-            </Button>
+              {PLATAFORMAS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
           </div>
-        </form>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Área</label>
+            <select
+              value={form.area}
+              onChange={(e) => update('area', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              {AREAS.map((a) => (
+                <option key={a.value} value={a.value}>
+                  {a.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Fase</label>
+            <select
+              value={form.fase}
+              onChange={(e) => update('fase', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              {FASES.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <Input
+          label="Valor da causa (opcional)"
+          placeholder="R$ 0,00"
+          value={form.valorCausa}
+          onChange={(e) => update('valorCausa', e.target.value)}
+        />
+
+        {isEdit && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Status
+            </label>
+            <select
+              value={form.status}
+              onChange={(e) => update('status', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              <option value="ativo">Ativo</option>
+              <option value="arquivado">Arquivado</option>
+              <option value="encerrado">Encerrado</option>
+            </select>
+          </div>
+        )}
+
+        {errors.geral && (
+          <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
+            {errors.geral}
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-2">
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar processo'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

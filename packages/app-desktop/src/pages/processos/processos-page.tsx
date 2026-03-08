@@ -76,7 +76,10 @@ export function ProcessosPage() {
   function handleSaved() {
     const isEdit = !!modalData;
     setModalData(undefined);
-    toast(isEdit ? 'Processo atualizado com sucesso.' : 'Processo cadastrado com sucesso.', 'success');
+    toast(
+      isEdit ? 'Processo atualizado com sucesso.' : 'Processo cadastrado com sucesso.',
+      'success',
+    );
     carregar();
   }
 
@@ -120,7 +123,9 @@ export function ProcessosPage() {
       p.area,
       p.status,
     ]);
-    const csv = [header, ...lines].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [header, ...lines]
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -185,7 +190,10 @@ export function ProcessosPage() {
         {hasFilters && (
           <button
             type="button"
-            onClick={() => { setFiltroStatus(''); setFiltroArea(''); }}
+            onClick={() => {
+              setFiltroStatus('');
+              setFiltroArea('');
+            }}
             className="h-9 px-2 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
             title="Limpar filtros"
           >
@@ -236,7 +244,11 @@ export function ProcessosPage() {
             ) : filtrados.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
-                message={busca || hasFilters ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'}
+                message={
+                  busca || hasFilters
+                    ? 'Nenhum processo encontrado.'
+                    : 'Cadastre seu primeiro processo.'
+                }
                 colSpan={7}
               />
             ) : (

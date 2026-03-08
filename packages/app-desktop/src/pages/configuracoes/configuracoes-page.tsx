@@ -23,7 +23,9 @@ export function ConfiguracoesPage() {
       .then((config) => {
         setTopologia(config.topologia);
       })
-      .catch((err) => toast(err instanceof Error ? err.message : 'Erro ao carregar configurações.', 'error'))
+      .catch((err) =>
+        toast(err instanceof Error ? err.message : 'Erro ao carregar configurações.', 'error'),
+      )
       .finally(() => setLoading(false));
   }, [toast]);
 
@@ -45,7 +47,10 @@ export function ConfiguracoesPage() {
         <PageHeader title="Configurações" description="Preferências do sistema" />
         <div className="flex flex-col gap-6">
           {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+            <div
+              key={i}
+              className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6"
+            >
               <Skeleton className="h-4 w-24 mb-2" />
               <Skeleton className="h-3.5 w-48 mb-4" />
               <Skeleton className="h-10 w-full" />
@@ -91,45 +96,46 @@ export function ConfiguracoesPage() {
 
         {/* Topologia — somente admin */}
         {canManageLicenca && (
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">Topologia</h3>
-          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
-            Modo de operação do sistema.
-          </p>
-          <div className="flex gap-3">
-            {[
-              {
-                value: 'solo' as const,
-                label: 'Solo',
-                desc: 'Advogado individual com banco local',
-              },
-              {
-                value: 'escritorio' as const,
-                label: 'Escritório',
-                desc: 'Múltiplos usuários com servidor compartilhado',
-              },
-            ].map(({ value, label, desc }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setTopologia(value)}
-                className={`flex-1 text-left px-4 py-3 rounded-[var(--radius-md)] transition-causa cursor-pointer border ${
-                  topologia === value
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/8'
-                    : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-causa-surface-alt'
-                }`}
-              >
-                <div
-                  className={`text-sm-causa font-medium mb-0.5 ${topologia === value ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+            <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">
+              Topologia
+            </h3>
+            <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+              Modo de operação do sistema.
+            </p>
+            <div className="flex gap-3">
+              {[
+                {
+                  value: 'solo' as const,
+                  label: 'Solo',
+                  desc: 'Advogado individual com banco local',
+                },
+                {
+                  value: 'escritorio' as const,
+                  label: 'Escritório',
+                  desc: 'Múltiplos usuários com servidor compartilhado',
+                },
+              ].map(({ value, label, desc }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTopologia(value)}
+                  className={`flex-1 text-left px-4 py-3 rounded-[var(--radius-md)] transition-causa cursor-pointer border ${
+                    topologia === value
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/8'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-causa-surface-alt'
+                  }`}
                 >
-                  {label}
-                </div>
-                <div className="text-xs-causa text-[var(--color-text-muted)]">{desc}</div>
-              </button>
-            ))}
+                  <div
+                    className={`text-sm-causa font-medium mb-0.5 ${topologia === value ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}
+                  >
+                    {label}
+                  </div>
+                  <div className="text-xs-causa text-[var(--color-text-muted)]">{desc}</div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
         )}
 
         {/* Certificado A1 */}

@@ -239,11 +239,7 @@ export function DashboardPage() {
                                     : 'bg-causa-surface-alt text-[var(--color-text-muted)]'
                             }`}
                           >
-                            {vencido
-                              ? `${Math.abs(dias)}d atrasado`
-                              : hoje
-                                ? 'Hoje'
-                                : `${dias}d`}
+                            {vencido ? `${Math.abs(dias)}d atrasado` : hoje ? 'Hoje' : `${dias}d`}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-xs-causa text-[var(--color-text-muted)]">

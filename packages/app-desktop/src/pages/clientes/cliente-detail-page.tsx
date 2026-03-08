@@ -51,9 +51,7 @@ export function ClienteDetailPage() {
       // Search processos by client name via API (server-side filtering)
       const matchedProcessos = await api.listarProcessos(c.nome);
       // Double-check: the API search is fuzzy, so filter to exact name match
-      const filtered = matchedProcessos.filter(
-        (p) => p.clienteNome === c.nome,
-      );
+      const filtered = matchedProcessos.filter((p) => p.clienteNome === c.nome);
       setProcessos(filtered);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao carregar cliente.', 'error');

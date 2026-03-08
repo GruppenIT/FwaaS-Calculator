@@ -79,12 +79,16 @@ export class ProcessoService {
 
   async buscar(termo: string, filtros?: { advogadoId?: string; status?: string }) {
     const pattern = `%${termo}%`;
-    const conditions = [or(like(this.processos.numeroCnj, pattern), like(this.clientes.nome, pattern))];
+    const conditions = [
+      or(like(this.processos.numeroCnj, pattern), like(this.clientes.nome, pattern)),
+    ];
     if (filtros?.advogadoId) {
       conditions.push(eq(this.processos.advogadoResponsavelId, filtros.advogadoId));
     }
     if (filtros?.status) {
-      conditions.push(eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'));
+      conditions.push(
+        eq(this.processos.status, filtros.status as 'ativo' | 'arquivado' | 'encerrado'),
+      );
     }
     return (this.db as unknown as DatabaseQueryBuilder)
       .select({

@@ -241,7 +241,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           error: setupErr instanceof Error ? setupErr.message : String(setupErr),
           stack: setupErr instanceof Error ? setupErr.stack : undefined,
         });
-        const message = setupErr instanceof Error ? setupErr.message : 'Erro durante o setup do sistema.';
+        const message =
+          setupErr instanceof Error ? setupErr.message : 'Erro durante o setup do sistema.';
         return error(res, message, 500);
       }
     }
@@ -637,10 +638,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const p = await getPrazoService().obterPorId(id);
         if (!p) return error(res, 'Prazo não encontrado.', 404);
         // Se só tem ler_proprios, verificar se é o responsável
-        if (
-          !(await hasPermission(user, 'processos:ler_todos')) &&
-          p.responsavelId !== user.id
-        ) {
+        if (!(await hasPermission(user, 'processos:ler_todos')) && p.responsavelId !== user.id) {
           return error(res, 'Permissão insuficiente: prazo não atribuído a você.', 403);
         }
         return json(res, p);

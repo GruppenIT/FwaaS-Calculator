@@ -36,20 +36,47 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'GERAL',
     items: [
       { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/app/processos', icon: Briefcase, label: 'Processos', permissions: ['processos:ler_todos', 'processos:ler_proprios'] },
+      {
+        to: '/app/processos',
+        icon: Briefcase,
+        label: 'Processos',
+        permissions: ['processos:ler_todos', 'processos:ler_proprios'],
+      },
       { to: '/app/clientes', icon: Users, label: 'Clientes', permissions: ['clientes:ler_todos'] },
-      { to: '/app/agenda', icon: Calendar, label: 'Agenda', permissions: ['agenda:gerenciar_todos'] },
-      { to: '/app/prazos', icon: Clock, label: 'Prazos', permissions: ['processos:ler_todos', 'processos:ler_proprios'] },
+      {
+        to: '/app/agenda',
+        icon: Calendar,
+        label: 'Agenda',
+        permissions: ['agenda:gerenciar_todos'],
+      },
+      {
+        to: '/app/prazos',
+        icon: Clock,
+        label: 'Prazos',
+        permissions: ['processos:ler_todos', 'processos:ler_proprios'],
+      },
     ],
   },
   {
     title: 'FINANCEIRO',
-    items: [{ to: '/app/financeiro', icon: DollarSign, label: 'Honorários', permissions: ['financeiro:ler_todos', 'financeiro:ler_proprios'] }],
+    items: [
+      {
+        to: '/app/financeiro',
+        icon: DollarSign,
+        label: 'Honorários',
+        permissions: ['financeiro:ler_todos', 'financeiro:ler_proprios'],
+      },
+    ],
   },
   {
     title: 'SISTEMA',
     items: [
-      { to: '/app/conectores', icon: Plug, label: 'Conectores', permissions: ['conectores:executar'] },
+      {
+        to: '/app/conectores',
+        icon: Plug,
+        label: 'Conectores',
+        permissions: ['conectores:executar'],
+      },
       { to: '/app/usuarios', icon: Shield, label: 'Usuários', permissions: ['usuarios:gerenciar'] },
       { to: '/app/configuracoes', icon: Settings, label: 'Configurações' },
     ],
@@ -76,28 +103,28 @@ export function Sidebar() {
           );
           if (visibleItems.length === 0) return null;
           return (
-          <div key={section.title} className="mb-4">
-            <div className="px-2 mb-1.5 text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
-              {section.title}
+            <div key={section.title} className="mb-4">
+              <div className="px-2 mb-1.5 text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+                {section.title}
+              </div>
+              {visibleItems.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/app'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
+                      isActive
+                        ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+                        : 'text-[var(--color-text)] hover:bg-causa-bg'
+                    }`
+                  }
+                >
+                  <Icon size={18} />
+                  {label}
+                </NavLink>
+              ))}
             </div>
-            {visibleItems.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/app'}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
-                    isActive
-                      ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
-                      : 'text-[var(--color-text)] hover:bg-causa-bg'
-                  }`
-                }
-              >
-                <Icon size={18} />
-                {label}
-              </NavLink>
-            ))}
-          </div>
           );
         })}
       </nav>

@@ -201,7 +201,10 @@ export async function setupDatabase(input: SetupInput): Promise<SetupResult> {
 
       logger.debug('Setup', 'Executando seed de papéis e permissões (SQLite)...');
       setupSqliteSeed(sqliteDb, roleMap, permissionMap);
-      logger.info('Setup', 'Seed SQLite concluído', { roles: roleMap.size, permissions: permissionMap.size });
+      logger.info('Setup', 'Seed SQLite concluído', {
+        roles: roleMap.size,
+        permissions: permissionMap.size,
+      });
     } else {
       const pgDb = db as PgDatabase;
       logger.debug('Setup', 'Executando migrations PostgreSQL...', { folder: MIGRATIONS_PG_DIR });
@@ -210,7 +213,10 @@ export async function setupDatabase(input: SetupInput): Promise<SetupResult> {
 
       logger.debug('Setup', 'Executando seed de papéis e permissões (PostgreSQL)...');
       await setupPgSeed(pgDb, roleMap, permissionMap);
-      logger.info('Setup', 'Seed PostgreSQL concluído', { roles: roleMap.size, permissions: permissionMap.size });
+      logger.info('Setup', 'Seed PostgreSQL concluído', {
+        roles: roleMap.size,
+        permissions: permissionMap.size,
+      });
     }
   } catch (err) {
     logger.error('Setup', 'Falha em migrations/seed', {
@@ -228,7 +234,9 @@ export async function setupDatabase(input: SetupInput): Promise<SetupResult> {
   // 4. Criar primeiro admin
   const adminRoleId = roleMap.get('admin');
   if (!adminRoleId) {
-    logger.error('Setup', 'Papel admin não encontrado após seed', { roleMap: Object.fromEntries(roleMap) });
+    logger.error('Setup', 'Papel admin não encontrado após seed', {
+      roleMap: Object.fromEntries(roleMap),
+    });
     throw new Error('Papel admin não encontrado após seed.');
   }
 
