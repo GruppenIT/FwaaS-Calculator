@@ -566,6 +566,15 @@ export function excluirPrazo(id: string) {
   });
 }
 
+// === Feature flags ===
+export interface AppFeatures {
+  financeiro: boolean;
+}
+
+export function getFeatures() {
+  return request<AppFeatures>('/api/features');
+}
+
 // === Configurações ===
 export function getConfiguracoes() {
   return request<{

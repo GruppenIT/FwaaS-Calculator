@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from './api';
+import type { AppFeatures } from './api';
 
 interface User {
   id: string;
@@ -15,7 +16,11 @@ interface AuthState {
   configured: boolean | null;
   /** Erro de conexão com o servidor */
   serverError: string | null;
+  /** Módulos opcionais habilitados via config */
+  features: AppFeatures;
 }
+
+const DEFAULT_FEATURES: AppFeatures = { financeiro: false };
 
 interface AuthContextValue extends AuthState {
   login: (email: string, senha: string) => Promise<void>;
@@ -31,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
     configured: null,
     serverError: null,
+    features: DEFAULT_FEATURES,
   });
   const navigate = useNavigate();
 
@@ -47,19 +53,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (cancelled) return;
 
           if (!health.configured) {
-            setState({ user: null, loading: false, configured: false, serverError: null });
+            setState({
+              user: null,
+              loading: false,
+              configured: false,
+              serverError: null,
+              features: DEFAULT_FEATURES,
+            });
             return;
           }
 
           setState((prev) => ({ ...prev, configured: true, serverError: null }));
 
           if (api.getAccessToken()) {
-            const me = await api.getMe();
+            const [me, features] = await Promise.all([api.getMe(), api.getFeatures()]);
             setState({
               user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
               loading: false,
               configured: true,
               serverError: null,
+              features,
             });
           } else {
             setState((prev) => ({ ...prev, loading: false }));
@@ -83,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             'Não foi possível conectar ao serviço interno do CAUSA. ' +
             'O servidor pode não ter iniciado corretamente. ' +
             'Tente reiniciar a aplicação.',
+          features: DEFAULT_FEATURES,
         });
       }
     }
@@ -97,12 +111,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginFn = useCallback(
     async (email: string, senha: string) => {
       await api.login(email, senha);
-      const me = await api.getMe();
+      const [me, features] = await Promise.all([api.getMe(), api.getFeatures()]);
       setState({
         user: { id: me.sub, email: me.email, role: me.role, permissions: me.permissions },
         loading: false,
         configured: true,
         serverError: null,
+        features,
       });
       navigate('/app');
     },
@@ -130,4 +145,9 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth deve ser usado dentro de AuthProvider');
   return ctx;
+}
+
+export function useFeatures(): AppFeatures {
+  const { features } = useAuth();
+  return features;
 }

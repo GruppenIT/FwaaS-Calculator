@@ -14,6 +14,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import * as api from '../../lib/api';
 import type { PrazoRow, HonorarioRow } from '../../lib/api';
+import { useFeatures } from '../../lib/auth-context';
 
 interface StatCardProps {
   icon: typeof Briefcase;
@@ -63,6 +64,7 @@ function diasRestantes(dataFatal: string): number {
 export function DashboardPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { financeiro: financeiroEnabled } = useFeatures();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     processosAtivos: 0,
@@ -80,7 +82,7 @@ export function DashboardPage() {
         const [dashStats, prazosData, honData] = await Promise.all([
           api.getDashboardStats(),
           api.listarPrazos({ status: 'pendente' }),
-          api.listarHonorarios(),
+          financeiroEnabled ? api.listarHonorarios() : Promise.resolve([]),
         ]);
         setStats(dashStats);
 
@@ -124,9 +126,9 @@ export function DashboardPage() {
       <PageHeader title="Dashboard" description="Visão geral do escritório" />
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
+      <div className={`grid gap-4 mb-6 ${financeiroEnabled ? 'grid-cols-5' : 'grid-cols-4'}`}>
         {loading ? (
-          Array.from({ length: 5 }, (_, i) => (
+          Array.from({ length: financeiroEnabled ? 5 : 4 }, (_, i) => (
             <div
               key={i}
               className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5"
@@ -170,20 +172,22 @@ export function DashboardPage() {
               color="bg-causa-success/10 text-causa-success"
               onClick={() => navigate('/app/clientes')}
             />
-            <StatCard
-              icon={DollarSign}
-              label="A receber"
-              value={totalPendente > 0 ? formatCurrency(totalPendente) : 'R$ 0'}
-              color="bg-causa-warning/10 text-causa-warning"
-              onClick={() => navigate('/app/financeiro')}
-            />
+            {financeiroEnabled && (
+              <StatCard
+                icon={DollarSign}
+                label="A receber"
+                value={totalPendente > 0 ? formatCurrency(totalPendente) : 'R$ 0'}
+                color="bg-causa-warning/10 text-causa-warning"
+                onClick={() => navigate('/app/financeiro')}
+              />
+            )}
           </>
         )}
       </div>
 
       {/* Two columns: Prazos Urgentes + Resumo Financeiro */}
       {!loading && total > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className={`grid grid-cols-1 ${financeiroEnabled ? 'lg:grid-cols-2' : ''} gap-6 mb-6`}>
           {/* Prazos Urgentes */}
           <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
@@ -258,55 +262,59 @@ export function DashboardPage() {
           </div>
 
           {/* Resumo Financeiro */}
-          <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <div className="flex items-center gap-2">
-                <DollarSign size={16} className="text-[var(--color-text-muted)]" />
-                <span className="text-sm-causa font-semibold text-[var(--color-text)]">
-                  Resumo financeiro
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate('/app/financeiro')}
-                className="text-xs-causa text-[var(--color-primary)] hover:underline cursor-pointer flex items-center gap-1"
-              >
-                Ver detalhes <ArrowRight size={12} />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              <FinanceRow
-                label="Pendente"
-                value={totalPendente}
-                color="text-causa-warning"
-                bgColor="bg-causa-warning"
-                total={totalPendente + totalRecebido + totalInadimplente}
-              />
-              <FinanceRow
-                label="Recebido"
-                value={totalRecebido}
-                color="text-causa-success"
-                bgColor="bg-causa-success"
-                total={totalPendente + totalRecebido + totalInadimplente}
-              />
-              <FinanceRow
-                label="Inadimplente"
-                value={totalInadimplente}
-                color="text-causa-danger"
-                bgColor="bg-causa-danger"
-                total={totalPendente + totalRecebido + totalInadimplente}
-              />
-
-              <div className="pt-3 border-t border-[var(--color-border)]">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm-causa text-[var(--color-text-muted)]">Total geral</span>
-                  <span className="text-lg-causa text-[var(--color-text)] font-semibold font-[var(--font-mono)]">
-                    {formatCurrency(totalPendente + totalRecebido + totalInadimplente)}
+          {financeiroEnabled && (
+            <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+                <div className="flex items-center gap-2">
+                  <DollarSign size={16} className="text-[var(--color-text-muted)]" />
+                  <span className="text-sm-causa font-semibold text-[var(--color-text)]">
+                    Resumo financeiro
                   </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/app/financeiro')}
+                  className="text-xs-causa text-[var(--color-primary)] hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  Ver detalhes <ArrowRight size={12} />
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                <FinanceRow
+                  label="Pendente"
+                  value={totalPendente}
+                  color="text-causa-warning"
+                  bgColor="bg-causa-warning"
+                  total={totalPendente + totalRecebido + totalInadimplente}
+                />
+                <FinanceRow
+                  label="Recebido"
+                  value={totalRecebido}
+                  color="text-causa-success"
+                  bgColor="bg-causa-success"
+                  total={totalPendente + totalRecebido + totalInadimplente}
+                />
+                <FinanceRow
+                  label="Inadimplente"
+                  value={totalInadimplente}
+                  color="text-causa-danger"
+                  bgColor="bg-causa-danger"
+                  total={totalPendente + totalRecebido + totalInadimplente}
+                />
+
+                <div className="pt-3 border-t border-[var(--color-border)]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm-causa text-[var(--color-text-muted)]">
+                      Total geral
+                    </span>
+                    <span className="text-lg-causa text-[var(--color-text)] font-semibold font-[var(--font-mono)]">
+                      {formatCurrency(totalPendente + totalRecebido + totalInadimplente)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

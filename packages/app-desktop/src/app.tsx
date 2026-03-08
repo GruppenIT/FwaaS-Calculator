@@ -18,6 +18,7 @@ import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
 import { PrazosPage } from './pages/prazos/prazos-page';
 import { ServerErrorPage } from './pages/server-error-page';
 import type { ReactNode } from 'react';
+import { useFeatures } from './lib/auth-context';
 
 /** Redireciona para /app se o usuário não tem nenhuma das permissões */
 function RequirePermission({
@@ -34,6 +35,7 @@ function RequirePermission({
 
 function AppRoutes() {
   const { user, loading, configured, serverError } = useAuth();
+  const features = useFeatures();
 
   if (loading) {
     return (
@@ -93,14 +95,16 @@ function AppRoutes() {
             </RequirePermission>
           }
         />
-        <Route
-          path="financeiro"
-          element={
-            <RequirePermission permissions={['financeiro:ler_todos', 'financeiro:ler_proprios']}>
-              <FinanceiroPage />
-            </RequirePermission>
-          }
-        />
+        {features.financeiro && (
+          <Route
+            path="financeiro"
+            element={
+              <RequirePermission permissions={['financeiro:ler_todos', 'financeiro:ler_proprios']}>
+                <FinanceiroPage />
+              </RequirePermission>
+            }
+          />
+        )}
         <Route
           path="conectores"
           element={

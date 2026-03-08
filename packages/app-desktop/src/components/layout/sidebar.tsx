@@ -14,9 +14,10 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth, useFeatures } from '../../lib/auth-context';
 import { usePermission } from '../../hooks/use-permission';
 import { CausaLogo } from '../ui/causa-logo';
+import type { AppFeatures } from '../../lib/api';
 
 interface NavItem {
   to: string;
@@ -24,6 +25,8 @@ interface NavItem {
   label: string;
   /** Permissões necessárias (OR) para exibir. Vazio = sempre visível. */
   permissions?: string[];
+  /** Feature flag necessária para exibir o item */
+  featureFlag?: keyof AppFeatures;
 }
 
 interface NavSection {
@@ -65,6 +68,7 @@ const NAV_SECTIONS: NavSection[] = [
         icon: DollarSign,
         label: 'Honorários',
         permissions: ['financeiro:ler_todos', 'financeiro:ler_proprios'],
+        featureFlag: 'financeiro',
       },
     ],
   },
@@ -87,6 +91,7 @@ export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const { canAny } = usePermission();
+  const features = useFeatures();
 
   return (
     <aside className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
@@ -99,7 +104,9 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-2">
         {NAV_SECTIONS.map((section) => {
           const visibleItems = section.items.filter(
-            (item) => !item.permissions || canAny(item.permissions),
+            (item) =>
+              (!item.permissions || canAny(item.permissions)) &&
+              (!item.featureFlag || features[item.featureFlag]),
           );
           if (visibleItems.length === 0) return null;
           return (
