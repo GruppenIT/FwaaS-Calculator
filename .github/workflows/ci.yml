@@ -23,7 +23,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build workspace packages
-        run: pnpm --filter @causa/shared --filter @causa/connectors run build
+        run: |
+          pnpm --filter @causa/shared run build
+          pnpm --filter @causa/database run build
+          pnpm --filter @causa/connectors run build
 
       - name: TypeScript check
         run: pnpm typecheck

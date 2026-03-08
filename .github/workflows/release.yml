@@ -41,6 +41,7 @@ jobs:
         run: |
           pnpm --filter @causa/shared run build
           pnpm --filter @causa/database run build
+          pnpm --filter @causa/connectors run build
           pnpm --filter @causa/app-desktop run build
 
       - name: Build installer
