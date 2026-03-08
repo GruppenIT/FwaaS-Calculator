@@ -37,6 +37,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     // "Failed to fetch" — o servidor não respondeu (crash, timeout, não iniciado)
     throw new Error(
       `Não foi possível conectar ao servidor (${path}). Verifique se o serviço CAUSA está rodando. Detalhes: ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`,
+      { cause: networkErr },
     );
   }
 
