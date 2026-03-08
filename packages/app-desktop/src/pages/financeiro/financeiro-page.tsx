@@ -88,7 +88,10 @@ export function FinanceiroPage() {
   function handleSaved() {
     const isEdit = !!modalData;
     setModalData(undefined);
-    toast(isEdit ? 'Honorário atualizado com sucesso.' : 'Honorário registrado com sucesso.', 'success');
+    toast(
+      isEdit ? 'Honorário atualizado com sucesso.' : 'Honorário registrado com sucesso.',
+      'success',
+    );
     carregar();
   }
 
@@ -142,7 +145,9 @@ export function FinanceiroPage() {
       h.vencimento ?? '',
       STATUS_LABELS[h.status] ?? h.status,
     ]);
-    const csv = [header, ...lines].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [header, ...lines]
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -208,7 +213,11 @@ export function FinanceiroPage() {
         {hasFilters && (
           <button
             type="button"
-            onClick={() => { setFiltroStatus(''); setPeriodoInicio(''); setPeriodoFim(''); }}
+            onClick={() => {
+              setFiltroStatus('');
+              setPeriodoInicio('');
+              setPeriodoFim('');
+            }}
             className="h-9 px-2 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
             title="Limpar filtros"
           >

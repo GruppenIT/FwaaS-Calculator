@@ -11,14 +11,17 @@ export function Skeleton({ className = '' }: SkeletonProps) {
   );
 }
 
-export function SkeletonText({ lines = 3, className = '' }: { lines?: number; className?: string }) {
+export function SkeletonText({
+  lines = 3,
+  className = '',
+}: {
+  lines?: number;
+  className?: string;
+}) {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       {Array.from({ length: lines }, (_, i) => (
-        <Skeleton
-          key={i}
-          className={`h-3.5 ${i === lines - 1 ? 'w-3/4' : 'w-full'}`}
-        />
+        <Skeleton key={i} className={`h-3.5 ${i === lines - 1 ? 'w-3/4' : 'w-full'}`} />
       ))}
     </div>
   );

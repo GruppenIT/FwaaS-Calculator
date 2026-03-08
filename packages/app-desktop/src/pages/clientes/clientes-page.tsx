@@ -54,7 +54,10 @@ export function ClientesPage() {
   function handleSaved() {
     const isEdit = !!modalData;
     setModalData(undefined);
-    toast(isEdit ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado com sucesso.', 'success');
+    toast(
+      isEdit ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado com sucesso.',
+      'success',
+    );
     carregar();
   }
 
@@ -118,8 +121,16 @@ export function ClientesPage() {
           type="button"
           onClick={() => {
             const header = ['Nome', 'Tipo', 'CPF/CNPJ', 'Email', 'Telefone'];
-            const lines = clientes.map((c) => [c.nome, c.tipo, c.cpfCnpj ?? '', c.email ?? '', c.telefone ?? '']);
-            const csv = [header, ...lines].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const lines = clientes.map((c) => [
+              c.nome,
+              c.tipo,
+              c.cpfCnpj ?? '',
+              c.email ?? '',
+              c.telefone ?? '',
+            ]);
+            const csv = [header, ...lines]
+              .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+              .join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -163,7 +174,11 @@ export function ClientesPage() {
             ) : clientes.length === 0 ? (
               <EmptyState
                 icon={Users}
-                message={busca ? 'Nenhum cliente encontrado.' : 'Cadastre seu primeiro cliente para começar.'}
+                message={
+                  busca
+                    ? 'Nenhum cliente encontrado.'
+                    : 'Cadastre seu primeiro cliente para começar.'
+                }
                 colSpan={5}
               />
             ) : (

@@ -9,11 +9,7 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, message, colSpan }: EmptyStateProps) {
   const content = (
     <>
-      <Icon
-        size={32}
-        className="mx-auto text-[var(--color-text-muted)]/30 mb-2"
-        strokeWidth={1}
-      />
+      <Icon size={32} className="mx-auto text-[var(--color-text-muted)]/30 mb-2" strokeWidth={1} />
       <p className="text-sm-causa text-[var(--color-text-muted)]">{message}</p>
     </>
   );

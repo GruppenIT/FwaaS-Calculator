@@ -62,75 +62,75 @@ export function EventoModal({ onClose, onCreated }: Props) {
 
   return (
     <Modal open title="Novo evento" onClose={onClose} size="lg">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          label="Título"
+          placeholder="Ex: Audiência de instrução"
+          value={form.titulo}
+          onChange={(e) => update('titulo', e.target.value)}
+          error={errors.titulo}
+          autoFocus
+        />
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Tipo</label>
+          <select
+            value={form.tipo}
+            onChange={(e) => update('tipo', e.target.value)}
+            className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+          >
+            {TIPOS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Título"
-            placeholder="Ex: Audiência de instrução"
-            value={form.titulo}
-            onChange={(e) => update('titulo', e.target.value)}
-            error={errors.titulo}
-            autoFocus
+            label="Início"
+            type="datetime-local"
+            value={form.dataHoraInicio}
+            onChange={(e) => update('dataHoraInicio', e.target.value)}
+            error={errors.dataHoraInicio}
           />
-
-          <div className="flex flex-col gap-1">
-            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Tipo</label>
-            <select
-              value={form.tipo}
-              onChange={(e) => update('tipo', e.target.value)}
-              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
-            >
-              {TIPOS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Início"
-              type="datetime-local"
-              value={form.dataHoraInicio}
-              onChange={(e) => update('dataHoraInicio', e.target.value)}
-              error={errors.dataHoraInicio}
-            />
-            <Input
-              label="Fim (opcional)"
-              type="datetime-local"
-              value={form.dataHoraFim}
-              onChange={(e) => update('dataHoraFim', e.target.value)}
-            />
-          </div>
-
           <Input
-            label="Local (opcional)"
-            placeholder="Ex: Fórum Central, Sala 5"
-            value={form.local}
-            onChange={(e) => update('local', e.target.value)}
+            label="Fim (opcional)"
+            type="datetime-local"
+            value={form.dataHoraFim}
+            onChange={(e) => update('dataHoraFim', e.target.value)}
           />
+        </div>
 
-          {errors.geral && (
-            <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
-              {errors.geral}
-            </div>
-          )}
+        <Input
+          label="Local (opcional)"
+          placeholder="Ex: Fórum Central, Sala 5"
+          value={form.local}
+          onChange={(e) => update('local', e.target.value)}
+        />
 
-          <div className="flex gap-3 mt-2">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Salvando...' : 'Criar evento'}
-            </Button>
+        {errors.geral && (
+          <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
+            {errors.geral}
           </div>
-        </form>
+        )}
+
+        <div className="flex gap-3 mt-2">
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading ? 'Salvando...' : 'Criar evento'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

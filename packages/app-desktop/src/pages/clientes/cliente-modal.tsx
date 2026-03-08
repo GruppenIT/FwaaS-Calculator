@@ -103,79 +103,79 @@ export function ClienteModal({ onClose, onSaved, editData }: Props) {
 
   return (
     <Modal open title={isEdit ? 'Editar cliente' : 'Novo cliente'} onClose={onClose}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Toggle PF/PJ */}
-          <div className="flex gap-1 p-1 bg-causa-surface-alt rounded-[var(--radius-md)]">
-            {(['PF', 'PJ'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => {
-                  setTipo(t);
-                  setForm((prev) => ({ ...prev, cpfCnpj: '' }));
-                }}
-                className={`flex-1 py-1.5 text-sm-causa font-medium rounded-[var(--radius-sm)] transition-causa cursor-pointer ${
-                  tipo === t
-                    ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-sm)]'
-                    : 'text-[var(--color-text-muted)]'
-                }`}
-              >
-                {t === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-              </button>
-            ))}
-          </div>
-
-          <Input
-            label={tipo === 'PF' ? 'Nome completo' : 'Razão social'}
-            value={form.nome}
-            onChange={(e) => update('nome', e.target.value)}
-            error={errors.nome}
-            autoFocus
-          />
-
-          <Input
-            label={tipo === 'PF' ? 'CPF' : 'CNPJ'}
-            placeholder={tipo === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
-            value={form.cpfCnpj}
-            onChange={(e) => handleDocChange(e.target.value)}
-            error={errors.cpfCnpj}
-          />
-
-          <Input
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={(e) => update('email', e.target.value)}
-          />
-
-          <Input
-            label="Telefone"
-            value={form.telefone}
-            onChange={(e) => update('telefone', e.target.value)}
-            placeholder="(11) 99999-0000"
-          />
-
-          {errors.geral && (
-            <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
-              {errors.geral}
-            </div>
-          )}
-
-          <div className="flex gap-3 mt-2">
-            <Button
-              variant="secondary"
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Toggle PF/PJ */}
+        <div className="flex gap-1 p-1 bg-causa-surface-alt rounded-[var(--radius-md)]">
+          {(['PF', 'PJ'] as const).map((t) => (
+            <button
+              key={t}
               type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1"
+              onClick={() => {
+                setTipo(t);
+                setForm((prev) => ({ ...prev, cpfCnpj: '' }));
+              }}
+              className={`flex-1 py-1.5 text-sm-causa font-medium rounded-[var(--radius-sm)] transition-causa cursor-pointer ${
+                tipo === t
+                  ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-sm)]'
+                  : 'text-[var(--color-text-muted)]'
+              }`}
             >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar'}
-            </Button>
+              {t === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+            </button>
+          ))}
+        </div>
+
+        <Input
+          label={tipo === 'PF' ? 'Nome completo' : 'Razão social'}
+          value={form.nome}
+          onChange={(e) => update('nome', e.target.value)}
+          error={errors.nome}
+          autoFocus
+        />
+
+        <Input
+          label={tipo === 'PF' ? 'CPF' : 'CNPJ'}
+          placeholder={tipo === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
+          value={form.cpfCnpj}
+          onChange={(e) => handleDocChange(e.target.value)}
+          error={errors.cpfCnpj}
+        />
+
+        <Input
+          label="Email"
+          type="email"
+          value={form.email}
+          onChange={(e) => update('email', e.target.value)}
+        />
+
+        <Input
+          label="Telefone"
+          value={form.telefone}
+          onChange={(e) => update('telefone', e.target.value)}
+          placeholder="(11) 99999-0000"
+        />
+
+        {errors.geral && (
+          <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
+            {errors.geral}
           </div>
-        </form>
+        )}
+
+        <div className="flex gap-3 mt-2">
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

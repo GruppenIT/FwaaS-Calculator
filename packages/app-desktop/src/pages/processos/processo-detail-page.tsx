@@ -226,8 +226,14 @@ export function ProcessoDetailPage() {
                     <div className="text-xs-causa text-[var(--color-text-muted)] mt-1">
                       {formatDate(p.dataFatal)}
                       {p.status === 'pendente' && (
-                        <span className={`ml-2 ${dias <= 1 ? 'text-causa-danger' : dias <= 3 ? 'text-causa-warning' : ''}`}>
-                          {dias < 0 ? `${Math.abs(dias)}d atrasado` : dias === 0 ? 'Vence hoje' : `${dias}d restantes`}
+                        <span
+                          className={`ml-2 ${dias <= 1 ? 'text-causa-danger' : dias <= 3 ? 'text-causa-warning' : ''}`}
+                        >
+                          {dias < 0
+                            ? `${Math.abs(dias)}d atrasado`
+                            : dias === 0
+                              ? 'Vence hoje'
+                              : `${dias}d restantes`}
                         </span>
                       )}
                     </div>

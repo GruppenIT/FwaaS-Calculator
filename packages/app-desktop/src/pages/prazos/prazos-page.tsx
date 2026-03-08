@@ -185,11 +185,7 @@ export function PrazosPage() {
             {loading ? (
               <SkeletonTableRows rows={5} cols={7} />
             ) : prazos.length === 0 ? (
-              <EmptyState
-                icon={Clock}
-                message="Nenhum prazo encontrado."
-                colSpan={7}
-              />
+              <EmptyState icon={Clock} message="Nenhum prazo encontrado." colSpan={7} />
             ) : (
               prazos.map((p) => {
                 const dias = diasRestantes(p.dataFatal);

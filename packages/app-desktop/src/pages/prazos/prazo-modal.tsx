@@ -137,145 +137,145 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
 
   return (
     <Modal open title={isEdit ? 'Editar prazo' : 'Novo prazo'} onClose={onClose} size="lg">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Processo autocomplete */}
-          <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
-            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-              Processo
-            </label>
-            {processoLabel ? (
-              <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <span className="flex-1 text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
-                  {processoLabel}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProcessoLabel('');
-                    setForm((prev) => ({ ...prev, processoId: '' }));
-                  }}
-                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Search
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar por número CNJ..."
-                  value={processoBusca}
-                  onChange={(e) => {
-                    setProcessoBusca(e.target.value);
-                    setShowDropdown(true);
-                  }}
-                  onFocus={() => processoOptions.length > 0 && setShowDropdown(true)}
-                  className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
-                />
-                {showDropdown && processoOptions.length > 0 && (
-                  <div className="absolute z-10 top-full mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-[var(--shadow-md)] max-h-40 overflow-auto">
-                    {processoOptions.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => selectProcesso(p)}
-                        className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer"
-                      >
-                        <span className="text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
-                          {p.numeroCnj}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Processo autocomplete */}
+        <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
+          <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+            Processo
+          </label>
+          {processoLabel ? (
+            <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <span className="flex-1 text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
+                {processoLabel}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setProcessoLabel('');
+                  setForm((prev) => ({ ...prev, processoId: '' }));
+                }}
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              />
+              <input
+                type="text"
+                placeholder="Buscar por número CNJ..."
+                value={processoBusca}
+                onChange={(e) => {
+                  setProcessoBusca(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => processoOptions.length > 0 && setShowDropdown(true)}
+                className="w-full h-9 pl-8 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
+              />
+              {showDropdown && processoOptions.length > 0 && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-[var(--shadow-md)] max-h-40 overflow-auto">
+                  {processoOptions.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => selectProcesso(p)}
+                      className="w-full text-left px-3 py-2 hover:bg-causa-surface-alt transition-causa cursor-pointer"
+                    >
+                      <span className="text-base-causa text-[var(--color-text)] font-[var(--font-mono)]">
+                        {p.numeroCnj}
+                      </span>
+                      {p.clienteNome && (
+                        <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                          {p.clienteNome}
                         </span>
-                        {p.clienteNome && (
-                          <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
-                            {p.clienteNome}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {errors.processoId && (
-              <span className="text-xs-causa text-causa-danger">{errors.processoId}</span>
-            )}
-          </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {errors.processoId && (
+            <span className="text-xs-causa text-causa-danger">{errors.processoId}</span>
+          )}
+        </div>
 
+        <Input
+          label="Descrição"
+          placeholder="Ex: Prazo para contestação"
+          value={form.descricao}
+          onChange={(e) => update('descricao', e.target.value)}
+          error={errors.descricao}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Descrição"
-            placeholder="Ex: Prazo para contestação"
-            value={form.descricao}
-            onChange={(e) => update('descricao', e.target.value)}
-            error={errors.descricao}
+            label="Data fatal"
+            type="date"
+            value={form.dataFatal}
+            onChange={(e) => update('dataFatal', e.target.value)}
+            error={errors.dataFatal}
           />
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Data fatal"
-              type="date"
-              value={form.dataFatal}
-              onChange={(e) => update('dataFatal', e.target.value)}
-              error={errors.dataFatal}
-            />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-                Tipo de prazo
-              </label>
-              <select
-                value={form.tipoPrazo}
-                onChange={(e) => update('tipoPrazo', e.target.value)}
-                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
-              >
-                {TIPOS_PRAZO.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {isEdit && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-                Status
-              </label>
-              <select
-                value={form.status}
-                onChange={(e) => update('status', e.target.value)}
-                className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
-              >
-                <option value="pendente">Pendente</option>
-                <option value="cumprido">Cumprido</option>
-                <option value="perdido">Perdido</option>
-              </select>
-            </div>
-          )}
-
-          {errors.geral && (
-            <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
-              {errors.geral}
-            </div>
-          )}
-
-          <div className="flex gap-3 mt-2">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1"
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Tipo de prazo
+            </label>
+            <select
+              value={form.tipoPrazo}
+              onChange={(e) => update('tipoPrazo', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
             >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar prazo'}
-            </Button>
+              {TIPOS_PRAZO.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </div>
-        </form>
+        </div>
+
+        {isEdit && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Status
+            </label>
+            <select
+              value={form.status}
+              onChange={(e) => update('status', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              <option value="pendente">Pendente</option>
+              <option value="cumprido">Cumprido</option>
+              <option value="perdido">Perdido</option>
+            </select>
+          </div>
+        )}
+
+        {errors.geral && (
+          <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">
+            {errors.geral}
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-2">
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar prazo'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

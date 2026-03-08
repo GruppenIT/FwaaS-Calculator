@@ -97,7 +97,10 @@ export class PrazoService {
     return row ?? undefined;
   }
 
-  async atualizar(id: string, input: Partial<CreatePrazoInput> & { status?: 'pendente' | 'cumprido' | 'perdido' }) {
+  async atualizar(
+    id: string,
+    input: Partial<CreatePrazoInput> & { status?: 'pendente' | 'cumprido' | 'perdido' },
+  ) {
     await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.prazos)
       .set({

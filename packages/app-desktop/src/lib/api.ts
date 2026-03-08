@@ -113,8 +113,7 @@ export async function setupSystem(data: {
         err instanceof Error &&
         (err.message.includes('Não foi possível conectar') ||
           err.message.includes('Failed to fetch'));
-      const isAlreadyConfigured =
-        err instanceof Error && err.message.includes('já configurado');
+      const isAlreadyConfigured = err instanceof Error && err.message.includes('já configurado');
 
       // Se já foi configurado, significa que o setup anterior deu certo (a resposta é que se perdeu)
       if (isAlreadyConfigured) {

@@ -95,9 +95,10 @@ function formatTimestamp(): string {
 }
 
 function writeLog(level: string, category: string, message: string, data?: unknown): void {
-  const line = data !== undefined
-    ? `[${formatTimestamp()}] [${level}] [${category}] ${message} ${JSON.stringify(data, null, 0)}`
-    : `[${formatTimestamp()}] [${level}] [${category}] ${message}`;
+  const line =
+    data !== undefined
+      ? `[${formatTimestamp()}] [${level}] [${category}] ${message} ${JSON.stringify(data, null, 0)}`
+      : `[${formatTimestamp()}] [${level}] [${category}] ${message}`;
 
   // Sempre escreve no console
   if (level === 'ERROR') {
