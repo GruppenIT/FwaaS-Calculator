@@ -970,14 +970,58 @@ export function atualizarConfiguracoes(data: Partial<{ topologia: 'solo' | 'escr
 }
 
 // === Dashboard ===
+export interface AudienciaSemanaRow {
+  id: string;
+  titulo: string;
+  dataHoraInicio: string;
+  dataHoraFim: string | null;
+  local: string | null;
+  statusAgenda: string;
+  processoId: string | null;
+  clienteId: string | null;
+}
+
+export interface ParcelaAtrasadaRow {
+  id: string;
+  valor: number;
+  vencimento: string;
+  numeroParcela: number;
+  honorarioId: string;
+}
+
+export interface DashboardStats {
+  processosAtivos: number;
+  clientes: number;
+  prazosPendentes: number;
+  prazosFatais: number;
+  honorariosPendentes: number;
+  tarefasPendentes: number;
+  parcelasAtrasadas: number;
+  movimentacoesNaoLidas: number;
+  audienciasSemana: AudienciaSemanaRow[];
+  parcelasAtrasadasList: ParcelaAtrasadaRow[];
+}
+
 export function getDashboardStats() {
-  return request<{
-    processosAtivos: number;
-    clientes: number;
-    prazosPendentes: number;
-    prazosFatais: number;
-    honorariosPendentes: number;
-    tarefasPendentes: number;
-    parcelasAtrasadas: number;
-  }>('/api/dashboard');
+  return request<DashboardStats>('/api/dashboard');
+}
+
+export interface TimelineEntry {
+  data: string;
+  movimentacoes: number;
+  prazos: number;
+  tarefas: number;
+}
+
+export function getDashboardTimeline() {
+  return request<TimelineEntry[]>('/api/dashboard/timeline');
+}
+
+export interface ProdutividadeEntry {
+  data: string;
+  minutos: number;
+}
+
+export function getDashboardProdutividade() {
+  return request<ProdutividadeEntry[]>('/api/dashboard/produtividade');
 }
