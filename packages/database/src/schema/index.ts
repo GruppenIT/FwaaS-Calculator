@@ -8,3 +8,4 @@ export * from './documentos.js';
 export * from './connector-logs.js';
 export * from './licencas.js';
 export * from './audit-log.js';
+export * from './tarefas.js';

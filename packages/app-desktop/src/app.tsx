@@ -16,6 +16,8 @@ import { ConectoresPage } from './pages/conectores/conectores-page';
 import { UsuariosPage } from './pages/usuarios/usuarios-page';
 import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
 import { PrazosPage } from './pages/prazos/prazos-page';
+import { TarefasPage } from './pages/tarefas/tarefas-page';
+import { DocumentosPage } from './pages/documentos/documentos-page';
 import { ServerErrorPage } from './pages/server-error-page';
 import type { ReactNode } from 'react';
 import { useFeatures } from './lib/auth-context';
@@ -126,6 +128,22 @@ function AppRoutes() {
           element={
             <RequirePermission permissions={['processos:ler_todos', 'processos:ler_proprios']}>
               <PrazosPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="tarefas"
+          element={
+            <RequirePermission permissions={['tarefas:ler_todos', 'tarefas:ler_proprios']}>
+              <TarefasPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="documentos"
+          element={
+            <RequirePermission permissions={['documentos:ler_todos']}>
+              <DocumentosPage />
             </RequirePermission>
           }
         />

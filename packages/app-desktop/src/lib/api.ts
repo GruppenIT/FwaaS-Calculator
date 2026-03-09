@@ -623,6 +623,119 @@ export function excluirPrazo(id: string) {
   });
 }
 
+// === Tarefas ===
+export interface TarefaRow {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  processoId: string | null;
+  numeroCnj: string | null;
+  clienteId: string | null;
+  clienteNome: string | null;
+  criadoPor: string;
+  responsavelId: string;
+  responsavelNome: string | null;
+  prioridade: string;
+  status: string;
+  categoria: string | null;
+  dataLimite: string | null;
+  dataConclusao: string | null;
+  tempoEstimadoMin: number | null;
+  tempoGastoMin: number | null;
+  observacoes: string | null;
+  createdAt: string;
+}
+
+export function listarTarefas(filtros?: {
+  status?: string;
+  prioridade?: string;
+  processoId?: string;
+}) {
+  const params = new URLSearchParams();
+  if (filtros?.status) params.set('status', filtros.status);
+  if (filtros?.prioridade) params.set('prioridade', filtros.prioridade);
+  if (filtros?.processoId) params.set('processoId', filtros.processoId);
+  const q = params.toString();
+  return request<TarefaRow[]>(`/api/tarefas${q ? `?${q}` : ''}`);
+}
+
+export function obterTarefa(id: string) {
+  return request<TarefaRow>(`/api/tarefas/${id}`);
+}
+
+export function criarTarefa(data: Record<string, unknown>) {
+  return request<{ id: string }>('/api/tarefas', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarTarefa(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/tarefas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function excluirTarefa(id: string) {
+  return request<{ ok: boolean }>(`/api/tarefas/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// === Documentos ===
+export interface DocumentoRow {
+  id: string;
+  processoId: string | null;
+  numeroCnj: string | null;
+  clienteId: string | null;
+  clienteNome: string | null;
+  nome: string;
+  descricao: string | null;
+  tipoMime: string;
+  tamanhoBytes: number;
+  categoria: string | null;
+  tags: string[] | null;
+  confidencial: boolean;
+  dataReferencia: string | null;
+  uploadedBy: string;
+  uploaderNome: string | null;
+  createdAt: string;
+}
+
+export function listarDocumentos(filtros?: {
+  processoId?: string;
+  clienteId?: string;
+  categoria?: string;
+}) {
+  const params = new URLSearchParams();
+  if (filtros?.processoId) params.set('processoId', filtros.processoId);
+  if (filtros?.clienteId) params.set('clienteId', filtros.clienteId);
+  if (filtros?.categoria) params.set('categoria', filtros.categoria);
+  const q = params.toString();
+  return request<DocumentoRow[]>(`/api/documentos${q ? `?${q}` : ''}`);
+}
+
+export function criarDocumento(data: Record<string, unknown>) {
+  return request<{ id: string }>('/api/documentos', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarDocumento(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/documentos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function excluirDocumento(id: string) {
+  return request<{ ok: boolean }>(`/api/documentos/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // === Feature flags ===
 export interface AppFeatures {
   financeiro: boolean;

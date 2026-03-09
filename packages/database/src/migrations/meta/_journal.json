@@ -22,6 +22,13 @@
       "when": 1741606800000,
       "tag": "0002_enrich_phase1_remaining",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1741693200000,
+      "tag": "0003_phase2_tarefas_documentos",
+      "breakpoints": true
     }
   ]
 }

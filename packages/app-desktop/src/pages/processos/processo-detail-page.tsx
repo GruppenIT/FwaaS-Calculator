@@ -22,7 +22,7 @@ import { ProcessoModal } from './processo-modal';
 import type { ProcessoEditData } from './processo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
-import type { PrazoRow, HonorarioRow, MovimentacaoRow } from '../../lib/api';
+import type { PrazoRow, HonorarioRow, MovimentacaoRow, DocumentoRow } from '../../lib/api';
 import { useFeatures } from '../../lib/auth-context';
 
 const STATUS_STYLES: Record<string, string> = {
@@ -95,6 +95,7 @@ export function ProcessoDetailPage() {
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoRow[]>([]);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
+  const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState<ProcessoEditData | null | undefined>(undefined);
   const [deleteMovId, setDeleteMovId] = useState<string | null>(null);
@@ -103,16 +104,18 @@ export function ProcessoDetailPage() {
   const carregar = useCallback(async () => {
     if (!id) return;
     try {
-      const [proc, movs, prazosData, honData] = await Promise.all([
+      const [proc, movs, prazosData, honData, docsData] = await Promise.all([
         api.obterProcesso(id),
         api.listarMovimentacoes(id),
         api.listarPrazosDoProcesso(id),
         financeiroEnabled ? api.listarHonorariosDoProcesso(id) : Promise.resolve([]),
+        api.listarDocumentos({ processoId: id }),
       ]);
       setProcesso(proc);
       setMovimentacoes(movs);
       setPrazos(prazosData);
       setHonorarios(honData);
+      setDocumentos(docsData);
 
       if (proc.clienteId) {
         try {
@@ -442,6 +445,36 @@ export function ProcessoDetailPage() {
           </Section>
         )}
       </div>
+
+      {/* Documentos */}
+      {documentos.length > 0 && (
+        <Section title="Documentos" icon={FileText} count={documentos.length}>
+          <div className="divide-y divide-[var(--color-border)]">
+            {documentos.map((d) => (
+              <div key={d.id} className="px-4 py-3 flex items-center justify-between">
+                <div>
+                  <span className="text-sm-causa text-[var(--color-text)] font-medium">
+                    {d.nome}
+                  </span>
+                  {d.categoria && (
+                    <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                      {d.categoria}
+                    </span>
+                  )}
+                  {d.confidencial && (
+                    <span className="ml-2 text-xs-causa text-causa-danger font-medium">
+                      Confidencial
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs-causa text-[var(--color-text-muted)]">
+                  {formatDate(d.createdAt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* Movimentações - full width */}
       <Section title="Movimentações" icon={FileText} count={movimentacoes.length}>

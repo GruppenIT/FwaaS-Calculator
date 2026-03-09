@@ -6,4 +6,6 @@ export { ProcessoService } from './processos.js';
 export { FinanceiroService, type CreateHonorarioInput } from './financeiro.js';
 export { AgendaService, type CreateAgendaInput } from './agenda.js';
 export { PrazoService, type CreatePrazoInput } from './prazos.js';
+export { TarefaService, type CreateTarefaInput } from './tarefas.js';
+export { DocumentoService, type CreateDocumentoInput } from './documentos.js';
 export { setupDatabase, type SetupInput, type SetupResult } from './setup.js';

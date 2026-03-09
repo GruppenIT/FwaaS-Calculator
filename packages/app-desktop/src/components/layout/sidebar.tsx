@@ -12,6 +12,8 @@ import {
   Moon,
   Sun,
   LogOut,
+  CheckSquare,
+  FileText,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth, useFeatures } from '../../lib/auth-context';
@@ -57,6 +59,18 @@ const NAV_SECTIONS: NavSection[] = [
         icon: Clock,
         label: 'Prazos',
         permissions: ['processos:ler_todos', 'processos:ler_proprios'],
+      },
+      {
+        to: '/app/tarefas',
+        icon: CheckSquare,
+        label: 'Tarefas',
+        permissions: ['tarefas:ler_todos', 'tarefas:ler_proprios'],
+      },
+      {
+        to: '/app/documentos',
+        icon: FileText,
+        label: 'Documentos',
+        permissions: ['documentos:ler_todos'],
       },
     ],
   },

@@ -8,6 +8,8 @@ import { ProcessoService } from './services/processos.js';
 import { FinanceiroService } from './services/financeiro.js';
 import { AgendaService } from './services/agenda.js';
 import { PrazoService } from './services/prazos.js';
+import { TarefaService } from './services/tarefas.js';
+import { DocumentoService } from './services/documentos.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
 import { count, eq, sum } from 'drizzle-orm';
 import fs from 'node:fs';
@@ -41,6 +43,8 @@ let processoService: ProcessoService | null = null;
 let financeiroService: FinanceiroService | null = null;
 let agendaService: AgendaService | null = null;
 let prazoService: PrazoService | null = null;
+let tarefaService: TarefaService | null = null;
+let documentoService: DocumentoService | null = null;
 
 function ensureService<T>(service: T | null, name: string): T {
   if (!service) {
@@ -85,6 +89,14 @@ function getPrazoService(): PrazoService {
   return ensureService(prazoService, 'PrazoService');
 }
 
+function getTarefaService(): TarefaService {
+  return ensureService(tarefaService, 'TarefaService');
+}
+
+function getDocumentoService(): DocumentoService {
+  return ensureService(documentoService, 'DocumentoService');
+}
+
 function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: string) {
   db = database;
   schema = s;
@@ -95,6 +107,8 @@ function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: 
   financeiroService = new FinanceiroService(db, schema);
   agendaService = new AgendaService(db, schema);
   prazoService = new PrazoService(db, schema);
+  tarefaService = new TarefaService(db, schema);
+  documentoService = new DocumentoService(db, schema);
 }
 
 function loadApp(): boolean {
@@ -717,6 +731,125 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (method === 'DELETE') {
         if (!(await requirePermission(res, user, 'processos:excluir'))) return;
         await getPrazoService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Tarefas ---
+    if (path === '/api/tarefas' && method === 'GET') {
+      const canReadAll = await hasPermission(user, 'tarefas:ler_todos');
+      const canReadOwn = await hasPermission(user, 'tarefas:ler_proprios');
+      if (!canReadAll && !canReadOwn) {
+        return error(res, 'Permissão insuficiente: tarefas:ler_todos', 403);
+      }
+      const filtros: { status?: string; prioridade?: string; responsavelId?: string; processoId?: string } = {};
+      const statusParam = url.searchParams.get('status');
+      const prioridadeParam = url.searchParams.get('prioridade');
+      const processoIdParam = url.searchParams.get('processoId');
+      if (statusParam) filtros.status = statusParam;
+      if (prioridadeParam) filtros.prioridade = prioridadeParam;
+      if (processoIdParam) filtros.processoId = processoIdParam;
+      if (!canReadAll) {
+        filtros.responsavelId = user.id;
+      }
+      const data = await getTarefaService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/tarefas' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'tarefas:criar'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getTarefaService().criar({ ...body, criadoPor: user.id });
+      return json(res, { id }, 201);
+    }
+
+    const tarefaMatch = path.match(/^\/api\/tarefas\/([^/]+)$/);
+    if (tarefaMatch) {
+      const id = tarefaMatch[1] ?? '';
+      if (method === 'GET') {
+        const canReadAllT = await hasPermission(user, 'tarefas:ler_todos');
+        const canReadOwnT = await hasPermission(user, 'tarefas:ler_proprios');
+        if (!canReadAllT && !canReadOwnT) {
+          return error(res, 'Permissão insuficiente: tarefas:ler_todos', 403);
+        }
+        const t = await getTarefaService().obterPorId(id);
+        if (!t) return error(res, 'Tarefa não encontrada.', 404);
+        if (!canReadAllT && t.responsavelId !== user.id && t.criadoPor !== user.id) {
+          return error(res, 'Permissão insuficiente: tarefa não atribuída a você.', 403);
+        }
+        return json(res, t);
+      }
+      if (method === 'PUT') {
+        const canEditAll = await hasPermission(user, 'tarefas:editar_todos');
+        const canReadOwnT = await hasPermission(user, 'tarefas:ler_proprios');
+        if (!canEditAll && !canReadOwnT) {
+          return error(res, 'Permissão insuficiente: tarefas:editar_todos', 403);
+        }
+        if (!canEditAll) {
+          const t = await getTarefaService().obterPorId(id);
+          if (!t || (t.responsavelId !== user.id && t.criadoPor !== user.id)) {
+            return error(res, 'Permissão insuficiente: tarefa não atribuída a você.', 403);
+          }
+        }
+        const body = JSON.parse(await readBody(req));
+        await getTarefaService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'tarefas:editar_todos'))) return;
+        await getTarefaService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Documentos ---
+    if (path === '/api/documentos' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
+      const filtros: { processoId?: string; clienteId?: string; categoria?: string } = {};
+      const processoIdParam = url.searchParams.get('processoId');
+      const clienteIdParam = url.searchParams.get('clienteId');
+      const categoriaParam = url.searchParams.get('categoria');
+      if (processoIdParam) filtros.processoId = processoIdParam;
+      if (clienteIdParam) filtros.clienteId = clienteIdParam;
+      if (categoriaParam) filtros.categoria = categoriaParam;
+      // Se não tem permissão confidencial, filtrar apenas não-confidenciais
+      const canConfidencial = await hasPermission(user, 'documentos:confidencial');
+      if (!canConfidencial) {
+        const data = await getDocumentoService().listar({ ...filtros, confidencial: false });
+        return json(res, data);
+      }
+      const data = await getDocumentoService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/documentos' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getDocumentoService().criar({ ...body, uploadedBy: user.id });
+      return json(res, { id }, 201);
+    }
+
+    const documentoMatch = path.match(/^\/api\/documentos\/([^/]+)$/);
+    if (documentoMatch) {
+      const id = documentoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
+        const d = await getDocumentoService().obterPorId(id);
+        if (!d) return error(res, 'Documento não encontrado.', 404);
+        if (d.confidencial && !(await hasPermission(user, 'documentos:confidencial'))) {
+          return error(res, 'Permissão insuficiente: documentos:confidencial', 403);
+        }
+        return json(res, d);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getDocumentoService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+        await getDocumentoService().excluir(id);
         return json(res, { ok: true });
       }
     }
