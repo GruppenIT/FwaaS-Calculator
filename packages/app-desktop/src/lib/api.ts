@@ -736,6 +736,149 @@ export function excluirDocumento(id: string) {
   });
 }
 
+// === Parcelas ===
+export interface ParcelaRow {
+  id: string;
+  honorarioId: string;
+  numeroParcela: number;
+  valor: number;
+  vencimento: string;
+  status: string;
+  dataPagamento: string | null;
+  valorPago: number | null;
+  formaPagamento: string | null;
+  comprovanteDocId: string | null;
+  juros: number | null;
+  multa: number | null;
+  desconto: number | null;
+  observacoes: string | null;
+  createdAt: string;
+}
+
+export function listarParcelas(honorarioId: string) {
+  return request<ParcelaRow[]>(`/api/honorarios/${honorarioId}/parcelas`);
+}
+
+export function gerarParcelas(
+  honorarioId: string,
+  data: { numeroParcelas: number; valorTotal: number; primeiroVencimento: string },
+) {
+  return request<{ ids: string[] }>(`/api/honorarios/${honorarioId}/parcelas`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarParcela(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/parcelas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function pagarParcela(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/parcelas/${id}/pagar`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// === Despesas ===
+export interface DespesaRow {
+  id: string;
+  processoId: string | null;
+  numeroCnj: string | null;
+  clienteId: string | null;
+  clienteNome: string | null;
+  tipo: string;
+  descricao: string;
+  valor: number;
+  data: string;
+  antecipadoPor: string;
+  reembolsavel: boolean;
+  reembolsado: boolean;
+  dataReembolso: string | null;
+  responsavelId: string;
+  responsavelNome: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export function listarDespesas(filtros?: { processoId?: string; status?: string }) {
+  const params = new URLSearchParams();
+  if (filtros?.processoId) params.set('processoId', filtros.processoId);
+  if (filtros?.status) params.set('status', filtros.status);
+  const q = params.toString();
+  return request<DespesaRow[]>(`/api/despesas${q ? `?${q}` : ''}`);
+}
+
+export function criarDespesa(data: Record<string, unknown>) {
+  return request<{ id: string }>('/api/despesas', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarDespesa(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/despesas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function excluirDespesa(id: string) {
+  return request<{ ok: boolean }>(`/api/despesas/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// === Contatos ===
+export interface ContatoRow {
+  id: string;
+  nome: string;
+  tipo: string;
+  cpfCnpj: string | null;
+  oabNumero: string | null;
+  oabSeccional: string | null;
+  email: string | null;
+  telefone: string | null;
+  whatsapp: string | null;
+  especialidade: string | null;
+  comarcasAtuacao: string[] | null;
+  observacoes: string | null;
+  avaliacao: number | null;
+  ativo: boolean;
+  createdAt: string;
+}
+
+export function listarContatos(filtros?: { tipo?: string; q?: string }) {
+  const params = new URLSearchParams();
+  if (filtros?.tipo) params.set('tipo', filtros.tipo);
+  if (filtros?.q) params.set('q', filtros.q);
+  const qs = params.toString();
+  return request<ContatoRow[]>(`/api/contatos${qs ? `?${qs}` : ''}`);
+}
+
+export function criarContato(data: Record<string, unknown>) {
+  return request<{ id: string }>('/api/contatos', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarContato(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/contatos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function excluirContato(id: string) {
+  return request<{ ok: boolean }>(`/api/contatos/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // === Feature flags ===
 export interface AppFeatures {
   financeiro: boolean;

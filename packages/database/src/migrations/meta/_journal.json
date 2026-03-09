@@ -29,6 +29,13 @@
       "when": 1741693200000,
       "tag": "0003_phase2_tarefas_documentos",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1741779600000,
+      "tag": "0004_phase3_parcelas_despesas_contatos",
+      "breakpoints": true
     }
   ]
 }

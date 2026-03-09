@@ -27,6 +27,9 @@ export type Recurso =
   | 'agenda'
   | 'tarefas'
   | 'documentos'
+  | 'parcelas'
+  | 'despesas'
+  | 'contatos'
   | 'tema';
 
 export type Acao =
@@ -41,6 +44,7 @@ export type Acao =
   | 'gerenciar_todos'
   | 'upload'
   | 'confidencial'
+  | 'aprovar'
   | 'alternar';
 
 export interface Permission {
@@ -81,6 +85,11 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'documentos:upload',
     'documentos:ler_todos',
     'documentos:confidencial',
+    'parcelas:gerenciar',
+    'despesas:criar',
+    'despesas:ler_todos',
+    'despesas:aprovar',
+    'contatos:gerenciar',
     'tema:alternar',
   ],
   socio: [
@@ -105,6 +114,11 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'documentos:upload',
     'documentos:ler_todos',
     'documentos:confidencial',
+    'parcelas:gerenciar',
+    'despesas:criar',
+    'despesas:ler_todos',
+    'despesas:aprovar',
+    'contatos:gerenciar',
     'tema:alternar',
   ],
   advogado: [
@@ -120,6 +134,8 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'tarefas:ler_proprios',
     'documentos:upload',
     'documentos:ler_todos',
+    'despesas:criar',
+    'contatos:gerenciar',
     'tema:alternar',
   ],
   estagiario: [
@@ -129,6 +145,7 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'tarefas:ler_proprios',
     'documentos:upload',
     'documentos:ler_todos',
+    'contatos:gerenciar',
     'tema:alternar',
   ],
   secretaria: [
@@ -143,6 +160,7 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'tarefas:ler_proprios',
     'documentos:upload',
     'documentos:ler_todos',
+    'contatos:gerenciar',
     'tema:alternar',
   ],
   financeiro: [
@@ -153,6 +171,10 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'clientes:ler_todos',
     'relatorios:gerenciar',
     'documentos:ler_todos',
+    'parcelas:gerenciar',
+    'despesas:criar',
+    'despesas:ler_todos',
+    'despesas:aprovar',
     'tema:alternar',
   ],
 };

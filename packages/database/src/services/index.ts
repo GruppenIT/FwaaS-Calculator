@@ -8,4 +8,7 @@ export { AgendaService, type CreateAgendaInput } from './agenda.js';
 export { PrazoService, type CreatePrazoInput } from './prazos.js';
 export { TarefaService, type CreateTarefaInput } from './tarefas.js';
 export { DocumentoService, type CreateDocumentoInput } from './documentos.js';
+export { ParcelaService, type CreateParcelaInput, type PagarParcelaInput } from './parcelas.js';
+export { DespesaService, type CreateDespesaInput } from './despesas.js';
+export { ContatoService, type CreateContatoInput } from './contatos.js';
 export { setupDatabase, type SetupInput, type SetupResult } from './setup.js';

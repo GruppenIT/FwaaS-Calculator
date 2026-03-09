@@ -10,6 +10,9 @@ import { AgendaService } from './services/agenda.js';
 import { PrazoService } from './services/prazos.js';
 import { TarefaService } from './services/tarefas.js';
 import { DocumentoService } from './services/documentos.js';
+import { ParcelaService } from './services/parcelas.js';
+import { DespesaService } from './services/despesas.js';
+import { ContatoService } from './services/contatos.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
 import { count, eq, sum } from 'drizzle-orm';
 import fs from 'node:fs';
@@ -45,6 +48,9 @@ let agendaService: AgendaService | null = null;
 let prazoService: PrazoService | null = null;
 let tarefaService: TarefaService | null = null;
 let documentoService: DocumentoService | null = null;
+let parcelaService: ParcelaService | null = null;
+let despesaService: DespesaService | null = null;
+let contatoService: ContatoService | null = null;
 
 function ensureService<T>(service: T | null, name: string): T {
   if (!service) {
@@ -97,6 +103,18 @@ function getDocumentoService(): DocumentoService {
   return ensureService(documentoService, 'DocumentoService');
 }
 
+function getParcelaService(): ParcelaService {
+  return ensureService(parcelaService, 'ParcelaService');
+}
+
+function getDespesaService(): DespesaService {
+  return ensureService(despesaService, 'DespesaService');
+}
+
+function getContatoService(): ContatoService {
+  return ensureService(contatoService, 'ContatoService');
+}
+
 function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: string) {
   db = database;
   schema = s;
@@ -109,6 +127,9 @@ function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: 
   prazoService = new PrazoService(db, schema);
   tarefaService = new TarefaService(db, schema);
   documentoService = new DocumentoService(db, schema);
+  parcelaService = new ParcelaService(db, schema);
+  despesaService = new DespesaService(db, schema);
+  contatoService = new ContatoService(db, schema);
 }
 
 function loadApp(): boolean {
@@ -850,6 +871,130 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (method === 'DELETE') {
         if (!(await requirePermission(res, user, 'documentos:upload'))) return;
         await getDocumentoService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Parcelas ---
+    const parcelasHonMatch = path.match(/^\/api\/honorarios\/([^/]+)\/parcelas$/);
+    if (parcelasHonMatch) {
+      const honorarioId = parcelasHonMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+        const data = await getParcelaService().listarPorHonorario(honorarioId);
+        return json(res, data);
+      }
+      if (method === 'POST') {
+        if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+        const body = JSON.parse(await readBody(req));
+        const ids = await getParcelaService().gerarParcelas(
+          honorarioId,
+          body.numeroParcelas,
+          body.valorTotal,
+          body.primeiroVencimento,
+        );
+        return json(res, { ids }, 201);
+      }
+    }
+
+    const parcelaMatch = path.match(/^\/api\/parcelas\/([^/]+)$/);
+    if (parcelaMatch) {
+      const id = parcelaMatch[1] ?? '';
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getParcelaService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+    }
+
+    const parcelaPagarMatch = path.match(/^\/api\/parcelas\/([^/]+)\/pagar$/);
+    if (parcelaPagarMatch && method === 'POST') {
+      if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+      const id = parcelaPagarMatch[1] ?? '';
+      const body = JSON.parse(await readBody(req));
+      await getParcelaService().pagar(id, body);
+      return json(res, { ok: true });
+    }
+
+    // --- Despesas ---
+    if (path === '/api/despesas' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'despesas:ler_todos'))) return;
+      const filtros: { processoId?: string; status?: string } = {};
+      const processoIdParam = url.searchParams.get('processoId');
+      const statusParam = url.searchParams.get('status');
+      if (processoIdParam) filtros.processoId = processoIdParam;
+      if (statusParam) filtros.status = statusParam;
+      const data = await getDespesaService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/despesas' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'despesas:criar'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getDespesaService().criar({ ...body, responsavelId: user.id });
+      return json(res, { id }, 201);
+    }
+
+    const despesaMatch = path.match(/^\/api\/despesas\/([^/]+)$/);
+    if (despesaMatch) {
+      const id = despesaMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'despesas:ler_todos'))) return;
+        const d = await getDespesaService().obterPorId(id);
+        if (!d) return error(res, 'Despesa não encontrada.', 404);
+        return json(res, d);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'despesas:ler_todos'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getDespesaService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'despesas:aprovar'))) return;
+        await getDespesaService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Contatos ---
+    if (path === '/api/contatos' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+      const filtros: { tipo?: string; busca?: string } = {};
+      const tipoParam = url.searchParams.get('tipo');
+      const buscaParam = url.searchParams.get('q');
+      if (tipoParam) filtros.tipo = tipoParam;
+      if (buscaParam) filtros.busca = buscaParam;
+      const data = await getContatoService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/contatos' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getContatoService().criar(body);
+      return json(res, { id }, 201);
+    }
+
+    const contatoMatch = path.match(/^\/api\/contatos\/([^/]+)$/);
+    if (contatoMatch) {
+      const id = contatoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+        const c = await getContatoService().obterPorId(id);
+        if (!c) return error(res, 'Contato não encontrado.', 404);
+        return json(res, c);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getContatoService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+        await getContatoService().excluir(id);
         return json(res, { ok: true });
       }
     }

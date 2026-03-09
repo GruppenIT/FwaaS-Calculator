@@ -18,6 +18,8 @@ import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
 import { PrazosPage } from './pages/prazos/prazos-page';
 import { TarefasPage } from './pages/tarefas/tarefas-page';
 import { DocumentosPage } from './pages/documentos/documentos-page';
+import { DespesasPage } from './pages/despesas/despesas-page';
+import { ContatosPage } from './pages/contatos/contatos-page';
 import { ServerErrorPage } from './pages/server-error-page';
 import type { ReactNode } from 'react';
 import { useFeatures } from './lib/auth-context';
@@ -144,6 +146,22 @@ function AppRoutes() {
           element={
             <RequirePermission permissions={['documentos:ler_todos']}>
               <DocumentosPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="despesas"
+          element={
+            <RequirePermission permissions={['despesas:ler_todos']}>
+              <DespesasPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="contatos"
+          element={
+            <RequirePermission permissions={['contatos:gerenciar']}>
+              <ContatosPage />
             </RequirePermission>
           }
         />

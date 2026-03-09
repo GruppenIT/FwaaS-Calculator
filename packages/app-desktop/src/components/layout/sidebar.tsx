@@ -14,6 +14,8 @@ import {
   LogOut,
   CheckSquare,
   FileText,
+  Receipt,
+  Contact,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth, useFeatures } from '../../lib/auth-context';
@@ -83,6 +85,23 @@ const NAV_SECTIONS: NavSection[] = [
         label: 'Honorários',
         permissions: ['financeiro:ler_todos', 'financeiro:ler_proprios'],
         featureFlag: 'financeiro',
+      },
+      {
+        to: '/app/despesas',
+        icon: Receipt,
+        label: 'Despesas',
+        permissions: ['despesas:ler_todos'],
+      },
+    ],
+  },
+  {
+    title: 'REDE',
+    items: [
+      {
+        to: '/app/contatos',
+        icon: Contact,
+        label: 'Contatos',
+        permissions: ['contatos:gerenciar'],
       },
     ],
   },
