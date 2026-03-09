@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { CausaLogo } from '../../components/ui/causa-logo';
@@ -6,13 +6,28 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../lib/auth-context';
 import { Moon, Sun } from 'lucide-react';
 
+declare global {
+  interface Window {
+    causaElectron?: {
+      getInstallConfig: () => Promise<{ topologia: string; postgresUrl?: string }>;
+      getApiStatus: () => Promise<{ started: boolean }>;
+      getAppVersion: () => Promise<string>;
+    };
+  }
+}
+
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
   const { theme, toggleTheme } = useTheme();
   const { login } = useAuth();
+
+  useEffect(() => {
+    window.causaElectron?.getAppVersion().then((v) => setAppVersion(v)).catch(() => {});
+  }, []);
 
   async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
@@ -45,9 +60,9 @@ export function LoginPage() {
         {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
       </button>
 
-      {/* Logo */}
+      {/* Logo — apenas ícone, sem texto */}
       <div className="mb-8 flex justify-center">
-        <CausaLogo size={40} />
+        <CausaLogo size={120} showText={false} />
       </div>
 
       {/* Card de login */}
@@ -87,7 +102,9 @@ export function LoginPage() {
       </div>
 
       {/* Versão */}
-      <p className="mt-6 text-xs-causa text-[var(--color-text-muted)]/50">CAUSA v0.1.0</p>
+      <p className="mt-6 text-xs-causa text-[var(--color-text-muted)]/50">
+        CAUSA {appVersion ? `v${appVersion}` : ''}
+      </p>
     </div>
   );
 }

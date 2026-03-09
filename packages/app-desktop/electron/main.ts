@@ -206,6 +206,11 @@ ipcMain.handle('get-api-status', () => {
   return { started: apiStarted };
 });
 
+// IPC: expor versão do app (vem do package.json / tag do instalador)
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
 app.whenReady().then(async () => {
   // Exibe splash enquanto carrega
   createSplashWindow();
