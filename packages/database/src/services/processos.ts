@@ -183,6 +183,7 @@ export class ProcessoService {
     if (input.lido !== undefined) fields.lido = input.lido;
     if (input.lidoPor !== undefined) fields.lidoPor = input.lidoPor ?? null;
     if (input.lidoAt !== undefined) fields.lidoAt = input.lidoAt ?? null;
+    if (input.prazoGeradoId !== undefined) fields.prazoGeradoId = input.prazoGeradoId ?? null;
 
     await (this.db as unknown as DatabaseQueryBuilder)
       .update(this.movimentacoes)

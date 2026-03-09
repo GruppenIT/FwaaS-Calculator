@@ -16,7 +16,7 @@ import { ContatoService } from './services/contatos.js';
 import { TimesheetService } from './services/timesheets.js';
 import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services/automations.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
-import { count, eq, sum, and, lt } from 'drizzle-orm';
+import { count, eq, sum, and, lt, gte, lte } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
 import { logger } from './logger.js';
@@ -458,6 +458,33 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (!(await requirePermission(res, user, 'processos:editar'))) return;
         const body = JSON.parse(await readBody(req));
         const id = await getProcessoService().criarMovimentacao({ ...body, processoId });
+
+        // 4.3.2 - Auto-generate prazo when geraPrazo=true
+        if (body.geraPrazo) {
+          try {
+            const processo = await getProcessoService().obterPorId(processoId);
+            const dataInicio = body.dataMovimento ?? new Date().toISOString().split('T')[0]!;
+            const dataFatal = new Date(dataInicio);
+            dataFatal.setDate(dataFatal.getDate() + 15); // Default 15 days
+            const prazoId = await getPrazoService().criar({
+              processoId,
+              movimentacaoId: id,
+              descricao: `Prazo gerado: ${body.descricao ?? 'Movimentação'}`,
+              dataFatal: dataFatal.toISOString().split('T')[0]!,
+              dataInicio,
+              diasPrazo: 15,
+              tipoPrazo: 'ncpc',
+              prioridade: body.urgente ? 'alta' : 'normal',
+              fatal: false,
+              responsavelId: processo?.advogadoResponsavelId ?? user.id,
+            });
+            // Update movimentacao with prazoGeradoId
+            await getProcessoService().atualizarMovimentacao(id, { prazoGeradoId: prazoId });
+          } catch {
+            // Non-critical: don't fail the movimentação creation
+          }
+        }
+
         return json(res, { id }, 201);
       }
     }
@@ -1142,6 +1169,54 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         .from(s.parcelas)
         .where(and(eq(s.parcelas.status, 'pendente'), lt(s.parcelas.vencimento, hoje)));
 
+      // 4.2.3 - Movimentações não lidas
+      const [movNaoLidas] = await dbq
+        .select({ count: count() })
+        .from(s.movimentacoes)
+        .where(eq(s.movimentacoes.lido, false));
+
+      // 4.2.4 - Audiências da semana
+      const hojeDate = new Date();
+      const diaSemana = hojeDate.getDay();
+      const inicioSemana = new Date(hojeDate);
+      inicioSemana.setDate(hojeDate.getDate() - diaSemana);
+      const fimSemana = new Date(inicioSemana);
+      fimSemana.setDate(inicioSemana.getDate() + 6);
+      const inicioSemanaStr = inicioSemana.toISOString().split('T')[0]!;
+      const fimSemanaStr = fimSemana.toISOString().split('T')[0]!;
+
+      const audienciasSemana = await dbq
+        .select({
+          id: s.agenda.id,
+          titulo: s.agenda.titulo,
+          dataHoraInicio: s.agenda.dataHoraInicio,
+          dataHoraFim: s.agenda.dataHoraFim,
+          local: s.agenda.local,
+          statusAgenda: s.agenda.statusAgenda,
+          processoId: s.agenda.processoId,
+          clienteId: s.agenda.clienteId,
+        })
+        .from(s.agenda)
+        .where(
+          and(
+            eq(s.agenda.tipo, 'audiencia'),
+            gte(s.agenda.dataHoraInicio, inicioSemanaStr),
+            lte(s.agenda.dataHoraInicio, fimSemanaStr + 'T23:59:59'),
+          ),
+        );
+
+      // 4.2.5 - Parcelas atrasadas com detalhes
+      const parcelasAtrasadasList = await dbq
+        .select({
+          id: s.parcelas.id,
+          valor: s.parcelas.valor,
+          vencimento: s.parcelas.vencimento,
+          numeroParcela: s.parcelas.numeroParcela,
+          honorarioId: s.parcelas.honorarioId,
+        })
+        .from(s.parcelas)
+        .where(and(eq(s.parcelas.status, 'pendente'), lt(s.parcelas.vencimento, hoje)));
+
       return json(res, {
         processosAtivos: processosAtivos?.count ?? 0,
         clientes: totalClientes?.count ?? 0,
@@ -1150,7 +1225,96 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         honorariosPendentes: Number(honorariosPendentes?.total ?? 0),
         tarefasPendentes: tarefasPendentes?.count ?? 0,
         parcelasAtrasadas: parcelasAtrasadas?.count ?? 0,
+        movimentacoesNaoLidas: movNaoLidas?.count ?? 0,
+        audienciasSemana,
+        parcelasAtrasadasList,
       });
+    }
+
+    // 4.2.6 - Timeline de atividade (últimos 30 dias)
+    if (path === '/api/dashboard/timeline' && method === 'GET') {
+      const s = getAppSchema();
+      const dbq = getDb();
+      const hoje = new Date();
+      const inicio = new Date(hoje);
+      inicio.setDate(hoje.getDate() - 29);
+      const inicioStr = inicio.toISOString().split('T')[0]!;
+
+      const movimentacoesPorDia = await dbq
+        .select({
+          data: s.movimentacoes.dataMovimento,
+          total: count(),
+        })
+        .from(s.movimentacoes)
+        .where(gte(s.movimentacoes.dataMovimento, inicioStr))
+        .groupBy(s.movimentacoes.dataMovimento);
+
+      const prazosPorDia = await dbq
+        .select({
+          data: s.prazos.dataFatal,
+          total: count(),
+        })
+        .from(s.prazos)
+        .where(gte(s.prazos.dataFatal, inicioStr))
+        .groupBy(s.prazos.dataFatal);
+
+      const tarefasPorDia = await dbq
+        .select({
+          data: s.tarefas.createdAt,
+          total: count(),
+        })
+        .from(s.tarefas)
+        .where(gte(s.tarefas.createdAt, inicioStr));
+
+      // Build a 30-day map
+      const timeline: { data: string; movimentacoes: number; prazos: number; tarefas: number }[] = [];
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(inicio);
+        d.setDate(inicio.getDate() + i);
+        const dStr = d.toISOString().split('T')[0]!;
+        const mov = movimentacoesPorDia.find((m: { data: string; total: number }) => m.data === dStr);
+        const pz = prazosPorDia.find((p: { data: string; total: number }) => p.data === dStr);
+        const tf = tarefasPorDia.find((t: { data: string | null; total: number }) => t.data?.startsWith(dStr));
+        timeline.push({
+          data: dStr,
+          movimentacoes: mov?.total ?? 0,
+          prazos: pz?.total ?? 0,
+          tarefas: tf?.total ?? 0,
+        });
+      }
+      return json(res, timeline);
+    }
+
+    // 4.2.7 - Produtividade/Timesheet (últimos 7 dias)
+    if (path === '/api/dashboard/produtividade' && method === 'GET') {
+      const s = getAppSchema();
+      const dbq = getDb();
+      const hoje = new Date();
+      const inicio = new Date(hoje);
+      inicio.setDate(hoje.getDate() - 6);
+      const inicioStr = inicio.toISOString().split('T')[0]!;
+
+      const timesheetPorDia = await dbq
+        .select({
+          data: s.timesheets.data,
+          totalMinutos: sum(s.timesheets.duracaoMinutos),
+        })
+        .from(s.timesheets)
+        .where(gte(s.timesheets.data, inicioStr))
+        .groupBy(s.timesheets.data);
+
+      const produtividade: { data: string; minutos: number }[] = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(inicio);
+        d.setDate(inicio.getDate() + i);
+        const dStr = d.toISOString().split('T')[0]!;
+        const entry = timesheetPorDia.find((t: { data: string; totalMinutos: string | number | null }) => t.data === dStr);
+        produtividade.push({
+          data: dStr,
+          minutos: Number(entry?.totalMinutos ?? 0),
+        });
+      }
+      return json(res, produtividade);
     }
 
     // 404
