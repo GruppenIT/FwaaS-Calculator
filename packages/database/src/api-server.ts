@@ -23,7 +23,14 @@ interface AppConfig {
   topologia: 'solo' | 'escritorio';
   dbPath: string;
   postgresUrl?: string;
+  moduleKeys?: string[];
 }
+
+/** Códigos de ativação de módulos opcionais */
+const MODULE_CODES = { financeiro: 'FIN-2026-CAUSA-7F3A9B' } as const;
+
+/** Cache das features ativas (lido do config no startup) */
+let activeModuleKeys: string[] = [];
 
 let db: CausaDatabase | null = null;
 let schema: CausaSchema | null = null;
@@ -95,6 +102,7 @@ function loadApp(): boolean {
   if (!fs.existsSync(CONFIG_PATH)) return false;
 
   const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+  activeModuleKeys = config.moduleKeys ?? [];
   const database = createDatabase({
     topologia: config.topologia,
     sqlitePath: config.dbPath,
@@ -271,6 +279,20 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const payload = getAuthService().verifyToken(token);
       const perms = await getAuthService().getUserPermissions(payload.sub);
       return json(res, { ...payload, permissions: perms });
+    }
+
+    // === Feature flags (autenticado) ===
+    if (path === '/api/features' && method === 'GET') {
+      const token = extractToken(req);
+      if (!token) return error(res, 'Não autorizado.', 401);
+      try {
+        getAuthService().verifyToken(token);
+      } catch {
+        return error(res, 'Não autorizado.', 401);
+      }
+      return json(res, {
+        financeiro: activeModuleKeys.includes(MODULE_CODES.financeiro),
+      });
     }
 
     // === Protected routes — require auth ===

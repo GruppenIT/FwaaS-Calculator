@@ -8,6 +8,7 @@ import type { ProcessoEditData } from './processo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { PrazoRow, HonorarioRow } from '../../lib/api';
+import { useFeatures } from '../../lib/auth-context';
 
 interface MovimentacaoRow {
   id: string;
@@ -58,6 +59,7 @@ export function ProcessoDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { can } = usePermission();
+  const { financeiro: financeiroEnabled } = useFeatures();
 
   const [processo, setProcesso] = useState<api.ProcessoDetail | null>(null);
   const [clienteNome, setClienteNome] = useState<string>('');
@@ -74,7 +76,7 @@ export function ProcessoDetailPage() {
         api.obterProcesso(id),
         api.listarMovimentacoes(id),
         api.listarPrazosDoProcesso(id),
-        api.listarHonorariosDoProcesso(id),
+        financeiroEnabled ? api.listarHonorariosDoProcesso(id) : Promise.resolve([]),
       ]);
       setProcesso(proc);
       setMovimentacoes(movs);
@@ -245,33 +247,35 @@ export function ProcessoDetailPage() {
         </Section>
 
         {/* Honorários */}
-        <Section title="Honorários" icon={DollarSign} count={honorarios.length}>
-          {honorarios.length === 0 ? (
-            <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
-              Nenhum honorário vinculado.
-            </p>
-          ) : (
-            <div className="divide-y divide-[var(--color-border)]">
-              {honorarios.map((h) => (
-                <div key={h.id} className="px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm-causa text-[var(--color-text)] font-medium font-[var(--font-mono)]">
-                      {formatCurrency(h.valor)}
-                    </span>
-                    <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
-                      {h.tipo === 'fixo' ? 'Fixo' : h.tipo === 'exito' ? 'Êxito' : 'Por hora'}
+        {financeiroEnabled && (
+          <Section title="Honorários" icon={DollarSign} count={honorarios.length}>
+            {honorarios.length === 0 ? (
+              <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
+                Nenhum honorário vinculado.
+              </p>
+            ) : (
+              <div className="divide-y divide-[var(--color-border)]">
+                {honorarios.map((h) => (
+                  <div key={h.id} className="px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <span className="text-sm-causa text-[var(--color-text)] font-medium font-[var(--font-mono)]">
+                        {formatCurrency(h.valor)}
+                      </span>
+                      <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                        {h.tipo === 'fixo' ? 'Fixo' : h.tipo === 'exito' ? 'Êxito' : 'Por hora'}
+                      </span>
+                    </div>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${HONORARIO_STATUS_STYLES[h.status] ?? ''}`}
+                    >
+                      {h.status}
                     </span>
                   </div>
-                  <span
-                    className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${HONORARIO_STATUS_STYLES[h.status] ?? ''}`}
-                  >
-                    {h.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
+                ))}
+              </div>
+            )}
+          </Section>
+        )}
       </div>
 
       {/* Movimentações - full width */}

@@ -3,6 +3,7 @@ import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import * as api from '../../lib/api';
+import { useFeatures } from '../../lib/auth-context';
 
 interface Props {
   onClose: () => void;
@@ -48,6 +49,8 @@ const UF_OPTIONS = [
 ];
 
 export function UsuarioModal({ onClose, onCreated }: Props) {
+  const { financeiro: financeiroEnabled } = useFeatures();
+  const availableRoles = financeiroEnabled ? ROLES : ROLES.filter((r) => r.value !== 'financeiro');
   const [form, setForm] = useState({
     nome: '',
     email: '',
@@ -129,7 +132,7 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
             onChange={(e) => update('role', e.target.value)}
             className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
           >
-            {ROLES.map((r) => (
+            {availableRoles.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}
               </option>
