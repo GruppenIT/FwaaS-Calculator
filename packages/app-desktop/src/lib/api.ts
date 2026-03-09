@@ -153,56 +153,92 @@ export function getMe() {
 }
 
 // === Clientes ===
+export interface EnderecoJson {
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+  cep?: string;
+  pais?: string;
+}
+
+export interface ClienteData {
+  id: string;
+  tipo: 'PF' | 'PJ';
+  nome: string;
+  nomeSocial: string | null;
+  cpfCnpj: string | null;
+  rg: string | null;
+  rgOrgaoEmissor: string | null;
+  dataNascimento: string | null;
+  nacionalidade: string | null;
+  estadoCivil: string | null;
+  profissao: string | null;
+  email: string | null;
+  emailSecundario: string | null;
+  telefone: string | null;
+  telefoneSecundario: string | null;
+  whatsapp: string | null;
+  endereco: EnderecoJson | null;
+  enderecoComercial: EnderecoJson | null;
+  observacoes: string | null;
+  origemCaptacao: string | null;
+  indicadoPor: string | null;
+  statusCliente: string;
+  dataContrato: string | null;
+  contatoPreferencial: string | null;
+  tags: string[] | null;
+  createdBy: string;
+  updatedAt: string | null;
+  createdAt: string;
+}
+
+export type CreateClienteData = {
+  tipo: 'PF' | 'PJ';
+  nome: string;
+  nomeSocial?: string;
+  cpfCnpj?: string;
+  rg?: string;
+  rgOrgaoEmissor?: string;
+  dataNascimento?: string;
+  nacionalidade?: string;
+  estadoCivil?: string;
+  profissao?: string;
+  email?: string;
+  emailSecundario?: string;
+  telefone?: string;
+  telefoneSecundario?: string;
+  whatsapp?: string;
+  endereco?: EnderecoJson;
+  enderecoComercial?: EnderecoJson;
+  observacoes?: string;
+  origemCaptacao?: string;
+  indicadoPor?: string;
+  statusCliente?: string;
+  dataContrato?: string;
+  contatoPreferencial?: string;
+  tags?: string[];
+};
+
 export function listarClientes(busca?: string) {
   const q = busca ? `?q=${encodeURIComponent(busca)}` : '';
-  return request<
-    Array<{
-      id: string;
-      tipo: 'PF' | 'PJ';
-      nome: string;
-      cpfCnpj: string | null;
-      email: string | null;
-      telefone: string | null;
-      createdAt: string;
-    }>
-  >(`/api/clientes${q}`);
+  return request<ClienteData[]>(`/api/clientes${q}`);
 }
 
 export function obterCliente(id: string) {
-  return request<{
-    id: string;
-    tipo: 'PF' | 'PJ';
-    nome: string;
-    cpfCnpj: string | null;
-    email: string | null;
-    telefone: string | null;
-    createdAt: string;
-  }>(`/api/clientes/${id}`);
+  return request<ClienteData>(`/api/clientes/${id}`);
 }
 
-export function criarCliente(data: {
-  tipo: 'PF' | 'PJ';
-  nome: string;
-  cpfCnpj?: string;
-  email?: string;
-  telefone?: string;
-}) {
+export function criarCliente(data: CreateClienteData) {
   return request<{ id: string }>('/api/clientes', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export function atualizarCliente(
-  id: string,
-  data: Partial<{
-    tipo: 'PF' | 'PJ';
-    nome: string;
-    cpfCnpj: string;
-    email: string;
-    telefone: string;
-  }>,
-) {
+export function atualizarCliente(id: string, data: Partial<CreateClienteData>) {
   return request<{ ok: boolean }>(`/api/clientes/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),

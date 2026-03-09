@@ -37,9 +37,43 @@ function validarCnpj(cnpj: string): boolean {
   return parseInt(digits.charAt(13)) === 11 - rest;
 }
 
+export const ESTADO_CIVIL_OPTIONS = [
+  'solteiro',
+  'casado',
+  'divorciado',
+  'viuvo',
+  'uniao_estavel',
+  'separado',
+] as const;
+
+export const ORIGEM_CAPTACAO_OPTIONS = [
+  'indicacao',
+  'site',
+  'oab',
+  'redes_sociais',
+  'google',
+  'outro',
+] as const;
+
+export const STATUS_CLIENTE_OPTIONS = ['prospecto', 'ativo', 'inativo', 'encerrado'] as const;
+
+export const CONTATO_PREFERENCIAL_OPTIONS = ['email', 'telefone', 'whatsapp'] as const;
+
+const enderecoSchema = z.object({
+  logradouro: z.string().optional(),
+  numero: z.string().optional(),
+  complemento: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  uf: z.string().length(2).optional(),
+  cep: z.string().optional(),
+  pais: z.string().optional(),
+});
+
 export const createClienteSchema = z.object({
   tipo: z.enum(['PF', 'PJ']),
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(300),
+  nomeSocial: z.string().max(300).optional(),
   cpfCnpj: z
     .string()
     .optional()
@@ -53,19 +87,26 @@ export const createClienteSchema = z.object({
       },
       { message: 'CPF ou CNPJ inválido' },
     ),
+  rg: z.string().max(20).optional(),
+  rgOrgaoEmissor: z.string().max(20).optional(),
+  dataNascimento: z.string().optional(),
+  nacionalidade: z.string().optional(),
+  estadoCivil: z.enum(ESTADO_CIVIL_OPTIONS).optional(),
+  profissao: z.string().max(200).optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
+  emailSecundario: z.string().email('Email inválido').optional().or(z.literal('')),
   telefone: z.string().max(20).optional(),
-  endereco: z
-    .object({
-      logradouro: z.string().optional(),
-      numero: z.string().optional(),
-      complemento: z.string().optional(),
-      bairro: z.string().optional(),
-      cidade: z.string().optional(),
-      uf: z.string().length(2).optional(),
-      cep: z.string().optional(),
-    })
-    .optional(),
+  telefoneSecundario: z.string().max(20).optional(),
+  whatsapp: z.string().max(20).optional(),
+  endereco: enderecoSchema.optional(),
+  enderecoComercial: enderecoSchema.optional(),
+  observacoes: z.string().optional(),
+  origemCaptacao: z.enum(ORIGEM_CAPTACAO_OPTIONS).optional(),
+  indicadoPor: z.string().optional(),
+  statusCliente: z.enum(STATUS_CLIENTE_OPTIONS).optional(),
+  dataContrato: z.string().optional(),
+  contatoPreferencial: z.enum(CONTATO_PREFERENCIAL_OPTIONS).optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export type CreateClienteInput = z.infer<typeof createClienteSchema>;

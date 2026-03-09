@@ -1,22 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, Pencil } from 'lucide-react';
+import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
 import { usePermission } from '../../hooks/use-permission';
+import type { ClienteData, EnderecoJson } from '../../lib/api';
 import * as api from '../../lib/api';
-
-interface ClienteDetail {
-  id: string;
-  tipo: 'PF' | 'PJ';
-  nome: string;
-  cpfCnpj: string | null;
-  email: string | null;
-  telefone: string | null;
-  createdAt: string;
-}
 
 interface ProcessoRow {
   id: string;
@@ -26,11 +17,55 @@ interface ProcessoRow {
   tribunalSigla: string;
 }
 
-const STATUS_STYLES: Record<string, string> = {
+const PROCESSO_STATUS_STYLES: Record<string, string> = {
   ativo: 'bg-causa-success/10 text-causa-success',
   arquivado: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
   encerrado: 'bg-causa-warning/10 text-causa-warning',
 };
+
+const CLIENTE_STATUS_STYLES: Record<string, string> = {
+  prospecto: 'bg-causa-info/10 text-causa-info',
+  ativo: 'bg-causa-success/10 text-causa-success',
+  inativo: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
+  encerrado: 'bg-causa-warning/10 text-causa-warning',
+};
+
+const ESTADO_CIVIL_LABELS: Record<string, string> = {
+  solteiro: 'Solteiro(a)',
+  casado: 'Casado(a)',
+  divorciado: 'Divorciado(a)',
+  viuvo: 'Viúvo(a)',
+  uniao_estavel: 'União Estável',
+  separado: 'Separado(a)',
+};
+
+const ORIGEM_LABELS: Record<string, string> = {
+  indicacao: 'Indicação',
+  site: 'Site',
+  oab: 'OAB',
+  redes_sociais: 'Redes Sociais',
+  google: 'Google',
+  outro: 'Outro',
+};
+
+const CONTATO_LABELS: Record<string, string> = {
+  email: 'Email',
+  telefone: 'Telefone',
+  whatsapp: 'WhatsApp',
+};
+
+function formatEndereco(end: EnderecoJson | null): string | null {
+  if (!end) return null;
+  const parts = [
+    end.logradouro,
+    end.numero ? `nº ${end.numero}` : null,
+    end.complemento,
+    end.bairro,
+    end.cidade && end.uf ? `${end.cidade}/${end.uf}` : end.cidade,
+    end.cep ? `CEP ${end.cep}` : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : null;
+}
 
 export function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +73,7 @@ export function ClienteDetailPage() {
   const { toast } = useToast();
   const { can } = usePermission();
 
-  const [cliente, setCliente] = useState<ClienteDetail | null>(null);
+  const [cliente, setCliente] = useState<ClienteData | null>(null);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState<ClienteEditData | null | undefined>(undefined);
@@ -48,9 +83,7 @@ export function ClienteDetailPage() {
     try {
       const c = await api.obterCliente(id);
       setCliente(c);
-      // Search processos by client name via API (server-side filtering)
       const matchedProcessos = await api.listarProcessos(c.nome);
-      // Double-check: the API search is fuzzy, so filter to exact name match
       const filtered = matchedProcessos.filter((p) => p.clienteNome === c.nome);
       setProcessos(filtered);
     } catch (err) {
@@ -66,14 +99,7 @@ export function ClienteDetailPage() {
 
   function handleEdit() {
     if (!cliente) return;
-    setEditData({
-      id: cliente.id,
-      tipo: cliente.tipo,
-      nome: cliente.nome,
-      cpfCnpj: cliente.cpfCnpj,
-      email: cliente.email,
-      telefone: cliente.telefone,
-    });
+    setEditData(cliente);
   }
 
   function handleSaved() {
@@ -99,6 +125,9 @@ export function ClienteDetailPage() {
     );
   }
 
+  const enderecoStr = formatEndereco(cliente.endereco);
+  const enderecoComStr = formatEndereco(cliente.enderecoComercial);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -112,9 +141,16 @@ export function ClienteDetailPage() {
         </button>
         <div className="flex-1">
           <h1 className="text-xl-causa text-[var(--color-text)] font-semibold">{cliente.nome}</h1>
-          <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)] mt-1">
-            {cliente.tipo === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
+              {cliente.tipo === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+            </span>
+            <span
+              className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${CLIENTE_STATUS_STYLES[cliente.statusCliente] ?? ''}`}
+            >
+              {cliente.statusCliente}
+            </span>
+          </div>
         </div>
         {can('clientes:editar') && (
           <Button variant="secondary" onClick={handleEdit}>
@@ -124,14 +160,126 @@ export function ClienteDetailPage() {
         )}
       </div>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <InfoCard label="CPF/CNPJ">{cliente.cpfCnpj ?? '—'}</InfoCard>
-        <InfoCard label="Email">{cliente.email ?? '—'}</InfoCard>
-        <InfoCard label="Telefone">{cliente.telefone ?? '—'}</InfoCard>
-        <InfoCard label="Cadastrado em">
-          {new Date(cliente.createdAt).toLocaleDateString('pt-BR')}
-        </InfoCard>
+      {/* Dados Pessoais */}
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
+        <h2 className="text-sm-causa font-semibold text-[var(--color-text)] mb-3">
+          {cliente.tipo === 'PF' ? 'Dados Pessoais' : 'Dados Empresariais'}
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <InfoField label="CPF/CNPJ" value={cliente.cpfCnpj} />
+          {cliente.nomeSocial && (
+            <InfoField label="Nome Social / Fantasia" value={cliente.nomeSocial} />
+          )}
+          {cliente.tipo === 'PF' && (
+            <>
+              <InfoField
+                label="RG"
+                value={
+                  cliente.rg
+                    ? `${cliente.rg}${cliente.rgOrgaoEmissor ? ` - ${cliente.rgOrgaoEmissor}` : ''}`
+                    : null
+                }
+              />
+              <InfoField label="Data de Nascimento" value={cliente.dataNascimento} />
+              <InfoField label="Nacionalidade" value={cliente.nacionalidade} />
+              <InfoField
+                label="Estado Civil"
+                value={
+                  cliente.estadoCivil
+                    ? (ESTADO_CIVIL_LABELS[cliente.estadoCivil] ?? cliente.estadoCivil)
+                    : null
+                }
+              />
+            </>
+          )}
+          <InfoField label="Profissão" value={cliente.profissao} />
+        </div>
+      </div>
+
+      {/* Contato */}
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Phone size={14} className="text-[var(--color-text-muted)]" />
+          <h2 className="text-sm-causa font-semibold text-[var(--color-text)]">Contato</h2>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <InfoField label="Email" value={cliente.email} />
+          <InfoField label="Email Secundário" value={cliente.emailSecundario} />
+          <InfoField label="Telefone" value={cliente.telefone} />
+          <InfoField label="Telefone Secundário" value={cliente.telefoneSecundario} />
+          <InfoField label="WhatsApp" value={cliente.whatsapp} />
+          <InfoField
+            label="Contato Preferencial"
+            value={
+              cliente.contatoPreferencial
+                ? (CONTATO_LABELS[cliente.contatoPreferencial] ?? cliente.contatoPreferencial)
+                : null
+            }
+          />
+        </div>
+      </div>
+
+      {/* Endereços */}
+      {(enderecoStr || enderecoComStr) && (
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={14} className="text-[var(--color-text-muted)]" />
+            <h2 className="text-sm-causa font-semibold text-[var(--color-text)]">Endereços</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {enderecoStr && <InfoField label="Residencial" value={enderecoStr} />}
+            {enderecoComStr && <InfoField label="Comercial" value={enderecoComStr} />}
+          </div>
+        </div>
+      )}
+
+      {/* Informações Adicionais */}
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Tag size={14} className="text-[var(--color-text-muted)]" />
+          <h2 className="text-sm-causa font-semibold text-[var(--color-text)]">
+            Informações Adicionais
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <InfoField
+            label="Origem de Captação"
+            value={
+              cliente.origemCaptacao
+                ? (ORIGEM_LABELS[cliente.origemCaptacao] ?? cliente.origemCaptacao)
+                : null
+            }
+          />
+          <InfoField label="Indicado por" value={cliente.indicadoPor} />
+          <InfoField label="Data do Contrato" value={cliente.dataContrato} />
+          <InfoField
+            label="Cadastrado em"
+            value={new Date(cliente.createdAt).toLocaleDateString('pt-BR')}
+          />
+        </div>
+        {cliente.tags && cliente.tags.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs-causa text-[var(--color-text-muted)] mb-1">Tags</div>
+            <div className="flex flex-wrap gap-1.5">
+              {cliente.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex px-2 py-0.5 rounded-full bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {cliente.observacoes && (
+          <div className="mt-3">
+            <div className="text-xs-causa text-[var(--color-text-muted)] mb-1">Observações</div>
+            <div className="text-sm-causa text-[var(--color-text)] whitespace-pre-wrap">
+              {cliente.observacoes}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Processos vinculados */}
@@ -189,7 +337,7 @@ export function ClienteDetailPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${STATUS_STYLES[p.status] ?? ''}`}
+                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${PROCESSO_STATUS_STYLES[p.status] ?? ''}`}
                     >
                       {p.status}
                     </span>
@@ -212,11 +360,11 @@ export function ClienteDetailPage() {
   );
 }
 
-function InfoCard({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoField({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
-      <div className="text-xs-causa text-[var(--color-text-muted)] mb-1">{label}</div>
-      <div className="text-base-causa text-[var(--color-text)] font-medium">{children}</div>
+    <div>
+      <div className="text-xs-causa text-[var(--color-text-muted)] mb-0.5">{label}</div>
+      <div className="text-sm-causa text-[var(--color-text)] font-medium">{value ?? '—'}</div>
     </div>
   );
 }
