@@ -11,25 +11,35 @@ import { ProcessoModal } from './processo-modal';
 import type { ProcessoEditData } from './processo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
-
-interface ProcessoRow {
-  id: string;
-  numeroCnj: string;
-  clienteNome: string | null;
-  advogadoNome: string | null;
-  tribunalSigla: string;
-  plataforma: string;
-  area: string;
-  fase: string;
-  status: 'ativo' | 'arquivado' | 'encerrado';
-  valorCausa: number | null;
-  ultimoSyncAt: string | null;
-}
+import type { ProcessoListRow } from '../../lib/api';
 
 const STATUS_STYLES: Record<string, string> = {
   ativo: 'bg-causa-success/10 text-causa-success',
   arquivado: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
   encerrado: 'bg-causa-warning/10 text-causa-warning',
+  suspenso: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+  baixado: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
+};
+
+const PRIORIDADE_STYLES: Record<string, string> = {
+  normal: '',
+  idoso: 'bg-causa-warning/10 text-causa-warning',
+  deficiente: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+  grave_enfermidade: 'bg-causa-danger/10 text-causa-danger',
+  reu_preso: 'bg-causa-danger/10 text-causa-danger',
+};
+
+const AREA_LABELS: Record<string, string> = {
+  civel: 'Cível',
+  trabalhista: 'Trabalhista',
+  previdenciario: 'Previdenciário',
+  criminal: 'Criminal',
+  tributario: 'Tributário',
+  familia: 'Família',
+  consumidor: 'Consumidor',
+  ambiental: 'Ambiental',
+  administrativo: 'Administrativo',
+  outro: 'Outro',
 };
 
 export function ProcessosPage() {
@@ -37,7 +47,7 @@ export function ProcessosPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [modalData, setModalData] = useState<ProcessoEditData | null | undefined>(undefined);
-  const [processos, setProcessos] = useState<ProcessoRow[]>([]);
+  const [processos, setProcessos] = useState<ProcessoListRow[]>([]);
   const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -47,7 +57,6 @@ export function ProcessosPage() {
 
   const showModal = modalData !== undefined;
 
-  // Client-side filters
   const filtrados = processos.filter((p) => {
     if (filtroStatus && p.status !== filtroStatus) return false;
     if (filtroArea && p.area !== filtroArea) return false;
@@ -83,18 +92,29 @@ export function ProcessosPage() {
     carregar();
   }
 
-  function handleEdit(p: ProcessoRow) {
+  function handleEdit(p: ProcessoListRow) {
     setModalData({
       id: p.id,
       numeroCnj: p.numeroCnj,
+      numeroAntigo: null,
       clienteId: '',
       clienteNome: p.clienteNome,
+      clienteQualidade: null,
       tribunalSigla: p.tribunalSigla,
       plataforma: p.plataforma,
       area: p.area,
       fase: p.fase,
       status: p.status,
+      grau: p.grau,
+      comarca: p.comarca,
+      vara: null,
+      juiz: null,
+      rito: null,
+      prioridade: p.prioridade,
+      segredoJustica: false,
+      justicaGratuita: false,
       valorCausa: p.valorCausa,
+      observacoes: null,
     });
   }
 
@@ -113,14 +133,25 @@ export function ProcessosPage() {
     }
   }
 
-  function exportCsv(rows: ProcessoRow[]) {
-    const header = ['Número CNJ', 'Cliente', 'Advogado', 'Tribunal', 'Área', 'Status'];
+  function exportCsv(rows: ProcessoListRow[]) {
+    const header = [
+      'Número CNJ',
+      'Cliente',
+      'Advogado',
+      'Tribunal',
+      'Área',
+      'Comarca',
+      'Prioridade',
+      'Status',
+    ];
     const lines = rows.map((p) => [
       p.numeroCnj,
       p.clienteNome ?? '',
       p.advogadoNome ?? '',
       p.tribunalSigla,
       p.area,
+      p.comarca ?? '',
+      p.prioridade,
       p.status,
     ]);
     const csv = [header, ...lines]
@@ -159,7 +190,7 @@ export function ProcessosPage() {
           />
           <input
             type="text"
-            placeholder="Buscar por número CNJ ou nome do cliente..."
+            placeholder="Buscar por número CNJ, nome do cliente ou comarca..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="w-full h-9 pl-9 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
@@ -174,6 +205,8 @@ export function ProcessosPage() {
           <option value="ativo">Ativo</option>
           <option value="arquivado">Arquivado</option>
           <option value="encerrado">Encerrado</option>
+          <option value="suspenso">Suspenso</option>
+          <option value="baixado">Baixado</option>
         </select>
         <select
           value={filtroArea}
@@ -183,7 +216,7 @@ export function ProcessosPage() {
           <option value="">Área</option>
           {areas.map((a) => (
             <option key={a} value={a}>
-              {a.charAt(0).toUpperCase() + a.slice(1)}
+              {AREA_LABELS[a] ?? a.charAt(0).toUpperCase() + a.slice(1)}
             </option>
           ))}
         </select>
@@ -233,6 +266,9 @@ export function ProcessosPage() {
                 Área
               </th>
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Comarca
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
                 Status
               </th>
               <th className="w-20"></th>
@@ -240,7 +276,7 @@ export function ProcessosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <SkeletonTableRows rows={5} cols={7} />
+              <SkeletonTableRows rows={5} cols={8} />
             ) : filtrados.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
@@ -249,7 +285,7 @@ export function ProcessosPage() {
                     ? 'Nenhum processo encontrado.'
                     : 'Cadastre seu primeiro processo.'
                 }
-                colSpan={7}
+                colSpan={8}
               />
             ) : (
               filtrados.map((p) => (
@@ -265,6 +301,21 @@ export function ProcessosPage() {
                     >
                       {p.numeroCnj}
                     </button>
+                    {p.prioridade !== 'normal' && (
+                      <span
+                        className={`ml-2 inline-flex px-1.5 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-medium ${PRIORIDADE_STYLES[p.prioridade] ?? ''}`}
+                      >
+                        {p.prioridade === 'idoso'
+                          ? 'Idoso'
+                          : p.prioridade === 'deficiente'
+                            ? 'PCD'
+                            : p.prioridade === 'grave_enfermidade'
+                              ? 'Enf.'
+                              : p.prioridade === 'reu_preso'
+                                ? 'Preso'
+                                : p.prioridade}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-base-causa text-[var(--color-text)]">
                     {p.clienteNome ?? '—'}
@@ -277,8 +328,11 @@ export function ProcessosPage() {
                       {p.tribunalSigla}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] capitalize">
-                    {p.area}
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
+                    {AREA_LABELS[p.area] ?? p.area}
+                  </td>
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
+                    {p.comarca ?? '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span

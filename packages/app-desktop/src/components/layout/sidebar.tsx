@@ -12,6 +12,11 @@ import {
   Moon,
   Sun,
   LogOut,
+  CheckSquare,
+  FileText,
+  Receipt,
+  Contact,
+  Timer,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth, useFeatures } from '../../lib/auth-context';
@@ -58,6 +63,24 @@ const NAV_SECTIONS: NavSection[] = [
         label: 'Prazos',
         permissions: ['processos:ler_todos', 'processos:ler_proprios'],
       },
+      {
+        to: '/app/tarefas',
+        icon: CheckSquare,
+        label: 'Tarefas',
+        permissions: ['tarefas:ler_todos', 'tarefas:ler_proprios'],
+      },
+      {
+        to: '/app/documentos',
+        icon: FileText,
+        label: 'Documentos',
+        permissions: ['documentos:ler_todos'],
+      },
+      {
+        to: '/app/timesheet',
+        icon: Timer,
+        label: 'Timesheet',
+        permissions: ['timesheet:registrar', 'timesheet:ler_todos', 'timesheet:ler_proprios'],
+      },
     ],
   },
   {
@@ -69,6 +92,23 @@ const NAV_SECTIONS: NavSection[] = [
         label: 'Honorários',
         permissions: ['financeiro:ler_todos', 'financeiro:ler_proprios'],
         featureFlag: 'financeiro',
+      },
+      {
+        to: '/app/despesas',
+        icon: Receipt,
+        label: 'Despesas',
+        permissions: ['despesas:ler_todos'],
+      },
+    ],
+  },
+  {
+    title: 'REDE',
+    items: [
+      {
+        to: '/app/contatos',
+        icon: Contact,
+        label: 'Contatos',
+        permissions: ['contatos:gerenciar'],
       },
     ],
   },

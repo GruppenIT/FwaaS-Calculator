@@ -25,6 +25,12 @@ export type Recurso =
   | 'licenca'
   | 'relatorios'
   | 'agenda'
+  | 'tarefas'
+  | 'documentos'
+  | 'parcelas'
+  | 'despesas'
+  | 'contatos'
+  | 'timesheet'
   | 'tema';
 
 export type Acao =
@@ -32,10 +38,15 @@ export type Acao =
   | 'ler_todos'
   | 'ler_proprios'
   | 'editar'
+  | 'editar_todos'
   | 'excluir'
   | 'executar'
   | 'gerenciar'
   | 'gerenciar_todos'
+  | 'upload'
+  | 'confidencial'
+  | 'aprovar'
+  | 'registrar'
   | 'alternar';
 
 export interface Permission {
@@ -69,6 +80,22 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'licenca:gerenciar',
     'relatorios:gerenciar',
     'agenda:gerenciar_todos',
+    'tarefas:criar',
+    'tarefas:ler_todos',
+    'tarefas:ler_proprios',
+    'tarefas:editar_todos',
+    'documentos:upload',
+    'documentos:ler_todos',
+    'documentos:confidencial',
+    'parcelas:gerenciar',
+    'despesas:criar',
+    'despesas:ler_todos',
+    'despesas:aprovar',
+    'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_todos',
+    'timesheet:ler_proprios',
+    'timesheet:aprovar',
     'tema:alternar',
   ],
   socio: [
@@ -86,6 +113,22 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'clientes:excluir',
     'relatorios:gerenciar',
     'agenda:gerenciar_todos',
+    'tarefas:criar',
+    'tarefas:ler_todos',
+    'tarefas:ler_proprios',
+    'tarefas:editar_todos',
+    'documentos:upload',
+    'documentos:ler_todos',
+    'documentos:confidencial',
+    'parcelas:gerenciar',
+    'despesas:criar',
+    'despesas:ler_todos',
+    'despesas:aprovar',
+    'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_todos',
+    'timesheet:ler_proprios',
+    'timesheet:aprovar',
     'tema:alternar',
   ],
   advogado: [
@@ -97,9 +140,28 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'clientes:criar',
     'clientes:ler_todos',
     'clientes:editar',
+    'tarefas:criar',
+    'tarefas:ler_proprios',
+    'documentos:upload',
+    'documentos:ler_todos',
+    'despesas:criar',
+    'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_proprios',
     'tema:alternar',
   ],
-  estagiario: ['processos:ler_proprios', 'clientes:ler_todos', 'tema:alternar'],
+  estagiario: [
+    'processos:ler_proprios',
+    'clientes:ler_todos',
+    'tarefas:criar',
+    'tarefas:ler_proprios',
+    'documentos:upload',
+    'documentos:ler_todos',
+    'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_proprios',
+    'tema:alternar',
+  ],
   secretaria: [
     'processos:ler_todos',
     'processos:ler_proprios',
@@ -107,6 +169,12 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'clientes:ler_todos',
     'clientes:editar',
     'agenda:gerenciar_todos',
+    'tarefas:criar',
+    'tarefas:ler_todos',
+    'tarefas:ler_proprios',
+    'documentos:upload',
+    'documentos:ler_todos',
+    'contatos:gerenciar',
     'tema:alternar',
   ],
   financeiro: [
@@ -116,6 +184,12 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'financeiro:editar',
     'clientes:ler_todos',
     'relatorios:gerenciar',
+    'documentos:ler_todos',
+    'parcelas:gerenciar',
+    'despesas:criar',
+    'despesas:ler_todos',
+    'despesas:aprovar',
+    'timesheet:ler_todos',
     'tema:alternar',
   ],
 };

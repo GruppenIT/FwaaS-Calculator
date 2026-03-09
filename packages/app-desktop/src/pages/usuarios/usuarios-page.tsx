@@ -8,17 +8,7 @@ import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { UsuarioModal } from './usuario-modal';
 import * as api from '../../lib/api';
-
-interface UsuarioRow {
-  id: string;
-  nome: string;
-  email: string;
-  oabNumero: string | null;
-  oabSeccional: string | null;
-  role: string | null;
-  ativo: boolean;
-  createdAt: string;
-}
+import type { UsuarioRow } from '../../lib/api';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrador',
@@ -27,6 +17,20 @@ const ROLE_LABELS: Record<string, string> = {
   estagiario: 'Estagiário',
   secretaria: 'Secretária',
   financeiro: 'Financeiro',
+};
+
+const AREA_LABELS: Record<string, string> = {
+  civel: 'Cível',
+  trabalhista: 'Trabalhista',
+  criminal: 'Criminal',
+  tributario: 'Tributário',
+  previdenciario: 'Previdenciário',
+  familia: 'Família',
+  empresarial: 'Empresarial',
+  administrativo: 'Administrativo',
+  ambiental: 'Ambiental',
+  consumidor: 'Consumidor',
+  outro: 'Outro',
 };
 
 export function UsuariosPage() {
@@ -104,6 +108,9 @@ export function UsuariosPage() {
                 Papel
               </th>
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Área
+              </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
                 Status
               </th>
               <th className="w-10"></th>
@@ -111,12 +118,12 @@ export function UsuariosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <SkeletonTableRows rows={5} cols={6} />
+              <SkeletonTableRows rows={5} cols={7} />
             ) : usuarios.length === 0 ? (
               <EmptyState
                 icon={Shield}
                 message="Nenhum usuário cadastrado além do administrador."
-                colSpan={6}
+                colSpan={7}
               />
             ) : (
               usuarios.map((user) => (
@@ -124,19 +131,36 @@ export function UsuariosPage() {
                   key={user.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
                 >
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">
-                    {user.nome}
+                  <td className="px-4 py-3">
+                    <span className="text-base-causa text-[var(--color-text)] font-medium">
+                      {user.nome}
+                    </span>
+                    {user.telefone && (
+                      <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                        {user.telefone}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
                     {user.email}
                   </td>
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
-                    {user.oabNumero ? `${user.oabNumero}/${user.oabSeccional}` : '—'}
+                    {user.oabNumero
+                      ? `${user.oabNumero}/${user.oabSeccional}${user.oabTipo ? ` (${user.oabTipo})` : ''}`
+                      : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--color-primary)]/8 text-[var(--color-primary)] text-xs-causa font-medium">
                       {ROLE_LABELS[user.role ?? ''] ?? user.role}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
+                    {user.areaAtuacao ? (AREA_LABELS[user.areaAtuacao] ?? user.areaAtuacao) : '—'}
+                    {user.especialidade && (
+                      <span className="text-xs-causa text-[var(--color-text-muted)] ml-1">
+                        ({user.especialidade})
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span

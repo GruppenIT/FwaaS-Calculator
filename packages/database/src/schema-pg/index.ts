@@ -8,3 +8,8 @@ export * from './documentos.js';
 export * from './connector-logs.js';
 export * from './licencas.js';
 export * from './audit-log.js';
+export * from './tarefas.js';
+export * from './parcelas.js';
+export * from './despesas.js';
+export * from './contatos.js';
+export * from './timesheets.js';

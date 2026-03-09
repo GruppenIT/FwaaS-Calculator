@@ -8,6 +8,41 @@
       "when": 1772840813574,
       "tag": "0000_illegal_adam_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1741520400000,
+      "tag": "0001_enrich_clientes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1741606800000,
+      "tag": "0002_enrich_phase1_remaining",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1741693200000,
+      "tag": "0003_phase2_tarefas_documentos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1741779600000,
+      "tag": "0004_phase3_parcelas_despesas_contatos",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1741866000000,
+      "tag": "0005_phase4_timesheets",
+      "breakpoints": true
     }
   ]
 }

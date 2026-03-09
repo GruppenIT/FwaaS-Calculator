@@ -12,9 +12,15 @@ export interface PrazoEditData {
   numeroCnj: string | null;
   descricao: string;
   dataFatal: string;
-  tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
-  status: 'pendente' | 'cumprido' | 'perdido';
+  dataInicio: string | null;
+  diasPrazo: number | null;
+  tipoPrazo: string;
+  categoriaPrazo: string | null;
+  prioridade: string;
+  fatal: boolean;
+  status: string;
   responsavelId: string;
+  observacoes: string | null;
 }
 
 interface Props {
@@ -33,7 +39,27 @@ const TIPOS_PRAZO = [
   { value: 'ncpc', label: 'NCPC' },
   { value: 'clt', label: 'CLT' },
   { value: 'jec', label: 'JEC' },
+  { value: 'tributario', label: 'Tributário' },
+  { value: 'administrativo', label: 'Administrativo' },
+  { value: 'contratual', label: 'Contratual' },
   { value: 'outros', label: 'Outros' },
+];
+
+const CATEGORIAS = [
+  { value: '', label: '—' },
+  { value: 'contestacao', label: 'Contestação' },
+  { value: 'recurso', label: 'Recurso' },
+  { value: 'manifestacao', label: 'Manifestação' },
+  { value: 'audiencia', label: 'Audiência' },
+  { value: 'pericial', label: 'Pericial' },
+  { value: 'cumprimento', label: 'Cumprimento' },
+  { value: 'outro', label: 'Outro' },
+];
+
+const PRIORIDADES = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'alta', label: 'Alta' },
+  { value: 'urgente', label: 'Urgente' },
 ];
 
 export function PrazoModal({ onClose, onSaved, editData }: Props) {
@@ -43,8 +69,14 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
     processoId: editData?.processoId ?? '',
     descricao: editData?.descricao ?? '',
     dataFatal: editData?.dataFatal ?? '',
-    tipoPrazo: (editData?.tipoPrazo ?? 'ncpc') as 'ncpc' | 'clt' | 'jec' | 'outros',
-    status: (editData?.status ?? 'pendente') as 'pendente' | 'cumprido' | 'perdido',
+    dataInicio: editData?.dataInicio ?? '',
+    diasPrazo: editData?.diasPrazo ? String(editData.diasPrazo) : '',
+    tipoPrazo: editData?.tipoPrazo ?? 'ncpc',
+    categoriaPrazo: editData?.categoriaPrazo ?? '',
+    prioridade: editData?.prioridade ?? 'normal',
+    fatal: editData?.fatal ?? false,
+    status: editData?.status ?? 'pendente',
+    observacoes: editData?.observacoes ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -106,22 +138,25 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
 
     setLoading(true);
     try {
+      const payload: Record<string, unknown> = {
+        descricao: form.descricao,
+        dataFatal: form.dataFatal,
+        tipoPrazo: form.tipoPrazo,
+        prioridade: form.prioridade,
+        fatal: form.fatal,
+        responsavelId: user?.id ?? '',
+      };
+      if (form.dataInicio) payload.dataInicio = form.dataInicio;
+      if (form.diasPrazo) payload.diasPrazo = parseInt(form.diasPrazo, 10);
+      if (form.categoriaPrazo) payload.categoriaPrazo = form.categoriaPrazo;
+      if (form.observacoes) payload.observacoes = form.observacoes;
+
       if (isEdit) {
-        await api.atualizarPrazo(editData.id, {
-          descricao: form.descricao,
-          dataFatal: form.dataFatal,
-          tipoPrazo: form.tipoPrazo,
-          status: form.status,
-          responsavelId: user?.id ?? '',
-        });
+        payload.status = form.status;
+        await api.atualizarPrazo(editData.id, payload);
       } else {
-        await api.criarPrazo({
-          processoId: form.processoId,
-          descricao: form.descricao,
-          dataFatal: form.dataFatal,
-          tipoPrazo: form.tipoPrazo,
-          responsavelId: user?.id ?? '',
-        });
+        payload.processoId = form.processoId;
+        await api.criarPrazo(payload);
       }
       onSaved();
     } catch (err) {
@@ -131,7 +166,7 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
     }
   }
 
-  function update(field: string, value: string) {
+  function update(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -212,7 +247,7 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
           error={errors.descricao}
         />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Input
             label="Data fatal"
             type="date"
@@ -220,6 +255,22 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
             onChange={(e) => update('dataFatal', e.target.value)}
             error={errors.dataFatal}
           />
+          <Input
+            label="Data início (opcional)"
+            type="date"
+            value={form.dataInicio}
+            onChange={(e) => update('dataInicio', e.target.value)}
+          />
+          <Input
+            label="Dias (opcional)"
+            type="number"
+            placeholder="15"
+            value={form.diasPrazo}
+            onChange={(e) => update('diasPrazo', e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
               Tipo de prazo
@@ -236,6 +287,63 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
               ))}
             </select>
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Categoria
+            </label>
+            <select
+              value={form.categoriaPrazo}
+              onChange={(e) => update('categoriaPrazo', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              {CATEGORIAS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Prioridade
+            </label>
+            <select
+              value={form.prioridade}
+              onChange={(e) => update('prioridade', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              {PRIORIDADES.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.fatal}
+              onChange={(e) => update('fatal', e.target.checked)}
+              className="accent-[var(--color-primary)] w-4 h-4"
+            />
+            <span className="text-sm-causa text-[var(--color-text)]">Prazo fatal</span>
+          </label>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+            Observações
+          </label>
+          <textarea
+            value={form.observacoes}
+            onChange={(e) => update('observacoes', e.target.value)}
+            rows={2}
+            className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa resize-none"
+            placeholder="Observações sobre o prazo..."
+          />
         </div>
 
         {isEdit && (
@@ -251,6 +359,7 @@ export function PrazoModal({ onClose, onSaved, editData }: Props) {
               <option value="pendente">Pendente</option>
               <option value="cumprido">Cumprido</option>
               <option value="perdido">Perdido</option>
+              <option value="suspenso">Suspenso</option>
             </select>
           </div>
         )}

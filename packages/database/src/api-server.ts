@@ -8,8 +8,15 @@ import { ProcessoService } from './services/processos.js';
 import { FinanceiroService } from './services/financeiro.js';
 import { AgendaService } from './services/agenda.js';
 import { PrazoService } from './services/prazos.js';
+import { TarefaService } from './services/tarefas.js';
+import { DocumentoService } from './services/documentos.js';
+import { ParcelaService } from './services/parcelas.js';
+import { DespesaService } from './services/despesas.js';
+import { ContatoService } from './services/contatos.js';
+import { TimesheetService } from './services/timesheets.js';
+import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services/automations.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
-import { count, eq, sum } from 'drizzle-orm';
+import { count, eq, sum, and, lt } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
 import { logger } from './logger.js';
@@ -41,6 +48,12 @@ let processoService: ProcessoService | null = null;
 let financeiroService: FinanceiroService | null = null;
 let agendaService: AgendaService | null = null;
 let prazoService: PrazoService | null = null;
+let tarefaService: TarefaService | null = null;
+let documentoService: DocumentoService | null = null;
+let parcelaService: ParcelaService | null = null;
+let despesaService: DespesaService | null = null;
+let contatoService: ContatoService | null = null;
+let timesheetService: TimesheetService | null = null;
 
 function ensureService<T>(service: T | null, name: string): T {
   if (!service) {
@@ -85,6 +98,30 @@ function getPrazoService(): PrazoService {
   return ensureService(prazoService, 'PrazoService');
 }
 
+function getTarefaService(): TarefaService {
+  return ensureService(tarefaService, 'TarefaService');
+}
+
+function getDocumentoService(): DocumentoService {
+  return ensureService(documentoService, 'DocumentoService');
+}
+
+function getParcelaService(): ParcelaService {
+  return ensureService(parcelaService, 'ParcelaService');
+}
+
+function getDespesaService(): DespesaService {
+  return ensureService(despesaService, 'DespesaService');
+}
+
+function getContatoService(): ContatoService {
+  return ensureService(contatoService, 'ContatoService');
+}
+
+function getTimesheetService(): TimesheetService {
+  return ensureService(timesheetService, 'TimesheetService');
+}
+
 function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: string) {
   db = database;
   schema = s;
@@ -95,6 +132,12 @@ function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: 
   financeiroService = new FinanceiroService(db, schema);
   agendaService = new AgendaService(db, schema);
   prazoService = new PrazoService(db, schema);
+  tarefaService = new TarefaService(db, schema);
+  documentoService = new DocumentoService(db, schema);
+  parcelaService = new ParcelaService(db, schema);
+  despesaService = new DespesaService(db, schema);
+  contatoService = new ContatoService(db, schema);
+  timesheetService = new TimesheetService(db, schema);
 }
 
 function loadApp(): boolean {
@@ -411,6 +454,29 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const data = await getProcessoService().listarMovimentacoes(processoId);
         return json(res, data);
       }
+      if (method === 'POST') {
+        if (!(await requirePermission(res, user, 'processos:editar'))) return;
+        const body = JSON.parse(await readBody(req));
+        const id = await getProcessoService().criarMovimentacao({ ...body, processoId });
+        return json(res, { id }, 201);
+      }
+    }
+
+    // --- Movimentação individual ---
+    const movIndividualMatch = path.match(/^\/api\/movimentacoes\/([^/]+)$/);
+    if (movIndividualMatch) {
+      const id = movIndividualMatch[1] ?? '';
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'processos:editar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getProcessoService().atualizarMovimentacao(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'processos:excluir'))) return;
+        await getProcessoService().excluirMovimentacao(id);
+        return json(res, { ok: true });
+      }
     }
 
     // --- Prazos de Processo ---
@@ -455,7 +521,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           email: s.users.email,
           oabNumero: s.users.oabNumero,
           oabSeccional: s.users.oabSeccional,
+          oabTipo: s.users.oabTipo,
+          telefone: s.users.telefone,
           role: s.roles.nome,
+          areaAtuacao: s.users.areaAtuacao,
+          especialidade: s.users.especialidade,
+          taxaHoraria: s.users.taxaHoraria,
+          dataAdmissao: s.users.dataAdmissao,
+          certificadoA1Validade: s.users.certificadoA1Validade,
+          certificadoA3Configurado: s.users.certificadoA3Configurado,
           ativo: s.users.ativo,
           createdAt: s.users.createdAt,
         })
@@ -491,11 +565,23 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
         const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
         const s = getAppSchema();
-        const updateData: Record<string, unknown> = {};
+        const updateData: Record<string, unknown> = {
+          updatedAt: new Date().toISOString(),
+        };
         if (body.nome !== undefined) updateData.nome = body.nome;
         if (body.email !== undefined) updateData.email = body.email;
         if (body.oabNumero !== undefined) updateData.oabNumero = body.oabNumero || null;
         if (body.oabSeccional !== undefined) updateData.oabSeccional = body.oabSeccional || null;
+        if (body.oabTipo !== undefined) updateData.oabTipo = body.oabTipo || null;
+        if (body.telefone !== undefined) updateData.telefone = body.telefone || null;
+        if (body.areaAtuacao !== undefined) updateData.areaAtuacao = body.areaAtuacao || null;
+        if (body.especialidade !== undefined) updateData.especialidade = body.especialidade || null;
+        if (body.taxaHoraria !== undefined) updateData.taxaHoraria = body.taxaHoraria || null;
+        if (body.dataAdmissao !== undefined) updateData.dataAdmissao = body.dataAdmissao || null;
+        if (body.certificadoA1Validade !== undefined)
+          updateData.certificadoA1Validade = body.certificadoA1Validade || null;
+        if (body.certificadoA3Configurado !== undefined)
+          updateData.certificadoA3Configurado = body.certificadoA3Configurado;
         if (body.ativo !== undefined) updateData.ativo = body.ativo;
         if (body.role !== undefined) {
           const [role] = await getDb()
@@ -678,6 +764,317 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
     }
 
+    // --- Tarefas ---
+    if (path === '/api/tarefas' && method === 'GET') {
+      const canReadAll = await hasPermission(user, 'tarefas:ler_todos');
+      const canReadOwn = await hasPermission(user, 'tarefas:ler_proprios');
+      if (!canReadAll && !canReadOwn) {
+        return error(res, 'Permissão insuficiente: tarefas:ler_todos', 403);
+      }
+      const filtros: {
+        status?: string;
+        prioridade?: string;
+        responsavelId?: string;
+        processoId?: string;
+      } = {};
+      const statusParam = url.searchParams.get('status');
+      const prioridadeParam = url.searchParams.get('prioridade');
+      const processoIdParam = url.searchParams.get('processoId');
+      if (statusParam) filtros.status = statusParam;
+      if (prioridadeParam) filtros.prioridade = prioridadeParam;
+      if (processoIdParam) filtros.processoId = processoIdParam;
+      if (!canReadAll) {
+        filtros.responsavelId = user.id;
+      }
+      const data = await getTarefaService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/tarefas' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'tarefas:criar'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getTarefaService().criar({ ...body, criadoPor: user.id });
+      return json(res, { id }, 201);
+    }
+
+    const tarefaMatch = path.match(/^\/api\/tarefas\/([^/]+)$/);
+    if (tarefaMatch) {
+      const id = tarefaMatch[1] ?? '';
+      if (method === 'GET') {
+        const canReadAllT = await hasPermission(user, 'tarefas:ler_todos');
+        const canReadOwnT = await hasPermission(user, 'tarefas:ler_proprios');
+        if (!canReadAllT && !canReadOwnT) {
+          return error(res, 'Permissão insuficiente: tarefas:ler_todos', 403);
+        }
+        const t = await getTarefaService().obterPorId(id);
+        if (!t) return error(res, 'Tarefa não encontrada.', 404);
+        if (!canReadAllT && t.responsavelId !== user.id && t.criadoPor !== user.id) {
+          return error(res, 'Permissão insuficiente: tarefa não atribuída a você.', 403);
+        }
+        return json(res, t);
+      }
+      if (method === 'PUT') {
+        const canEditAll = await hasPermission(user, 'tarefas:editar_todos');
+        const canReadOwnT = await hasPermission(user, 'tarefas:ler_proprios');
+        if (!canEditAll && !canReadOwnT) {
+          return error(res, 'Permissão insuficiente: tarefas:editar_todos', 403);
+        }
+        if (!canEditAll) {
+          const t = await getTarefaService().obterPorId(id);
+          if (!t || (t.responsavelId !== user.id && t.criadoPor !== user.id)) {
+            return error(res, 'Permissão insuficiente: tarefa não atribuída a você.', 403);
+          }
+        }
+        const body = JSON.parse(await readBody(req));
+        await getTarefaService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'tarefas:editar_todos'))) return;
+        await getTarefaService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Documentos ---
+    if (path === '/api/documentos' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
+      const filtros: { processoId?: string; clienteId?: string; categoria?: string } = {};
+      const processoIdParam = url.searchParams.get('processoId');
+      const clienteIdParam = url.searchParams.get('clienteId');
+      const categoriaParam = url.searchParams.get('categoria');
+      if (processoIdParam) filtros.processoId = processoIdParam;
+      if (clienteIdParam) filtros.clienteId = clienteIdParam;
+      if (categoriaParam) filtros.categoria = categoriaParam;
+      // Se não tem permissão confidencial, filtrar apenas não-confidenciais
+      const canConfidencial = await hasPermission(user, 'documentos:confidencial');
+      if (!canConfidencial) {
+        const data = await getDocumentoService().listar({ ...filtros, confidencial: false });
+        return json(res, data);
+      }
+      const data = await getDocumentoService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/documentos' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getDocumentoService().criar({ ...body, uploadedBy: user.id });
+      return json(res, { id }, 201);
+    }
+
+    const documentoMatch = path.match(/^\/api\/documentos\/([^/]+)$/);
+    if (documentoMatch) {
+      const id = documentoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
+        const d = await getDocumentoService().obterPorId(id);
+        if (!d) return error(res, 'Documento não encontrado.', 404);
+        if (d.confidencial && !(await hasPermission(user, 'documentos:confidencial'))) {
+          return error(res, 'Permissão insuficiente: documentos:confidencial', 403);
+        }
+        return json(res, d);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getDocumentoService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+        await getDocumentoService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Parcelas ---
+    const parcelasHonMatch = path.match(/^\/api\/honorarios\/([^/]+)\/parcelas$/);
+    if (parcelasHonMatch) {
+      const honorarioId = parcelasHonMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+        const data = await getParcelaService().listarPorHonorario(honorarioId);
+        return json(res, data);
+      }
+      if (method === 'POST') {
+        if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+        const body = JSON.parse(await readBody(req));
+        const ids = await getParcelaService().gerarParcelas(
+          honorarioId,
+          body.numeroParcelas,
+          body.valorTotal,
+          body.primeiroVencimento,
+        );
+        return json(res, { ids }, 201);
+      }
+    }
+
+    const parcelaMatch = path.match(/^\/api\/parcelas\/([^/]+)$/);
+    if (parcelaMatch) {
+      const id = parcelaMatch[1] ?? '';
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getParcelaService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+    }
+
+    const parcelaPagarMatch = path.match(/^\/api\/parcelas\/([^/]+)\/pagar$/);
+    if (parcelaPagarMatch && method === 'POST') {
+      if (!(await requirePermission(res, user, 'parcelas:gerenciar'))) return;
+      const id = parcelaPagarMatch[1] ?? '';
+      const body = JSON.parse(await readBody(req));
+      await getParcelaService().pagar(id, body);
+      return json(res, { ok: true });
+    }
+
+    // --- Despesas ---
+    if (path === '/api/despesas' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'despesas:ler_todos'))) return;
+      const filtros: { processoId?: string; status?: string } = {};
+      const processoIdParam = url.searchParams.get('processoId');
+      const statusParam = url.searchParams.get('status');
+      if (processoIdParam) filtros.processoId = processoIdParam;
+      if (statusParam) filtros.status = statusParam;
+      const data = await getDespesaService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/despesas' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'despesas:criar'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getDespesaService().criar({ ...body, responsavelId: user.id });
+      return json(res, { id }, 201);
+    }
+
+    const despesaMatch = path.match(/^\/api\/despesas\/([^/]+)$/);
+    if (despesaMatch) {
+      const id = despesaMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'despesas:ler_todos'))) return;
+        const d = await getDespesaService().obterPorId(id);
+        if (!d) return error(res, 'Despesa não encontrada.', 404);
+        return json(res, d);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'despesas:ler_todos'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getDespesaService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'despesas:aprovar'))) return;
+        await getDespesaService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Contatos ---
+    if (path === '/api/contatos' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+      const filtros: { tipo?: string; busca?: string } = {};
+      const tipoParam = url.searchParams.get('tipo');
+      const buscaParam = url.searchParams.get('q');
+      if (tipoParam) filtros.tipo = tipoParam;
+      if (buscaParam) filtros.busca = buscaParam;
+      const data = await getContatoService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/contatos' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+      const body = JSON.parse(await readBody(req));
+      const id = await getContatoService().criar(body);
+      return json(res, { id }, 201);
+    }
+
+    const contatoMatch = path.match(/^\/api\/contatos\/([^/]+)$/);
+    if (contatoMatch) {
+      const id = contatoMatch[1] ?? '';
+      if (method === 'GET') {
+        if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+        const c = await getContatoService().obterPorId(id);
+        if (!c) return error(res, 'Contato não encontrado.', 404);
+        return json(res, c);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getContatoService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'contatos:gerenciar'))) return;
+        await getContatoService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
+    // --- Timesheets ---
+    if (path === '/api/timesheets' && method === 'GET') {
+      const canAll = await getRbacService().checkPermission(user, 'timesheet:ler_todos');
+      const canOwn = await getRbacService().checkPermission(user, 'timesheet:ler_proprios');
+      if (!canAll && !canOwn) {
+        error(res, 'Permissão insuficiente: timesheet:ler_proprios', 403);
+        return;
+      }
+      const filtros: { userId?: string; processoId?: string; data?: string } = {};
+      if (!canAll) filtros.userId = user.id;
+      const userParam = url.searchParams.get('userId');
+      const processoParam = url.searchParams.get('processoId');
+      const dataParam = url.searchParams.get('data');
+      if (userParam) filtros.userId = userParam;
+      if (processoParam) filtros.processoId = processoParam;
+      if (dataParam) filtros.data = dataParam;
+      const data = await getTimesheetService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/timesheets' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'timesheet:registrar'))) return;
+      const body = JSON.parse(await readBody(req));
+      body.userId = body.userId ?? user.id;
+      const id = await getTimesheetService().criar(body);
+      return json(res, { id }, 201);
+    }
+
+    const timesheetAprovarMatch = path.match(/^\/api\/timesheets\/([^/]+)\/aprovar$/);
+    if (timesheetAprovarMatch && method === 'POST') {
+      if (!(await requirePermission(res, user, 'timesheet:aprovar'))) return;
+      const id = timesheetAprovarMatch[1] ?? '';
+      await getTimesheetService().aprovar(id, user.id);
+      return json(res, { ok: true });
+    }
+
+    const timesheetMatch = path.match(/^\/api\/timesheets\/([^/]+)$/);
+    if (timesheetMatch) {
+      const id = timesheetMatch[1] ?? '';
+      if (method === 'GET') {
+        const canAll = await getRbacService().checkPermission(user, 'timesheet:ler_todos');
+        const canOwn = await getRbacService().checkPermission(user, 'timesheet:ler_proprios');
+        if (!canAll && !canOwn) {
+          error(res, 'Permissão insuficiente: timesheet:ler_proprios', 403);
+          return;
+        }
+        const t = await getTimesheetService().obterPorId(id);
+        if (!t) return error(res, 'Registro não encontrado.', 404);
+        return json(res, t);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'timesheet:registrar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getTimesheetService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'timesheet:registrar'))) return;
+        await getTimesheetService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
     // --- Configurações ---
     if (path === '/api/configuracoes' && method === 'GET') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
@@ -697,10 +1094,28 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, { ok: true });
     }
 
+    // --- Automações ---
+    if (path === '/api/automations/run' && method === 'POST') {
+      const database = ensureService(db, 'database');
+      const s = getAppSchema();
+      const parcelasAtualizadas = await marcarParcelasAtrasadas(database, s);
+      const processosAtualizados = await atualizarPrioridadePorIdade(database, s);
+      return json(res, { parcelasAtualizadas, processosAtualizados });
+    }
+
     // --- Dashboard stats --- (qualquer usuário autenticado pode ver)
     if (path === '/api/dashboard' && method === 'GET') {
       const s = getAppSchema();
       const dbq = getDb();
+
+      // Run automations silently on dashboard load
+      const database = ensureService(db, 'database');
+      try {
+        await marcarParcelasAtrasadas(database, s);
+        await atualizarPrioridadePorIdade(database, s);
+      } catch {
+        // Non-critical: don't fail dashboard if automations error
+      }
       const [processosAtivos] = await dbq
         .select({ count: count() })
         .from(s.processos)
@@ -716,12 +1131,25 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         .from(s.honorarios)
         .where(eq(s.honorarios.status, 'pendente'));
 
+      const [tarefasPendentes] = await dbq
+        .select({ count: count() })
+        .from(s.tarefas)
+        .where(eq(s.tarefas.status, 'pendente'));
+
+      const hoje = new Date().toISOString().split('T')[0]!;
+      const [parcelasAtrasadas] = await dbq
+        .select({ count: count() })
+        .from(s.parcelas)
+        .where(and(eq(s.parcelas.status, 'pendente'), lt(s.parcelas.vencimento, hoje)));
+
       return json(res, {
         processosAtivos: processosAtivos?.count ?? 0,
         clientes: totalClientes?.count ?? 0,
         prazosPendentes: prazosPendentes?.count ?? 0,
         prazosFatais: 0,
         honorariosPendentes: Number(honorariosPendentes?.total ?? 0),
+        tarefasPendentes: tarefasPendentes?.count ?? 0,
+        parcelasAtrasadas: parcelasAtrasadas?.count ?? 0,
       });
     }
 

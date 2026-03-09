@@ -16,6 +16,11 @@ import { ConectoresPage } from './pages/conectores/conectores-page';
 import { UsuariosPage } from './pages/usuarios/usuarios-page';
 import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
 import { PrazosPage } from './pages/prazos/prazos-page';
+import { TarefasPage } from './pages/tarefas/tarefas-page';
+import { DocumentosPage } from './pages/documentos/documentos-page';
+import { DespesasPage } from './pages/despesas/despesas-page';
+import { ContatosPage } from './pages/contatos/contatos-page';
+import { TimesheetPage } from './pages/timesheet/timesheet-page';
 import { ServerErrorPage } from './pages/server-error-page';
 import type { ReactNode } from 'react';
 import { useFeatures } from './lib/auth-context';
@@ -126,6 +131,48 @@ function AppRoutes() {
           element={
             <RequirePermission permissions={['processos:ler_todos', 'processos:ler_proprios']}>
               <PrazosPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="tarefas"
+          element={
+            <RequirePermission permissions={['tarefas:ler_todos', 'tarefas:ler_proprios']}>
+              <TarefasPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="documentos"
+          element={
+            <RequirePermission permissions={['documentos:ler_todos']}>
+              <DocumentosPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="despesas"
+          element={
+            <RequirePermission permissions={['despesas:ler_todos']}>
+              <DespesasPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="contatos"
+          element={
+            <RequirePermission permissions={['contatos:gerenciar']}>
+              <ContatosPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="timesheet"
+          element={
+            <RequirePermission
+              permissions={['timesheet:registrar', 'timesheet:ler_todos', 'timesheet:ler_proprios']}
+            >
+              <TimesheetPage />
             </RequirePermission>
           }
         />

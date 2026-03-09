@@ -10,25 +10,32 @@ import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
 import { usePermission } from '../../hooks/use-permission';
+import type { ClienteData } from '../../lib/api';
 import * as api from '../../lib/api';
 
-interface ClienteRow {
-  id: string;
-  tipo: 'PF' | 'PJ';
-  nome: string;
-  cpfCnpj: string | null;
-  email: string | null;
-  telefone: string | null;
-  createdAt: string;
-}
+const STATUS_STYLES: Record<string, string> = {
+  prospecto: 'bg-causa-info/10 text-causa-info',
+  ativo: 'bg-causa-success/10 text-causa-success',
+  inativo: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
+  encerrado: 'bg-causa-warning/10 text-causa-warning',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  '': 'Todos',
+  prospecto: 'Prospecto',
+  ativo: 'Ativo',
+  inativo: 'Inativo',
+  encerrado: 'Encerrado',
+};
 
 export function ClientesPage() {
   const { can } = usePermission();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [modalData, setModalData] = useState<ClienteEditData | null | undefined>(undefined);
-  const [clientes, setClientes] = useState<ClienteRow[]>([]);
+  const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [busca, setBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -51,6 +58,10 @@ export function ClientesPage() {
     return () => clearTimeout(timer);
   }, [carregar, busca]);
 
+  const filteredClientes = filtroStatus
+    ? clientes.filter((c) => c.statusCliente === filtroStatus)
+    : clientes;
+
   function handleSaved() {
     const isEdit = !!modalData;
     setModalData(undefined);
@@ -61,15 +72,8 @@ export function ClientesPage() {
     carregar();
   }
 
-  function handleEdit(c: ClienteRow) {
-    setModalData({
-      id: c.id,
-      tipo: c.tipo,
-      nome: c.nome,
-      cpfCnpj: c.cpfCnpj,
-      email: c.email,
-      telefone: c.telefone,
-    });
+  function handleEdit(c: ClienteData) {
+    setModalData(c);
   }
 
   async function handleDelete() {
@@ -102,7 +106,7 @@ export function ClientesPage() {
         }
       />
 
-      {/* Busca + Export */}
+      {/* Busca + Filtro Status + Export */}
       <div className="flex gap-3 mb-4">
         <div className="relative flex-1">
           <Search
@@ -111,22 +115,35 @@ export function ClientesPage() {
           />
           <input
             type="text"
-            placeholder="Buscar por nome, CPF/CNPJ ou email..."
+            placeholder="Buscar por nome, CPF/CNPJ, email, telefone ou WhatsApp..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="w-full h-9 pl-9 pr-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa placeholder:text-[var(--color-text-muted)]/60"
           />
         </div>
+        <select
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+          className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-sm-causa focus-causa transition-causa"
+        >
+          {Object.entries(STATUS_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={() => {
-            const header = ['Nome', 'Tipo', 'CPF/CNPJ', 'Email', 'Telefone'];
-            const lines = clientes.map((c) => [
+            const header = ['Nome', 'Tipo', 'CPF/CNPJ', 'Email', 'Telefone', 'WhatsApp', 'Status'];
+            const lines = filteredClientes.map((c) => [
               c.nome,
               c.tipo,
               c.cpfCnpj ?? '',
               c.email ?? '',
               c.telefone ?? '',
+              c.whatsapp ?? '',
+              c.statusCliente ?? '',
             ]);
             const csv = [header, ...lines]
               .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
@@ -139,7 +156,7 @@ export function ClientesPage() {
             a.click();
             URL.revokeObjectURL(url);
           }}
-          disabled={clientes.length === 0}
+          disabled={filteredClientes.length === 0}
           className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)] text-sm-causa hover:bg-causa-surface-alt transition-causa cursor-pointer disabled:opacity-50 disabled:cursor-default flex items-center gap-1.5"
           title="Exportar CSV"
         >
@@ -165,24 +182,27 @@ export function ClientesPage() {
               <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
                 Contato
               </th>
+              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
+                Status
+              </th>
               <th className="w-20"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <SkeletonTableRows rows={5} cols={5} />
-            ) : clientes.length === 0 ? (
+              <SkeletonTableRows rows={5} cols={6} />
+            ) : filteredClientes.length === 0 ? (
               <EmptyState
                 icon={Users}
                 message={
-                  busca
+                  busca || filtroStatus
                     ? 'Nenhum cliente encontrado.'
                     : 'Cadastre seu primeiro cliente para começar.'
                 }
-                colSpan={5}
+                colSpan={6}
               />
             ) : (
-              clientes.map((c) => (
+              filteredClientes.map((c) => (
                 <tr
                   key={c.id}
                   className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
@@ -205,7 +225,14 @@ export function ClientesPage() {
                     {c.cpfCnpj ?? '—'}
                   </td>
                   <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
-                    {c.email ?? c.telefone ?? '—'}
+                    {c.email ?? c.telefone ?? c.whatsapp ?? '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${STATUS_STYLES[c.statusCliente] ?? ''}`}
+                    >
+                      {c.statusCliente}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">

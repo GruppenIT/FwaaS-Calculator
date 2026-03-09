@@ -8,6 +8,8 @@ import {
   DollarSign,
   CheckCircle,
   ArrowRight,
+  CheckSquare,
+  CreditCard,
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -72,6 +74,8 @@ export function DashboardPage() {
     prazosPendentes: 0,
     prazosFatais: 0,
     honorariosPendentes: 0,
+    tarefasPendentes: 0,
+    parcelasAtrasadas: 0,
   });
   const [prazosUrgentes, setPrazosUrgentes] = useState<PrazoRow[]>([]);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
@@ -126,9 +130,9 @@ export function DashboardPage() {
       <PageHeader title="Dashboard" description="Visão geral do escritório" />
 
       {/* Stat Cards */}
-      <div className={`grid gap-4 mb-6 ${financeiroEnabled ? 'grid-cols-5' : 'grid-cols-4'}`}>
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         {loading ? (
-          Array.from({ length: financeiroEnabled ? 5 : 4 }, (_, i) => (
+          Array.from({ length: 6 }, (_, i) => (
             <div
               key={i}
               className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5"
@@ -172,13 +176,27 @@ export function DashboardPage() {
               color="bg-causa-success/10 text-causa-success"
               onClick={() => navigate('/app/clientes')}
             />
-            {financeiroEnabled && (
+            <StatCard
+              icon={CheckSquare}
+              label="Tarefas pendentes"
+              value={stats.tarefasPendentes}
+              color="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+              onClick={() => navigate('/app/tarefas')}
+            />
+            {financeiroEnabled ? (
               <StatCard
                 icon={DollarSign}
                 label="A receber"
                 value={totalPendente > 0 ? formatCurrency(totalPendente) : 'R$ 0'}
                 color="bg-causa-warning/10 text-causa-warning"
                 onClick={() => navigate('/app/financeiro')}
+              />
+            ) : (
+              <StatCard
+                icon={CreditCard}
+                label="Parcelas atrasadas"
+                value={stats.parcelasAtrasadas}
+                color="bg-causa-danger/10 text-causa-danger"
               />
             )}
           </>

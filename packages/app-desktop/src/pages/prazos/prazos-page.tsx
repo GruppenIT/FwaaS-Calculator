@@ -16,19 +16,30 @@ const STATUS_STYLES: Record<string, string> = {
   pendente: 'bg-causa-warning/10 text-causa-warning',
   cumprido: 'bg-causa-success/10 text-causa-success',
   perdido: 'bg-causa-danger/10 text-causa-danger',
+  suspenso: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
 };
 
 const STATUS_LABELS: Record<string, string> = {
   pendente: 'Pendente',
   cumprido: 'Cumprido',
   perdido: 'Perdido',
+  suspenso: 'Suspenso',
 };
 
 const TIPO_LABELS: Record<string, string> = {
   ncpc: 'NCPC',
   clt: 'CLT',
   jec: 'JEC',
+  tributario: 'Tributário',
+  administrativo: 'Administrativo',
+  contratual: 'Contratual',
   outros: 'Outros',
+};
+
+const PRIORIDADE_STYLES: Record<string, string> = {
+  normal: '',
+  alta: 'bg-causa-warning/10 text-causa-warning',
+  urgente: 'bg-causa-danger/10 text-causa-danger',
 };
 
 function formatDate(dateStr: string): string {
@@ -84,9 +95,15 @@ export function PrazosPage() {
       numeroCnj: p.numeroCnj,
       descricao: p.descricao,
       dataFatal: p.dataFatal,
+      dataInicio: p.dataInicio,
+      diasPrazo: p.diasPrazo,
       tipoPrazo: p.tipoPrazo,
+      categoriaPrazo: p.categoriaPrazo,
+      prioridade: p.prioridade,
+      fatal: p.fatal,
       status: p.status,
       responsavelId: p.responsavelId,
+      observacoes: p.observacoes,
     });
   }
 
@@ -137,6 +154,7 @@ export function PrazosPage() {
           { value: 'pendente', label: 'Pendentes' },
           { value: 'cumprido', label: 'Cumpridos' },
           { value: 'perdido', label: 'Perdidos' },
+          { value: 'suspenso', label: 'Suspensos' },
         ].map((f) => (
           <button
             key={f.value}
@@ -200,9 +218,21 @@ export function PrazosPage() {
                         {urgente && (
                           <AlertTriangle size={14} className="text-causa-danger shrink-0" />
                         )}
+                        {p.fatal && (
+                          <span className="text-[10px] font-bold text-causa-danger bg-causa-danger/10 px-1 rounded shrink-0">
+                            FATAL
+                          </span>
+                        )}
                         <span className="text-base-causa text-[var(--color-text)] font-medium">
                           {p.descricao}
                         </span>
+                        {p.prioridade !== 'normal' && (
+                          <span
+                            className={`inline-flex px-1.5 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-medium ${PRIORIDADE_STYLES[p.prioridade] ?? ''}`}
+                          >
+                            {p.prioridade}
+                          </span>
+                        )}
                       </div>
                       {p.status === 'pendente' && (
                         <span
@@ -213,6 +243,11 @@ export function PrazosPage() {
                             : dias === 0
                               ? 'Vence hoje'
                               : `${dias} dia(s) restante(s)`}
+                        </span>
+                      )}
+                      {p.categoriaPrazo && (
+                        <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                          {p.categoriaPrazo}
                         </span>
                       )}
                     </td>
