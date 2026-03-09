@@ -16,18 +16,29 @@ const TIPO_LABELS: Record<string, string> = {
   fixo: 'Fixo',
   exito: 'Êxito',
   por_hora: 'Por hora',
+  sucumbencia: 'Sucumbência',
+  dativos: 'Dativos',
+  misto: 'Misto',
 };
 
 const STATUS_STYLES: Record<string, string> = {
   pendente: 'bg-causa-warning/10 text-causa-warning',
   recebido: 'bg-causa-success/10 text-causa-success',
   inadimplente: 'bg-causa-danger/10 text-causa-danger',
+  proposta: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
+  contratado: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+  em_andamento: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+  encerrado: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
 };
 
 const STATUS_LABELS: Record<string, string> = {
   pendente: 'Pendente',
   recebido: 'Recebido',
   inadimplente: 'Inadimplente',
+  proposta: 'Proposta',
+  contratado: 'Contratado',
+  em_andamento: 'Em andamento',
+  encerrado: 'Encerrado',
 };
 
 function formatCurrency(value: number): string {
@@ -103,9 +114,15 @@ export function FinanceiroPage() {
       processoId: h.processoId,
       numeroCnj: h.numeroCnj,
       tipo: h.tipo,
+      descricao: h.descricao,
       valor: h.valor,
+      valorBaseExito: h.valorBaseExito,
       percentualExito: h.percentualExito,
+      parcelamento: h.parcelamento,
+      numeroParcelas: h.numeroParcelas,
       vencimento: h.vencimento,
+      indiceCorrecao: h.indiceCorrecao,
+      observacoes: h.observacoes,
       status: h.status,
     });
   }
@@ -334,6 +351,10 @@ export function FinanceiroPage() {
                         <option value="pendente">Pendente</option>
                         <option value="recebido">Recebido</option>
                         <option value="inadimplente">Inadimplente</option>
+                        <option value="proposta">Proposta</option>
+                        <option value="contratado">Contratado</option>
+                        <option value="em_andamento">Em andamento</option>
+                        <option value="encerrado">Encerrado</option>
                       </select>
                     </td>
                     <td className="px-4 py-3">

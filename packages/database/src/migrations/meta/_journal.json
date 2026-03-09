@@ -15,6 +15,13 @@
       "when": 1741520400000,
       "tag": "0001_enrich_clientes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1741606800000,
+      "tag": "0002_enrich_phase1_remaining",
+      "breakpoints": true
     }
   ]
 }

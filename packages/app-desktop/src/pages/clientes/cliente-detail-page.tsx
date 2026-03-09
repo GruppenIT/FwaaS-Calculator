@@ -13,7 +13,7 @@ interface ProcessoRow {
   id: string;
   numeroCnj: string;
   area: string;
-  status: 'ativo' | 'arquivado' | 'encerrado';
+  status: string;
   tribunalSigla: string;
 }
 

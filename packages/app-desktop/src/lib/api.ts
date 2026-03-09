@@ -252,39 +252,71 @@ export function excluirCliente(id: string) {
 }
 
 // === Processos ===
-export function listarProcessos(busca?: string) {
-  const q = busca ? `?q=${encodeURIComponent(busca)}` : '';
-  return request<
-    Array<{
-      id: string;
-      numeroCnj: string;
-      clienteNome: string | null;
-      advogadoNome: string | null;
-      tribunalSigla: string;
-      plataforma: string;
-      area: string;
-      fase: string;
-      status: 'ativo' | 'arquivado' | 'encerrado';
-      valorCausa: number | null;
-      ultimoSyncAt: string | null;
-      createdAt: string;
-    }>
-  >(`/api/processos${q}`);
+export interface ProcessoListRow {
+  id: string;
+  numeroCnj: string;
+  clienteNome: string | null;
+  advogadoNome: string | null;
+  tribunalSigla: string;
+  plataforma: string;
+  area: string;
+  fase: string;
+  status: string;
+  grau: string | null;
+  comarca: string | null;
+  prioridade: string;
+  valorCausa: number | null;
+  ultimoSyncAt: string | null;
+  createdAt: string;
 }
 
 export interface ProcessoDetail {
   id: string;
   numeroCnj: string;
+  numeroAntigo: string | null;
   clienteId: string | null;
+  clienteQualidade: string | null;
   advogadoResponsavelId: string | null;
+  advogadosSecundarios: string[] | null;
   tribunalSigla: string;
   plataforma: string;
   area: string;
   fase: string;
-  status: 'ativo' | 'arquivado' | 'encerrado';
+  status: string;
+  grau: string | null;
+  comarca: string | null;
+  vara: string | null;
+  juiz: string | null;
+  classeProcessual: string | null;
+  classeDescricao: string | null;
+  assuntoPrincipal: string | null;
+  assuntoDescricao: string | null;
+  subarea: string | null;
+  rito: string | null;
+  prioridade: string;
+  segredoJustica: boolean;
+  justicaGratuita: boolean;
+  poloAtivo: Array<{ nome: string; cpfCnpj?: string; tipo: string }> | null;
+  poloPassivo: Array<{ nome: string; cpfCnpj?: string; tipo: string }> | null;
   valorCausa: number | null;
+  valorCondenacao: number | null;
+  dataDistribuicao: string | null;
+  dataTransitoJulgado: string | null;
+  dataEncerramento: string | null;
+  processoRelacionadoId: string | null;
+  tipoRelacao: string | null;
+  tags: string[] | null;
+  observacoes: string | null;
+  advogadoContrario: string | null;
+  oabContrario: string | null;
   ultimoSyncAt: string | null;
+  updatedAt: string | null;
   createdAt: string;
+}
+
+export function listarProcessos(busca?: string) {
+  const q = busca ? `?q=${encodeURIComponent(busca)}` : '';
+  return request<ProcessoListRow[]>(`/api/processos${q}`);
 }
 
 export function obterProcesso(id: string) {
@@ -299,36 +331,14 @@ export function listarHonorariosDoProcesso(processoId: string) {
   return request<HonorarioRow[]>(`/api/processos/${processoId}/honorarios`);
 }
 
-export function criarProcesso(data: {
-  numeroCnj: string;
-  clienteId: string;
-  advogadoResponsavelId: string;
-  tribunalSigla: string;
-  plataforma: string;
-  area: string;
-  fase: string;
-  valorCausa?: number;
-}) {
+export function criarProcesso(data: Record<string, unknown>) {
   return request<{ id: string }>('/api/processos', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export function atualizarProcesso(
-  id: string,
-  data: Partial<{
-    numeroCnj: string;
-    clienteId: string;
-    advogadoResponsavelId: string;
-    tribunalSigla: string;
-    plataforma: string;
-    area: string;
-    fase: string;
-    status: 'ativo' | 'arquivado' | 'encerrado';
-    valorCausa: number;
-  }>,
-) {
+export function atualizarProcesso(id: string, data: Record<string, unknown>) {
   return request<{ ok: boolean }>(`/api/processos/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -342,35 +352,81 @@ export function excluirProcesso(id: string) {
 }
 
 // === Movimentações ===
+export interface MovimentacaoRow {
+  id: string;
+  processoId: string;
+  dataMovimento: string;
+  descricao: string;
+  teor: string | null;
+  tipo: string;
+  origem: string;
+  lido: boolean;
+  urgente: boolean;
+  geraPrazo: boolean;
+  linkExterno: string | null;
+  lidoPor: string | null;
+  lidoAt: string | null;
+  createdAt: string;
+}
+
 export function listarMovimentacoes(processoId: string) {
-  return request<
-    Array<{
-      id: string;
-      processoId: string;
-      dataMovimento: string;
-      descricao: string;
-      tipo: string;
-      origem: string;
-      lido: boolean;
-      createdAt: string;
-    }>
-  >(`/api/processos/${processoId}/movimentacoes`);
+  return request<MovimentacaoRow[]>(`/api/processos/${processoId}/movimentacoes`);
+}
+
+export function criarMovimentacao(
+  processoId: string,
+  data: {
+    dataMovimento: string;
+    descricao: string;
+    teor?: string;
+    tipo: string;
+    origem: string;
+    urgente?: boolean;
+    geraPrazo?: boolean;
+    linkExterno?: string;
+  },
+) {
+  return request<{ id: string }>(`/api/processos/${processoId}/movimentacoes`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarMovimentacao(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/movimentacoes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function excluirMovimentacao(id: string) {
+  return request<{ ok: boolean }>(`/api/movimentacoes/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 // === Usuarios ===
+export interface UsuarioRow {
+  id: string;
+  nome: string;
+  email: string;
+  oabNumero: string | null;
+  oabSeccional: string | null;
+  oabTipo: string | null;
+  telefone: string | null;
+  role: string | null;
+  areaAtuacao: string | null;
+  especialidade: string | null;
+  taxaHoraria: number | null;
+  dataAdmissao: string | null;
+  certificadoA1Validade: string | null;
+  certificadoA3Configurado: boolean;
+  ativo: boolean;
+  createdAt: string;
+}
+
 export function listarUsuarios() {
-  return request<
-    Array<{
-      id: string;
-      nome: string;
-      email: string;
-      oabNumero: string | null;
-      oabSeccional: string | null;
-      role: string | null;
-      ativo: boolean;
-      createdAt: string;
-    }>
-  >('/api/usuarios');
+  return request<UsuarioRow[]>('/api/usuarios');
 }
 
 export function criarUsuario(data: {
@@ -380,6 +436,12 @@ export function criarUsuario(data: {
   role: string;
   oabNumero?: string;
   oabSeccional?: string;
+  oabTipo?: string;
+  telefone?: string;
+  areaAtuacao?: string;
+  especialidade?: string;
+  taxaHoraria?: number;
+  dataAdmissao?: string;
 }) {
   return request<{ id: string }>('/api/usuarios', {
     method: 'POST',
@@ -387,17 +449,7 @@ export function criarUsuario(data: {
   });
 }
 
-export function atualizarUsuario(
-  id: string,
-  data: Partial<{
-    nome: string;
-    email: string;
-    oabNumero: string;
-    oabSeccional: string;
-    role: string;
-    ativo: boolean;
-  }>,
-) {
+export function atualizarUsuario(id: string, data: Record<string, unknown>) {
   return request<{ ok: boolean }>(`/api/usuarios/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -421,11 +473,17 @@ export interface HonorarioRow {
   numeroCnj: string | null;
   clienteId: string | null;
   clienteNome: string | null;
-  tipo: 'fixo' | 'exito' | 'por_hora';
+  tipo: string;
+  descricao: string | null;
   valor: number;
+  valorBaseExito: number | null;
   percentualExito: number | null;
-  status: 'pendente' | 'recebido' | 'inadimplente';
+  parcelamento: boolean;
+  numeroParcelas: number | null;
+  status: string;
   vencimento: string | null;
+  indiceCorrecao: string | null;
+  observacoes: string | null;
   createdAt: string;
 }
 
@@ -433,32 +491,14 @@ export function listarHonorarios() {
   return request<HonorarioRow[]>('/api/honorarios');
 }
 
-export function criarHonorario(data: {
-  processoId?: string;
-  clienteId?: string;
-  tipo: 'fixo' | 'exito' | 'por_hora';
-  valor: number;
-  percentualExito?: number;
-  vencimento?: string;
-}) {
+export function criarHonorario(data: Record<string, unknown>) {
   return request<{ id: string }>('/api/honorarios', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export function atualizarHonorario(
-  id: string,
-  data: Partial<{
-    processoId: string;
-    clienteId: string;
-    tipo: 'fixo' | 'exito' | 'por_hora';
-    valor: number;
-    percentualExito: number;
-    vencimento: string;
-    status: 'pendente' | 'recebido' | 'inadimplente';
-  }>,
-) {
+export function atualizarHonorario(id: string, data: Record<string, unknown>) {
   return request<{ ok: boolean }>(`/api/honorarios/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -483,13 +523,19 @@ export function excluirHonorario(id: string) {
 export interface AgendaRow {
   id: string;
   titulo: string;
-  tipo: 'audiencia' | 'diligencia' | 'reuniao' | 'prazo';
+  descricao: string | null;
+  tipo: string;
   dataHoraInicio: string;
   dataHoraFim: string | null;
+  diaInteiro: boolean;
   processoId: string | null;
   numeroCnj: string | null;
   participantes: string[] | null;
   local: string | null;
+  linkVideoconferencia: string | null;
+  cor: string | null;
+  statusAgenda: string;
+  resultado: string | null;
   createdAt: string;
 }
 
@@ -501,33 +547,14 @@ export function listarAgenda(inicio?: string, fim?: string) {
   return request<AgendaRow[]>(`/api/agenda${q ? `?${q}` : ''}`);
 }
 
-export function criarEvento(data: {
-  titulo: string;
-  tipo: 'audiencia' | 'diligencia' | 'reuniao' | 'prazo';
-  dataHoraInicio: string;
-  dataHoraFim?: string;
-  processoId?: string;
-  participantes?: string[];
-  local?: string;
-}) {
+export function criarEvento(data: Record<string, unknown>) {
   return request<{ id: string }>('/api/agenda', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export function atualizarEvento(
-  id: string,
-  data: Partial<{
-    titulo: string;
-    tipo: 'audiencia' | 'diligencia' | 'reuniao' | 'prazo';
-    dataHoraInicio: string;
-    dataHoraFim: string;
-    processoId: string;
-    participantes: string[];
-    local: string;
-  }>,
-) {
+export function atualizarEvento(id: string, data: Record<string, unknown>) {
   return request<{ ok: boolean }>(`/api/agenda/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -547,10 +574,19 @@ export interface PrazoRow {
   numeroCnj: string | null;
   descricao: string;
   dataFatal: string;
-  tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
-  status: 'pendente' | 'cumprido' | 'perdido';
+  dataInicio: string | null;
+  diasPrazo: number | null;
+  tipoContagem: string | null;
+  tipoPrazo: string;
+  categoriaPrazo: string | null;
+  prioridade: string;
+  fatal: boolean;
+  status: string;
+  suspenso: boolean;
   responsavelId: string;
   responsavelNome: string | null;
+  observacoes: string | null;
+  dataCumprimento: string | null;
   alertasEnviados: { dias: number[]; enviados: string[] } | null;
 }
 
@@ -562,29 +598,14 @@ export function listarPrazos(filtros?: { status?: string; responsavelId?: string
   return request<PrazoRow[]>(`/api/prazos${q ? `?${q}` : ''}`);
 }
 
-export function criarPrazo(data: {
-  processoId: string;
-  descricao: string;
-  dataFatal: string;
-  tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
-  responsavelId: string;
-}) {
+export function criarPrazo(data: Record<string, unknown>) {
   return request<{ id: string }>('/api/prazos', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export function atualizarPrazo(
-  id: string,
-  data: Partial<{
-    descricao: string;
-    dataFatal: string;
-    tipoPrazo: 'ncpc' | 'clt' | 'jec' | 'outros';
-    responsavelId: string;
-    status: 'pendente' | 'cumprido' | 'perdido';
-  }>,
-) {
+export function atualizarPrazo(id: string, data: Record<string, unknown>) {
   return request<{ ok: boolean }>(`/api/prazos/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),

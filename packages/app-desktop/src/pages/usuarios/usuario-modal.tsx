@@ -48,6 +48,28 @@ const UF_OPTIONS = [
   'TO',
 ];
 
+const OAB_TIPOS = [
+  { value: '', label: '—' },
+  { value: 'inscrito', label: 'Inscrito' },
+  { value: 'suplementar', label: 'Suplementar' },
+  { value: 'estagiario', label: 'Estagiário' },
+];
+
+const AREAS_ATUACAO = [
+  { value: '', label: '—' },
+  { value: 'civel', label: 'Cível' },
+  { value: 'trabalhista', label: 'Trabalhista' },
+  { value: 'criminal', label: 'Criminal' },
+  { value: 'tributario', label: 'Tributário' },
+  { value: 'previdenciario', label: 'Previdenciário' },
+  { value: 'familia', label: 'Família' },
+  { value: 'empresarial', label: 'Empresarial' },
+  { value: 'administrativo', label: 'Administrativo' },
+  { value: 'ambiental', label: 'Ambiental' },
+  { value: 'consumidor', label: 'Consumidor' },
+  { value: 'outro', label: 'Outro' },
+];
+
 export function UsuarioModal({ onClose, onCreated }: Props) {
   const { financeiro: financeiroEnabled } = useFeatures();
   const availableRoles = financeiroEnabled ? ROLES : ROLES.filter((r) => r.value !== 'financeiro');
@@ -57,7 +79,13 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
     senha: '',
     oabNumero: '',
     oabSeccional: '',
+    oabTipo: '',
+    telefone: '',
     role: 'advogado',
+    areaAtuacao: '',
+    especialidade: '',
+    taxaHoraria: '',
+    dataAdmissao: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -78,14 +106,22 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
 
     setLoading(true);
     try {
-      await api.criarUsuario({
+      const payload: Record<string, unknown> = {
         nome: form.nome,
         email: form.email,
         senha: form.senha,
         role: form.role,
-        ...(form.oabNumero ? { oabNumero: form.oabNumero } : {}),
-        ...(form.oabSeccional ? { oabSeccional: form.oabSeccional } : {}),
-      });
+      };
+      if (form.oabNumero) payload.oabNumero = form.oabNumero;
+      if (form.oabSeccional) payload.oabSeccional = form.oabSeccional;
+      if (form.oabTipo) payload.oabTipo = form.oabTipo;
+      if (form.telefone) payload.telefone = form.telefone;
+      if (form.areaAtuacao) payload.areaAtuacao = form.areaAtuacao;
+      if (form.especialidade) payload.especialidade = form.especialidade;
+      if (form.taxaHoraria) payload.taxaHoraria = parseFloat(form.taxaHoraria);
+      if (form.dataAdmissao) payload.dataAdmissao = form.dataAdmissao;
+
+      await api.criarUsuario(payload as Parameters<typeof api.criarUsuario>[0]);
       onCreated();
     } catch (err) {
       setErrors({ geral: err instanceof Error ? err.message : 'Erro ao criar usuário.' });
@@ -99,8 +135,11 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <Modal open title="Novo usuário" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <Modal open title="Novo usuário" onClose={onClose} size="lg">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-1"
+      >
         <Input
           label="Nome completo"
           value={form.nome}
@@ -109,13 +148,21 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
           autoFocus
         />
 
-        <Input
-          label="Email"
-          type="email"
-          value={form.email}
-          onChange={(e) => update('email', e.target.value)}
-          error={errors.email}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={(e) => update('email', e.target.value)}
+            error={errors.email}
+          />
+          <Input
+            label="Telefone (opcional)"
+            placeholder="(11) 99999-9999"
+            value={form.telefone}
+            onChange={(e) => update('telefone', e.target.value)}
+          />
+        </div>
 
         <Input
           label="Senha inicial"
@@ -140,7 +187,7 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Input
             label="OAB (opcional)"
             placeholder="123456"
@@ -164,6 +211,62 @@ export function UsuarioModal({ onClose, onCreated }: Props) {
               ))}
             </select>
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Tipo OAB
+            </label>
+            <select
+              value={form.oabTipo}
+              onChange={(e) => update('oabTipo', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              {OAB_TIPOS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Área de atuação
+            </label>
+            <select
+              value={form.areaAtuacao}
+              onChange={(e) => update('areaAtuacao', e.target.value)}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              {AREAS_ATUACAO.map((a) => (
+                <option key={a.value} value={a.value}>
+                  {a.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Input
+            label="Especialidade (opcional)"
+            placeholder="Ex: Direito do Consumidor"
+            value={form.especialidade}
+            onChange={(e) => update('especialidade', e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Taxa horária (R$/h)"
+            placeholder="250,00"
+            value={form.taxaHoraria}
+            onChange={(e) => update('taxaHoraria', e.target.value)}
+          />
+          <Input
+            label="Data de admissão"
+            type="date"
+            value={form.dataAdmissao}
+            onChange={(e) => update('dataAdmissao', e.target.value)}
+          />
         </div>
 
         {errors.geral && (

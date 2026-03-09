@@ -411,6 +411,29 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const data = await getProcessoService().listarMovimentacoes(processoId);
         return json(res, data);
       }
+      if (method === 'POST') {
+        if (!(await requirePermission(res, user, 'processos:editar'))) return;
+        const body = JSON.parse(await readBody(req));
+        const id = await getProcessoService().criarMovimentacao({ ...body, processoId });
+        return json(res, { id }, 201);
+      }
+    }
+
+    // --- Movimentação individual ---
+    const movIndividualMatch = path.match(/^\/api\/movimentacoes\/([^/]+)$/);
+    if (movIndividualMatch) {
+      const id = movIndividualMatch[1] ?? '';
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'processos:editar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getProcessoService().atualizarMovimentacao(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'processos:excluir'))) return;
+        await getProcessoService().excluirMovimentacao(id);
+        return json(res, { ok: true });
+      }
     }
 
     // --- Prazos de Processo ---
@@ -455,7 +478,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           email: s.users.email,
           oabNumero: s.users.oabNumero,
           oabSeccional: s.users.oabSeccional,
+          oabTipo: s.users.oabTipo,
+          telefone: s.users.telefone,
           role: s.roles.nome,
+          areaAtuacao: s.users.areaAtuacao,
+          especialidade: s.users.especialidade,
+          taxaHoraria: s.users.taxaHoraria,
+          dataAdmissao: s.users.dataAdmissao,
+          certificadoA1Validade: s.users.certificadoA1Validade,
+          certificadoA3Configurado: s.users.certificadoA3Configurado,
           ativo: s.users.ativo,
           createdAt: s.users.createdAt,
         })
@@ -491,11 +522,23 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (!(await requirePermission(res, user, 'usuarios:gerenciar'))) return;
         const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
         const s = getAppSchema();
-        const updateData: Record<string, unknown> = {};
+        const updateData: Record<string, unknown> = {
+          updatedAt: new Date().toISOString(),
+        };
         if (body.nome !== undefined) updateData.nome = body.nome;
         if (body.email !== undefined) updateData.email = body.email;
         if (body.oabNumero !== undefined) updateData.oabNumero = body.oabNumero || null;
         if (body.oabSeccional !== undefined) updateData.oabSeccional = body.oabSeccional || null;
+        if (body.oabTipo !== undefined) updateData.oabTipo = body.oabTipo || null;
+        if (body.telefone !== undefined) updateData.telefone = body.telefone || null;
+        if (body.areaAtuacao !== undefined) updateData.areaAtuacao = body.areaAtuacao || null;
+        if (body.especialidade !== undefined) updateData.especialidade = body.especialidade || null;
+        if (body.taxaHoraria !== undefined) updateData.taxaHoraria = body.taxaHoraria || null;
+        if (body.dataAdmissao !== undefined) updateData.dataAdmissao = body.dataAdmissao || null;
+        if (body.certificadoA1Validade !== undefined)
+          updateData.certificadoA1Validade = body.certificadoA1Validade || null;
+        if (body.certificadoA3Configurado !== undefined)
+          updateData.certificadoA3Configurado = body.certificadoA3Configurado;
         if (body.ativo !== undefined) updateData.ativo = body.ativo;
         if (body.role !== undefined) {
           const [role] = await getDb()

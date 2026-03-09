@@ -11,11 +11,17 @@ export interface HonorarioEditData {
   clienteNome: string | null;
   processoId: string | null;
   numeroCnj: string | null;
-  tipo: 'fixo' | 'exito' | 'por_hora';
+  tipo: string;
+  descricao: string | null;
   valor: number;
+  valorBaseExito: number | null;
   percentualExito: number | null;
+  parcelamento: boolean;
+  numeroParcelas: number | null;
   vencimento: string | null;
-  status: 'pendente' | 'recebido' | 'inadimplente';
+  indiceCorrecao: string | null;
+  observacoes: string | null;
+  status: string;
 }
 
 interface Props {
@@ -33,6 +39,18 @@ const TIPOS = [
   { value: 'fixo', label: 'Fixo' },
   { value: 'exito', label: 'Êxito' },
   { value: 'por_hora', label: 'Por hora' },
+  { value: 'sucumbencia', label: 'Sucumbência' },
+  { value: 'dativos', label: 'Dativos' },
+  { value: 'misto', label: 'Misto' },
+];
+
+const INDICES_CORRECAO = [
+  { value: '', label: '—' },
+  { value: 'ipca', label: 'IPCA' },
+  { value: 'igpm', label: 'IGP-M' },
+  { value: 'inpc', label: 'INPC' },
+  { value: 'selic', label: 'SELIC' },
+  { value: 'outro', label: 'Outro' },
 ];
 
 export function HonorarioModal({ onClose, onSaved, editData }: Props) {
@@ -40,11 +58,17 @@ export function HonorarioModal({ onClose, onSaved, editData }: Props) {
   const [form, setForm] = useState({
     clienteId: editData?.clienteId ?? '',
     processoId: editData?.processoId ?? '',
-    tipo: (editData?.tipo ?? 'fixo') as 'fixo' | 'exito' | 'por_hora',
+    tipo: editData?.tipo ?? 'fixo',
+    descricao: editData?.descricao ?? '',
     valor: editData ? String(editData.valor) : '',
+    valorBaseExito: editData?.valorBaseExito ? String(editData.valorBaseExito) : '',
     percentualExito: editData?.percentualExito ? String(editData.percentualExito) : '',
+    parcelamento: editData?.parcelamento ?? false,
+    numeroParcelas: editData?.numeroParcelas ? String(editData.numeroParcelas) : '',
     vencimento: editData?.vencimento ?? '',
-    status: (editData?.status ?? 'pendente') as 'pendente' | 'recebido' | 'inadimplente',
+    indiceCorrecao: editData?.indiceCorrecao ?? '',
+    observacoes: editData?.observacoes ?? '',
+    status: editData?.status ?? 'pendente',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -125,29 +149,31 @@ export function HonorarioModal({ onClose, onSaved, editData }: Props) {
     setLoading(true);
     try {
       const valor = parseFloat(form.valor.replace(/[^\d.,]/g, '').replace(',', '.'));
+      const payload: Record<string, unknown> = {
+        tipo: form.tipo,
+        valor,
+      };
+      if (form.clienteId) payload.clienteId = form.clienteId;
+      if (form.processoId) payload.processoId = form.processoId;
+      if (form.descricao) payload.descricao = form.descricao;
+      if (form.tipo === 'exito' && form.percentualExito)
+        payload.percentualExito = parseFloat(form.percentualExito);
+      if (form.tipo === 'exito' && form.valorBaseExito)
+        payload.valorBaseExito = parseFloat(
+          form.valorBaseExito.replace(/[^\d.,]/g, '').replace(',', '.'),
+        );
+      if (form.vencimento) payload.vencimento = form.vencimento;
+      if (form.indiceCorrecao) payload.indiceCorrecao = form.indiceCorrecao;
+      if (form.observacoes) payload.observacoes = form.observacoes;
+      payload.parcelamento = form.parcelamento;
+      if (form.parcelamento && form.numeroParcelas)
+        payload.numeroParcelas = parseInt(form.numeroParcelas, 10);
+
       if (isEdit) {
-        await api.atualizarHonorario(editData.id, {
-          tipo: form.tipo,
-          valor,
-          status: form.status,
-          ...(form.clienteId ? { clienteId: form.clienteId } : {}),
-          ...(form.processoId ? { processoId: form.processoId } : {}),
-          ...(form.tipo === 'exito' && form.percentualExito
-            ? { percentualExito: parseFloat(form.percentualExito) }
-            : {}),
-          ...(form.vencimento ? { vencimento: form.vencimento } : {}),
-        });
+        payload.status = form.status;
+        await api.atualizarHonorario(editData.id, payload);
       } else {
-        await api.criarHonorario({
-          tipo: form.tipo,
-          valor,
-          ...(form.clienteId ? { clienteId: form.clienteId } : {}),
-          ...(form.processoId ? { processoId: form.processoId } : {}),
-          ...(form.tipo === 'exito' && form.percentualExito
-            ? { percentualExito: parseFloat(form.percentualExito) }
-            : {}),
-          ...(form.vencimento ? { vencimento: form.vencimento } : {}),
-        });
+        await api.criarHonorario(payload);
       }
       onSaved();
     } catch (err) {
@@ -158,8 +184,11 @@ export function HonorarioModal({ onClose, onSaved, editData }: Props) {
   }
 
   return (
-    <Modal open title={isEdit ? 'Editar honorário' : 'Novo honorário'} onClose={onClose}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <Modal open title={isEdit ? 'Editar honorário' : 'Novo honorário'} onClose={onClose} size="lg">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-1"
+      >
         {/* Cliente autocomplete */}
         <div className="flex flex-col gap-1 relative" ref={clienteRef}>
           <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
@@ -280,14 +309,19 @@ export function HonorarioModal({ onClose, onSaved, editData }: Props) {
           )}
         </div>
 
+        <Input
+          label="Descrição (opcional)"
+          placeholder="Ex: Honorários contratuais"
+          value={form.descricao}
+          onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))}
+        />
+
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">Tipo</label>
             <select
               value={form.tipo}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, tipo: e.target.value as 'fixo' | 'exito' | 'por_hora' }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, tipo: e.target.value }))}
               className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
             >
               {TIPOS.map((t) => (
@@ -307,21 +341,81 @@ export function HonorarioModal({ onClose, onSaved, editData }: Props) {
         </div>
 
         {form.tipo === 'exito' && (
-          <Input
-            label="Percentual de êxito (%)"
-            placeholder="30"
-            value={form.percentualExito}
-            onChange={(e) => setForm((p) => ({ ...p, percentualExito: e.target.value }))}
-            error={errors.percentualExito}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Percentual de êxito (%)"
+              placeholder="30"
+              value={form.percentualExito}
+              onChange={(e) => setForm((p) => ({ ...p, percentualExito: e.target.value }))}
+              error={errors.percentualExito}
+            />
+            <Input
+              label="Valor base êxito (R$)"
+              placeholder="100.000,00"
+              value={form.valorBaseExito}
+              onChange={(e) => setForm((p) => ({ ...p, valorBaseExito: e.target.value }))}
+            />
+          </div>
         )}
 
-        <Input
-          label="Vencimento (opcional)"
-          type="date"
-          value={form.vencimento}
-          onChange={(e) => setForm((p) => ({ ...p, vencimento: e.target.value }))}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Vencimento (opcional)"
+            type="date"
+            value={form.vencimento}
+            onChange={(e) => setForm((p) => ({ ...p, vencimento: e.target.value }))}
+          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+              Índice de correção
+            </label>
+            <select
+              value={form.indiceCorrecao}
+              onChange={(e) => setForm((p) => ({ ...p, indiceCorrecao: e.target.value }))}
+              className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
+            >
+              {INDICES_CORRECAO.map((i) => (
+                <option key={i.value} value={i.value}>
+                  {i.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.parcelamento}
+              onChange={(e) => setForm((p) => ({ ...p, parcelamento: e.target.checked }))}
+              className="accent-[var(--color-primary)] w-4 h-4"
+            />
+            <span className="text-sm-causa text-[var(--color-text)]">Parcelamento</span>
+          </label>
+          {form.parcelamento && (
+            <Input
+              label=""
+              type="number"
+              placeholder="Nº parcelas"
+              value={form.numeroParcelas}
+              onChange={(e) => setForm((p) => ({ ...p, numeroParcelas: e.target.value }))}
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
+            Observações
+          </label>
+          <textarea
+            value={form.observacoes}
+            onChange={(e) => setForm((p) => ({ ...p, observacoes: e.target.value }))}
+            rows={2}
+            className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa resize-none"
+            placeholder="Observações..."
+          />
+        </div>
 
         {isEdit && (
           <div className="flex flex-col gap-1">
@@ -330,17 +424,16 @@ export function HonorarioModal({ onClose, onSaved, editData }: Props) {
             </label>
             <select
               value={form.status}
-              onChange={(e) =>
-                setForm((p) => ({
-                  ...p,
-                  status: e.target.value as 'pendente' | 'recebido' | 'inadimplente',
-                }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
               className="h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] text-base-causa focus-causa transition-causa cursor-pointer"
             >
               <option value="pendente">Pendente</option>
               <option value="recebido">Recebido</option>
               <option value="inadimplente">Inadimplente</option>
+              <option value="proposta">Proposta</option>
+              <option value="contratado">Contratado</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="encerrado">Encerrado</option>
             </select>
           </div>
         )}
