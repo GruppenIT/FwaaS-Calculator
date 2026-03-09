@@ -13,8 +13,10 @@ import { DocumentoService } from './services/documentos.js';
 import { ParcelaService } from './services/parcelas.js';
 import { DespesaService } from './services/despesas.js';
 import { ContatoService } from './services/contatos.js';
+import { TimesheetService } from './services/timesheets.js';
+import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services/automations.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
-import { count, eq, sum } from 'drizzle-orm';
+import { count, eq, sum, and, lt } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
 import { logger } from './logger.js';
@@ -51,6 +53,7 @@ let documentoService: DocumentoService | null = null;
 let parcelaService: ParcelaService | null = null;
 let despesaService: DespesaService | null = null;
 let contatoService: ContatoService | null = null;
+let timesheetService: TimesheetService | null = null;
 
 function ensureService<T>(service: T | null, name: string): T {
   if (!service) {
@@ -115,6 +118,10 @@ function getContatoService(): ContatoService {
   return ensureService(contatoService, 'ContatoService');
 }
 
+function getTimesheetService(): TimesheetService {
+  return ensureService(timesheetService, 'TimesheetService');
+}
+
 function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: string) {
   db = database;
   schema = s;
@@ -130,6 +137,7 @@ function initializeServices(database: CausaDatabase, s: CausaSchema, jwtSecret: 
   parcelaService = new ParcelaService(db, schema);
   despesaService = new DespesaService(db, schema);
   contatoService = new ContatoService(db, schema);
+  timesheetService = new TimesheetService(db, schema);
 }
 
 function loadApp(): boolean {
@@ -763,7 +771,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (!canReadAll && !canReadOwn) {
         return error(res, 'Permissão insuficiente: tarefas:ler_todos', 403);
       }
-      const filtros: { status?: string; prioridade?: string; responsavelId?: string; processoId?: string } = {};
+      const filtros: {
+        status?: string;
+        prioridade?: string;
+        responsavelId?: string;
+        processoId?: string;
+      } = {};
       const statusParam = url.searchParams.get('status');
       const prioridadeParam = url.searchParams.get('prioridade');
       const processoIdParam = url.searchParams.get('processoId');
@@ -999,6 +1012,69 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
     }
 
+    // --- Timesheets ---
+    if (path === '/api/timesheets' && method === 'GET') {
+      const canAll = await getRbacService().checkPermission(user, 'timesheet:ler_todos');
+      const canOwn = await getRbacService().checkPermission(user, 'timesheet:ler_proprios');
+      if (!canAll && !canOwn) {
+        error(res, 'Permissão insuficiente: timesheet:ler_proprios', 403);
+        return;
+      }
+      const filtros: { userId?: string; processoId?: string; data?: string } = {};
+      if (!canAll) filtros.userId = user.id;
+      const userParam = url.searchParams.get('userId');
+      const processoParam = url.searchParams.get('processoId');
+      const dataParam = url.searchParams.get('data');
+      if (userParam) filtros.userId = userParam;
+      if (processoParam) filtros.processoId = processoParam;
+      if (dataParam) filtros.data = dataParam;
+      const data = await getTimesheetService().listar(filtros);
+      return json(res, data);
+    }
+
+    if (path === '/api/timesheets' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'timesheet:registrar'))) return;
+      const body = JSON.parse(await readBody(req));
+      body.userId = body.userId ?? user.id;
+      const id = await getTimesheetService().criar(body);
+      return json(res, { id }, 201);
+    }
+
+    const timesheetAprovarMatch = path.match(/^\/api\/timesheets\/([^/]+)\/aprovar$/);
+    if (timesheetAprovarMatch && method === 'POST') {
+      if (!(await requirePermission(res, user, 'timesheet:aprovar'))) return;
+      const id = timesheetAprovarMatch[1] ?? '';
+      await getTimesheetService().aprovar(id, user.id);
+      return json(res, { ok: true });
+    }
+
+    const timesheetMatch = path.match(/^\/api\/timesheets\/([^/]+)$/);
+    if (timesheetMatch) {
+      const id = timesheetMatch[1] ?? '';
+      if (method === 'GET') {
+        const canAll = await getRbacService().checkPermission(user, 'timesheet:ler_todos');
+        const canOwn = await getRbacService().checkPermission(user, 'timesheet:ler_proprios');
+        if (!canAll && !canOwn) {
+          error(res, 'Permissão insuficiente: timesheet:ler_proprios', 403);
+          return;
+        }
+        const t = await getTimesheetService().obterPorId(id);
+        if (!t) return error(res, 'Registro não encontrado.', 404);
+        return json(res, t);
+      }
+      if (method === 'PUT') {
+        if (!(await requirePermission(res, user, 'timesheet:registrar'))) return;
+        const body = JSON.parse(await readBody(req));
+        await getTimesheetService().atualizar(id, body);
+        return json(res, { ok: true });
+      }
+      if (method === 'DELETE') {
+        if (!(await requirePermission(res, user, 'timesheet:registrar'))) return;
+        await getTimesheetService().excluir(id);
+        return json(res, { ok: true });
+      }
+    }
+
     // --- Configurações ---
     if (path === '/api/configuracoes' && method === 'GET') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
@@ -1018,10 +1094,28 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, { ok: true });
     }
 
+    // --- Automações ---
+    if (path === '/api/automations/run' && method === 'POST') {
+      const database = ensureService(db, 'database');
+      const s = getAppSchema();
+      const parcelasAtualizadas = await marcarParcelasAtrasadas(database, s);
+      const processosAtualizados = await atualizarPrioridadePorIdade(database, s);
+      return json(res, { parcelasAtualizadas, processosAtualizados });
+    }
+
     // --- Dashboard stats --- (qualquer usuário autenticado pode ver)
     if (path === '/api/dashboard' && method === 'GET') {
       const s = getAppSchema();
       const dbq = getDb();
+
+      // Run automations silently on dashboard load
+      const database = ensureService(db, 'database');
+      try {
+        await marcarParcelasAtrasadas(database, s);
+        await atualizarPrioridadePorIdade(database, s);
+      } catch {
+        // Non-critical: don't fail dashboard if automations error
+      }
       const [processosAtivos] = await dbq
         .select({ count: count() })
         .from(s.processos)
@@ -1037,12 +1131,25 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         .from(s.honorarios)
         .where(eq(s.honorarios.status, 'pendente'));
 
+      const [tarefasPendentes] = await dbq
+        .select({ count: count() })
+        .from(s.tarefas)
+        .where(eq(s.tarefas.status, 'pendente'));
+
+      const hoje = new Date().toISOString().split('T')[0]!;
+      const [parcelasAtrasadas] = await dbq
+        .select({ count: count() })
+        .from(s.parcelas)
+        .where(and(eq(s.parcelas.status, 'pendente'), lt(s.parcelas.vencimento, hoje)));
+
       return json(res, {
         processosAtivos: processosAtivos?.count ?? 0,
         clientes: totalClientes?.count ?? 0,
         prazosPendentes: prazosPendentes?.count ?? 0,
         prazosFatais: 0,
         honorariosPendentes: Number(honorariosPendentes?.total ?? 0),
+        tarefasPendentes: tarefasPendentes?.count ?? 0,
+        parcelasAtrasadas: parcelasAtrasadas?.count ?? 0,
       });
     }
 

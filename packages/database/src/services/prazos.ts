@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { eq, and } from 'drizzle-orm';
 import type { CausaDatabase, DatabaseQueryBuilder } from '../client.js';
 import type { CausaSchema } from '../schema-provider.js';
+import { calcularDataFatal } from './automations.js';
 
 export interface CreatePrazoInput {
   processoId: string;
@@ -36,12 +37,23 @@ export class PrazoService {
 
   async criar(input: CreatePrazoInput): Promise<string> {
     const id = uuid();
+
+    // Auto-calculate dataFatal from dataInicio + diasPrazo if both provided
+    let dataFatal = input.dataFatal;
+    if (input.dataInicio && input.diasPrazo) {
+      dataFatal = calcularDataFatal(
+        input.dataInicio,
+        input.diasPrazo,
+        (input.tipoContagem as 'uteis' | 'corridos') ?? 'corridos',
+      );
+    }
+
     await (this.db as unknown as DatabaseQueryBuilder).insert(this.prazos).values({
       id,
       processoId: input.processoId,
       movimentacaoId: input.movimentacaoId ?? null,
       descricao: input.descricao,
-      dataFatal: input.dataFatal,
+      dataFatal,
       dataInicio: input.dataInicio ?? null,
       diasPrazo: input.diasPrazo ?? null,
       tipoContagem: input.tipoContagem ?? null,

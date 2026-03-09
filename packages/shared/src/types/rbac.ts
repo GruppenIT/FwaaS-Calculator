@@ -30,6 +30,7 @@ export type Recurso =
   | 'parcelas'
   | 'despesas'
   | 'contatos'
+  | 'timesheet'
   | 'tema';
 
 export type Acao =
@@ -45,6 +46,7 @@ export type Acao =
   | 'upload'
   | 'confidencial'
   | 'aprovar'
+  | 'registrar'
   | 'alternar';
 
 export interface Permission {
@@ -90,6 +92,10 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'despesas:ler_todos',
     'despesas:aprovar',
     'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_todos',
+    'timesheet:ler_proprios',
+    'timesheet:aprovar',
     'tema:alternar',
   ],
   socio: [
@@ -119,6 +125,10 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'despesas:ler_todos',
     'despesas:aprovar',
     'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_todos',
+    'timesheet:ler_proprios',
+    'timesheet:aprovar',
     'tema:alternar',
   ],
   advogado: [
@@ -136,6 +146,8 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'documentos:ler_todos',
     'despesas:criar',
     'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_proprios',
     'tema:alternar',
   ],
   estagiario: [
@@ -146,6 +158,8 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'documentos:upload',
     'documentos:ler_todos',
     'contatos:gerenciar',
+    'timesheet:registrar',
+    'timesheet:ler_proprios',
     'tema:alternar',
   ],
   secretaria: [
@@ -175,6 +189,7 @@ export const DEFAULT_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
     'despesas:criar',
     'despesas:ler_todos',
     'despesas:aprovar',
+    'timesheet:ler_todos',
     'tema:alternar',
   ],
 };

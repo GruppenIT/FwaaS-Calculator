@@ -12,3 +12,4 @@ export * from './tarefas.js';
 export * from './parcelas.js';
 export * from './despesas.js';
 export * from './contatos.js';
+export * from './timesheets.js';

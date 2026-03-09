@@ -36,6 +36,13 @@
       "when": 1741779600000,
       "tag": "0004_phase3_parcelas_despesas_contatos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1741866000000,
+      "tag": "0005_phase4_timesheets",
+      "breakpoints": true
     }
   ]
 }

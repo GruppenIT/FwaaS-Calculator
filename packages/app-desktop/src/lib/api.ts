@@ -879,6 +879,72 @@ export function excluirContato(id: string) {
   });
 }
 
+// === Timesheets ===
+export interface TimesheetRow {
+  id: string;
+  userId: string;
+  usuarioNome: string | null;
+  processoId: string | null;
+  numeroCnj: string | null;
+  clienteId: string | null;
+  clienteNome: string | null;
+  tarefaId: string | null;
+  tarefaTitulo: string | null;
+  data: string;
+  duracaoMinutos: number;
+  descricao: string;
+  tipoAtividade: string;
+  faturavel: boolean;
+  taxaHorariaAplicada: number | null;
+  valorCalculado: number | null;
+  aprovado: boolean;
+  aprovadoPor: string | null;
+  createdAt: string;
+}
+
+export function listarTimesheets(filtros?: {
+  userId?: string;
+  processoId?: string;
+  data?: string;
+}) {
+  const params = new URLSearchParams();
+  if (filtros?.userId) params.set('userId', filtros.userId);
+  if (filtros?.processoId) params.set('processoId', filtros.processoId);
+  if (filtros?.data) params.set('data', filtros.data);
+  const qs = params.toString();
+  return request<TimesheetRow[]>(`/api/timesheets${qs ? `?${qs}` : ''}`);
+}
+
+export function obterTimesheet(id: string) {
+  return request<TimesheetRow>(`/api/timesheets/${id}`);
+}
+
+export function criarTimesheet(data: Record<string, unknown>) {
+  return request<{ id: string }>('/api/timesheets', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function atualizarTimesheet(id: string, data: Record<string, unknown>) {
+  return request<{ ok: boolean }>(`/api/timesheets/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function aprovarTimesheet(id: string) {
+  return request<{ ok: boolean }>(`/api/timesheets/${id}/aprovar`, {
+    method: 'POST',
+  });
+}
+
+export function excluirTimesheet(id: string) {
+  return request<{ ok: boolean }>(`/api/timesheets/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // === Feature flags ===
 export interface AppFeatures {
   financeiro: boolean;
@@ -911,5 +977,7 @@ export function getDashboardStats() {
     prazosPendentes: number;
     prazosFatais: number;
     honorariosPendentes: number;
+    tarefasPendentes: number;
+    parcelasAtrasadas: number;
   }>('/api/dashboard');
 }

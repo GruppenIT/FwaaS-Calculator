@@ -11,4 +11,10 @@ export { DocumentoService, type CreateDocumentoInput } from './documentos.js';
 export { ParcelaService, type CreateParcelaInput, type PagarParcelaInput } from './parcelas.js';
 export { DespesaService, type CreateDespesaInput } from './despesas.js';
 export { ContatoService, type CreateContatoInput } from './contatos.js';
+export { TimesheetService, type CreateTimesheetInput } from './timesheets.js';
+export {
+  calcularDataFatal,
+  marcarParcelasAtrasadas,
+  atualizarPrioridadePorIdade,
+} from './automations.js';
 export { setupDatabase, type SetupInput, type SetupResult } from './setup.js';

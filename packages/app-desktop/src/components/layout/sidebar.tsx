@@ -16,6 +16,7 @@ import {
   FileText,
   Receipt,
   Contact,
+  Timer,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth, useFeatures } from '../../lib/auth-context';
@@ -73,6 +74,12 @@ const NAV_SECTIONS: NavSection[] = [
         icon: FileText,
         label: 'Documentos',
         permissions: ['documentos:ler_todos'],
+      },
+      {
+        to: '/app/timesheet',
+        icon: Timer,
+        label: 'Timesheet',
+        permissions: ['timesheet:registrar', 'timesheet:ler_todos', 'timesheet:ler_proprios'],
       },
     ],
   },

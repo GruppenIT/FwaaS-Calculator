@@ -20,6 +20,7 @@ import { TarefasPage } from './pages/tarefas/tarefas-page';
 import { DocumentosPage } from './pages/documentos/documentos-page';
 import { DespesasPage } from './pages/despesas/despesas-page';
 import { ContatosPage } from './pages/contatos/contatos-page';
+import { TimesheetPage } from './pages/timesheet/timesheet-page';
 import { ServerErrorPage } from './pages/server-error-page';
 import type { ReactNode } from 'react';
 import { useFeatures } from './lib/auth-context';
@@ -162,6 +163,16 @@ function AppRoutes() {
           element={
             <RequirePermission permissions={['contatos:gerenciar']}>
               <ContatosPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="timesheet"
+          element={
+            <RequirePermission
+              permissions={['timesheet:registrar', 'timesheet:ler_todos', 'timesheet:ler_proprios']}
+            >
+              <TimesheetPage />
             </RequirePermission>
           }
         />
