@@ -217,6 +217,32 @@ function loadApp(): boolean {
     });
   }
 
+  // Fallback: garantir colunas essenciais caso migrations não tenham sido aplicadas corretamente
+  if (config.topologia === 'solo') {
+    try {
+      const sqliteDb = database as SqliteDatabase;
+      const cols = sqliteDb.all<{ name: string }>(sql`PRAGMA table_info(documentos)`);
+      const colNames = new Set(cols.map((c) => c.name));
+
+      if (!colNames.has('conteudo_texto')) {
+        sqliteDb.run(sql`ALTER TABLE documentos ADD COLUMN conteudo_texto text`);
+        logger.info('API', 'Coluna conteudo_texto adicionada via fallback');
+      }
+      if (!colNames.has('drive_file_id')) {
+        sqliteDb.run(sql`ALTER TABLE documentos ADD COLUMN drive_file_id text`);
+        logger.info('API', 'Coluna drive_file_id adicionada via fallback');
+      }
+      if (!colNames.has('drive_synced_at')) {
+        sqliteDb.run(sql`ALTER TABLE documentos ADD COLUMN drive_synced_at text`);
+        logger.info('API', 'Coluna drive_synced_at adicionada via fallback');
+      }
+    } catch (fallbackErr) {
+      logger.error('API', 'Erro no fallback de colunas', {
+        error: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr),
+      });
+    }
+  }
+
   const s = getSchema(config.topologia);
   initializeServices(database, s, config.jwtSecret);
   return true;
