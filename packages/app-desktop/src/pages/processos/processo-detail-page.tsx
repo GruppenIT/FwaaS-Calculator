@@ -14,16 +14,31 @@ import {
   Scale,
   Shield,
   Tag,
+  Download,
+  Eye,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ProcessoModal } from './processo-modal';
 import type { ProcessoEditData } from './processo-modal';
+import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { PrazoRow, HonorarioRow, MovimentacaoRow, DocumentoRow } from '../../lib/api';
 import { useFeatures } from '../../lib/auth-context';
+
+const PREVIEWABLE_MIMES = new Set([
+  'application/pdf',
+  'text/plain',
+  'text/html',
+  'text/csv',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+function isPreviewable(tipoMime: string): boolean {
+  return PREVIEWABLE_MIMES.has(tipoMime) || tipoMime.startsWith('image/');
+}
 
 const STATUS_STYLES: Record<string, string> = {
   ativo: 'bg-causa-success/10 text-causa-success',
@@ -100,6 +115,7 @@ export function ProcessoDetailPage() {
   const [editData, setEditData] = useState<ProcessoEditData | null | undefined>(undefined);
   const [deleteMovId, setDeleteMovId] = useState<string | null>(null);
   const [deletingMov, setDeletingMov] = useState(false);
+  const [viewDocId, setViewDocId] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -181,6 +197,28 @@ export function ProcessoDetailPage() {
     } finally {
       setDeletingMov(false);
       setDeleteMovId(null);
+    }
+  }
+
+  async function handleDownloadDoc(docId: string) {
+    try {
+      const data = await api.downloadDocumento(docId);
+      const byteChars = atob(data.conteudo);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: data.tipoMime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.nome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao baixar documento.', 'error');
     }
   }
 
@@ -447,34 +485,66 @@ export function ProcessoDetailPage() {
       </div>
 
       {/* Documentos */}
-      {documentos.length > 0 && (
-        <Section title="Documentos" icon={FileText} count={documentos.length}>
+      <Section title="Documentos" icon={FileText} count={documentos.length}>
+        {documentos.length === 0 ? (
+          <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
+            Nenhum documento vinculado.
+          </p>
+        ) : (
           <div className="divide-y divide-[var(--color-border)]">
             {documentos.map((d) => (
               <div key={d.id} className="px-4 py-3 flex items-center justify-between">
-                <div>
-                  <span className="text-sm-causa text-[var(--color-text)] font-medium">
-                    {d.nome}
-                  </span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText size={14} className="text-[var(--color-primary)] shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm-causa text-[var(--color-text)] font-medium truncate block">
+                      {d.nome}
+                    </span>
+                    {d.descricao && (
+                      <span className="text-xs-causa text-[var(--color-text-muted)] truncate block">
+                        {d.descricao}
+                      </span>
+                    )}
+                  </div>
                   {d.categoria && (
-                    <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                    <span className="text-xs-causa text-[var(--color-text-muted)] shrink-0">
                       {d.categoria}
                     </span>
                   )}
                   {d.confidencial && (
-                    <span className="ml-2 text-xs-causa text-causa-danger font-medium">
+                    <span className="text-xs-causa text-causa-danger font-medium shrink-0">
                       Confidencial
                     </span>
                   )}
                 </div>
-                <span className="text-xs-causa text-[var(--color-text-muted)]">
-                  {formatDate(d.createdAt)}
-                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
+                    {formatDate(d.createdAt)}
+                  </span>
+                  {isPreviewable(d.tipoMime) && (
+                    <button
+                      type="button"
+                      onClick={() => setViewDocId(d.id)}
+                      className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                      title="Visualizar"
+                    >
+                      <Eye size={14} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc(d.id)}
+                    className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                    title="Baixar"
+                  >
+                    <Download size={14} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-        </Section>
-      )}
+        )}
+      </Section>
 
       {/* Movimentações - full width */}
       <Section title="Movimentações" icon={FileText} count={movimentacoes.length}>
@@ -551,6 +621,10 @@ export function ProcessoDetailPage() {
           onSaved={handleSaved}
           editData={editData}
         />
+      )}
+
+      {viewDocId && (
+        <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
       )}
 
       <ConfirmDialog

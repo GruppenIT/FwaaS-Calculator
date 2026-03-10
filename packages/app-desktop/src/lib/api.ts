@@ -707,13 +707,15 @@ export function listarDocumentos(filtros?: {
   processoId?: string;
   clienteId?: string;
   categoria?: string;
+  q?: string;
 }) {
   const params = new URLSearchParams();
   if (filtros?.processoId) params.set('processoId', filtros.processoId);
   if (filtros?.clienteId) params.set('clienteId', filtros.clienteId);
   if (filtros?.categoria) params.set('categoria', filtros.categoria);
-  const q = params.toString();
-  return request<DocumentoRow[]>(`/api/documentos${q ? `?${q}` : ''}`);
+  if (filtros?.q) params.set('q', filtros.q);
+  const qs = params.toString();
+  return request<DocumentoRow[]>(`/api/documentos${qs ? `?${qs}` : ''}`);
 }
 
 export function criarDocumento(data: Record<string, unknown>) {

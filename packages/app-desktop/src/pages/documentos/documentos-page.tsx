@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FileText, Trash2, Lock, Tag, Download, Plus } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { FileText, Trash2, Lock, Tag, Download, Plus, Search, Eye } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -8,8 +8,21 @@ import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { usePermission } from '../../hooks/use-permission';
 import { DocumentoModal } from './documento-modal';
+import { DocumentoViewer } from './documento-viewer';
 import * as api from '../../lib/api';
 import type { DocumentoRow } from '../../lib/api';
+
+const PREVIEWABLE_MIMES = new Set([
+  'application/pdf',
+  'text/plain',
+  'text/html',
+  'text/csv',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+function isPreviewable(tipoMime: string): boolean {
+  return PREVIEWABLE_MIMES.has(tipoMime) || tipoMime.startsWith('image/');
+}
 
 const CATEGORIA_LABELS: Record<string, string> = {
   peticao: 'Petição',
@@ -47,17 +60,28 @@ export function DocumentosPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [categoriaFilter, setCategoriaFilter] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewDocId, setViewDocId] = useState<string | null>(null);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { toast } = useToast();
   const { can } = usePermission();
 
   const canUpload = can('documentos:upload');
 
+  function handleSearchChange(value: string) {
+    setSearchInput(value);
+    clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => setSearchTerm(value), 300);
+  }
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const filtros: { categoria?: string } = {};
+      const filtros: { categoria?: string; q?: string } = {};
       if (categoriaFilter) filtros.categoria = categoriaFilter;
+      if (searchTerm) filtros.q = searchTerm;
       const data = await api.listarDocumentos(filtros);
       setDocumentos(data);
     } catch (err) {
@@ -65,7 +89,7 @@ export function DocumentosPage() {
     } finally {
       setLoading(false);
     }
-  }, [categoriaFilter, toast]);
+  }, [categoriaFilter, searchTerm, toast]);
 
   useEffect(() => {
     load();
@@ -140,21 +164,33 @@ export function DocumentosPage() {
         }
       />
 
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {CATEGORIA_FILTERS.map((cf) => (
-          <button
-            key={cf.value}
-            type="button"
-            onClick={() => setCategoriaFilter(cf.value)}
-            className={`px-3 py-1.5 rounded-[var(--radius-md)] text-sm-causa font-medium transition-causa cursor-pointer ${
-              categoriaFilter === cf.value
-                ? 'bg-[var(--color-primary)] text-white'
-                : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-causa-bg'
-            }`}
-          >
-            {cf.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Buscar documentos..."
+            className="pl-9 pr-3 py-1.5 w-64 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-sm-causa text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {CATEGORIA_FILTERS.map((cf) => (
+            <button
+              key={cf.value}
+              type="button"
+              onClick={() => setCategoriaFilter(cf.value)}
+              className={`px-3 py-1.5 rounded-[var(--radius-md)] text-sm-causa font-medium transition-causa cursor-pointer ${
+                categoriaFilter === cf.value
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-causa-bg'
+              }`}
+            >
+              {cf.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
@@ -236,6 +272,16 @@ export function DocumentosPage() {
                           <Tag size={14} />
                         </span>
                       )}
+                      {isPreviewable(d.tipoMime) && (
+                        <button
+                          type="button"
+                          onClick={() => setViewDocId(d.id)}
+                          className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                          title="Visualizar"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleDownload(d.id)}
@@ -268,6 +314,10 @@ export function DocumentosPage() {
         onClose={() => setModalOpen(false)}
         onSave={handleModalSave}
       />
+
+      {viewDocId && (
+        <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
+      )}
 
       <ConfirmDialog
         open={!!deleteId}

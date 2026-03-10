@@ -57,6 +57,13 @@
       "when": 1742038800000,
       "tag": "0007_fix_documentos_caminho_local_nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1742125200000,
+      "tag": "0008_add_documentos_conteudo_texto",
+      "breakpoints": true
     }
   ]
 }

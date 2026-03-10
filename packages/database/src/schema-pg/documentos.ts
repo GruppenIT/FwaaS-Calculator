@@ -19,6 +19,7 @@ export const documentos = pgTable('documentos', {
   confidencial: boolean('confidencial').notNull().default(false),
   dataReferencia: text('data_referencia'),
   conteudo: text('conteudo'),
+  conteudoTexto: text('conteudo_texto'),
   uploadedBy: text('uploaded_by')
     .notNull()
     .references(() => users.id),
