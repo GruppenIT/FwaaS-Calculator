@@ -33,6 +33,10 @@ export interface DriveUploadResult {
  * │   │       └── documentos sem processo...
  * └── Sem Cliente/
  *     └── documentos avulsos...
+ *
+ * IMPORTANTE: Service Accounts não possuem cota de armazenamento própria.
+ * Os arquivos DEVEM ser enviados para uma pasta compartilhada com a SA
+ * (ou para um Shared Drive). O rootFolderId é obrigatório.
  */
 export class GoogleDriveService {
   private drive: drive_v3.Drive;
@@ -69,25 +73,25 @@ export class GoogleDriveService {
   }
 
   /** Busca ou cria uma pasta pelo nome dentro de um parent */
-  private async findOrCreateFolder(name: string, parentId?: string): Promise<string> {
-    const cacheKey = `${parentId ?? 'root'}/${name}`;
+  private async findOrCreateFolder(name: string, parentId: string): Promise<string> {
+    const cacheKey = `${parentId}/${name}`;
     const cached = this.folderCache.get(cacheKey);
     if (cached) return cached;
 
     // Busca pasta existente
-    const queryParts = [
+    const q = [
       `name = '${name.replace(/'/g, "\\'")}'`,
       "mimeType = 'application/vnd.google-apps.folder'",
       'trashed = false',
-    ];
-    if (parentId) {
-      queryParts.push(`'${parentId}' in parents`);
-    }
+      `'${parentId}' in parents`,
+    ].join(' and ');
 
     const res = await this.drive.files.list({
-      q: queryParts.join(' and '),
+      q,
       fields: 'files(id)',
       spaces: 'drive',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
     });
 
     if (res.data.files && res.data.files.length > 0 && res.data.files[0]?.id) {
@@ -101,9 +105,10 @@ export class GoogleDriveService {
       requestBody: {
         name,
         mimeType: 'application/vnd.google-apps.folder',
-        parents: parentId ? [parentId] : null,
+        parents: [parentId],
       },
       fields: 'id',
+      supportsAllDrives: true,
     });
 
     const id = folder.data.id;
@@ -117,13 +122,11 @@ export class GoogleDriveService {
    * Retorna o ID da pasta final.
    */
   async resolveFolderPath(opts: {
-    rootFolderId?: string | undefined;
+    rootFolderId: string;
     clienteNome?: string | undefined;
     numeroCnj?: string | undefined;
   }): Promise<string> {
-    const rootId = opts.rootFolderId
-      ? await this.findOrCreateFolder('CAUSA', opts.rootFolderId)
-      : await this.findOrCreateFolder('CAUSA');
+    const rootId = await this.findOrCreateFolder('CAUSA', opts.rootFolderId);
 
     if (!opts.clienteNome) {
       return this.findOrCreateFolder('Sem Cliente', rootId);
@@ -157,6 +160,7 @@ export class GoogleDriveService {
         body: Readable.from(opts.content),
       },
       fields: 'id,webViewLink',
+      supportsAllDrives: true,
     });
 
     if (!res.data.id) throw new Error('Falha no upload — sem fileId retornado.');
@@ -170,7 +174,7 @@ export class GoogleDriveService {
   /** Baixa o conteúdo de um arquivo do Google Drive */
   async downloadFile(fileId: string): Promise<Buffer> {
     const res = await this.drive.files.get(
-      { fileId, alt: 'media' },
+      { fileId, alt: 'media', supportsAllDrives: true },
       { responseType: 'arraybuffer' },
     );
 
@@ -179,7 +183,7 @@ export class GoogleDriveService {
 
   /** Remove um arquivo do Google Drive */
   async deleteFile(fileId: string): Promise<void> {
-    await this.drive.files.delete({ fileId });
+    await this.drive.files.delete({ fileId, supportsAllDrives: true });
   }
 
   /** Atualiza o conteúdo de um arquivo existente */
@@ -195,6 +199,7 @@ export class GoogleDriveService {
         mimeType: opts.mimeType,
         body: Readable.from(opts.content),
       },
+      supportsAllDrives: true,
     });
   }
 
