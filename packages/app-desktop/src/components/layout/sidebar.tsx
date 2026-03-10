@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -132,6 +133,19 @@ export function Sidebar() {
   const { logout } = useAuth();
   const { canAny } = usePermission();
   const features = useFeatures();
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  useEffect(() => {
+    // Verificar status atual
+    window.causaElectron?.getUpdateStatus().then((s) => {
+      setUpdateAvailable(s.state === 'available' || s.state === 'downloaded');
+    }).catch(() => {});
+    // Escutar mudanças
+    const unsub = window.causaElectron?.onUpdateStatus((s) => {
+      setUpdateAvailable(s.state === 'available' || s.state === 'downloaded');
+    });
+    return () => { unsub?.(); };
+  }, []);
 
   return (
     <aside className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
@@ -154,23 +168,31 @@ export function Sidebar() {
               <div className="px-2 mb-1.5 text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
                 {section.title}
               </div>
-              {visibleItems.map(({ to, icon: Icon, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={to === '/app'}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
-                      isActive
-                        ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
-                        : 'text-[var(--color-text)] hover:bg-causa-bg'
-                    }`
-                  }
-                >
-                  <Icon size={18} />
-                  {label}
-                </NavLink>
-              ))}
+              {visibleItems.map(({ to, icon: Icon, label }) => {
+                const showBadge = updateAvailable && to === '/app/configuracoes';
+                return (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === '/app'}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
+                        isActive
+                          ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+                          : 'text-[var(--color-text)] hover:bg-causa-bg'
+                      }`
+                    }
+                  >
+                    <span className="relative">
+                      <Icon size={18} />
+                      {showBadge && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[var(--color-primary)] rounded-full border-2 border-[var(--color-surface)]" />
+                      )}
+                    </span>
+                    {label}
+                  </NavLink>
+                );
+              })}
             </div>
           );
         })}

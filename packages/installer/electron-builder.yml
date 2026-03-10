@@ -21,6 +21,7 @@ publish:
   provider: github
   owner: GruppenIT
   repo: FwaaS-Calculator
+  private: true
 
 win:
   target:
