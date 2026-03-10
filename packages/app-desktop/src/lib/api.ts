@@ -1045,8 +1045,7 @@ export function getDashboardProdutividade() {
 // === Google Drive ===
 export interface GoogleDriveConfig {
   configured: boolean;
-  authenticated: boolean;
-  clientId: string | null;
+  connected: boolean;
   rootFolderId: string | null;
 }
 
@@ -1061,18 +1060,13 @@ export function getGoogleDriveConfig() {
 }
 
 export function updateGoogleDriveConfig(data: {
-  clientId?: string;
-  clientSecret?: string;
+  serviceAccountJson?: string;
   rootFolderId?: string;
 }) {
   return request<{ ok: boolean }>('/api/google-drive/config', {
     method: 'PUT',
     body: JSON.stringify(data),
   });
-}
-
-export function getGoogleDriveAuthUrl() {
-  return request<{ url: string }>('/api/google-drive/auth-url');
 }
 
 export function getGoogleDriveStatus() {

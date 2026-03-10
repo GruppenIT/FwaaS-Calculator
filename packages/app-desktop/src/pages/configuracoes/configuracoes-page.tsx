@@ -183,28 +183,26 @@ function GoogleDriveSection() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
   const [configured, setConfigured] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
-  const [showCredentials, setShowCredentials] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [serviceAccountJson, setServiceAccountJson] = useState('');
 
   const loadConfig = useCallback(async () => {
     try {
       const config = await api.getGoogleDriveConfig();
       setConfigured(config.configured);
-      setAuthenticated(config.authenticated);
-      setClientId(config.clientId ?? '');
+      setConnected(config.connected);
 
-      if (config.authenticated) {
+      if (config.connected) {
         const status = await api.getGoogleDriveStatus();
         if (status.connected) setDriveEmail(status.email ?? null);
       }
     } catch {
-      // Silently ignore — user may not have permission
+      // Silently ignore
     } finally {
       setLoading(false);
     }
@@ -214,32 +212,31 @@ function GoogleDriveSection() {
     loadConfig();
   }, [loadConfig]);
 
-  // Checar se voltou do redirect OAuth com sucesso
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const gdriveResult = params.get('gdrive');
-    if (gdriveResult === 'ok') {
-      toast('Google Drive conectado com sucesso!', 'success');
-      loadConfig();
-      // Limpar parâmetro da URL
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (gdriveResult === 'error') {
-      toast('Erro ao conectar Google Drive. Tente novamente.', 'error');
-      window.history.replaceState({}, '', window.location.pathname);
+  async function handleSave() {
+    if (!serviceAccountJson.trim()) {
+      toast('Cole o conteúdo do arquivo JSON da Service Account.', 'error');
+      return;
     }
-  }, [toast, loadConfig]);
-
-  async function handleSaveCredentials() {
-    if (!clientId.trim() || !clientSecret.trim()) {
-      toast('Preencha Client ID e Client Secret.', 'error');
+    // Validar JSON
+    try {
+      const parsed = JSON.parse(serviceAccountJson);
+      if (!parsed.client_email || !parsed.private_key) {
+        toast('JSON inválido: campos client_email e private_key são obrigatórios.', 'error');
+        return;
+      }
+    } catch {
+      toast('JSON inválido. Verifique o conteúdo colado.', 'error');
       return;
     }
     setSaving(true);
     try {
-      await api.updateGoogleDriveConfig({ clientId, clientSecret });
+      await api.updateGoogleDriveConfig({ serviceAccountJson });
       setConfigured(true);
-      setShowCredentials(false);
-      toast('Credenciais salvas. Agora conecte sua conta Google.', 'success');
+      setConnected(true);
+      setShowSetup(false);
+      setServiceAccountJson('');
+      toast('Service Account configurada com sucesso!', 'success');
+      loadConfig();
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     } finally {
@@ -247,16 +244,20 @@ function GoogleDriveSection() {
     }
   }
 
-  async function handleConnect() {
-    setConnecting(true);
+  async function handleTest() {
+    setTesting(true);
     try {
-      const { url } = await api.getGoogleDriveAuthUrl();
-      // Abrir URL do Google OAuth no browser
-      window.open(url, '_blank');
+      const status = await api.getGoogleDriveStatus();
+      if (status.connected) {
+        setDriveEmail(status.email ?? null);
+        toast('Conexão OK! Drive acessível.', 'success');
+      } else {
+        toast(status.error ?? 'Falha na conexão.', 'error');
+      }
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao gerar link de autorização.', 'error');
+      toast(err instanceof Error ? err.message : 'Erro ao testar.', 'error');
     } finally {
-      setConnecting(false);
+      setTesting(false);
     }
   }
 
@@ -264,7 +265,8 @@ function GoogleDriveSection() {
     setDisconnecting(true);
     try {
       await api.disconnectGoogleDrive();
-      setAuthenticated(false);
+      setConfigured(false);
+      setConnected(false);
       setDriveEmail(null);
       toast('Google Drive desconectado.', 'success');
     } catch (err) {
@@ -284,9 +286,6 @@ function GoogleDriveSection() {
     );
   }
 
-  const inputClass =
-    'w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-sm-causa';
-
   return (
     <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
       <div className="flex items-center gap-2 mb-1">
@@ -296,11 +295,11 @@ function GoogleDriveSection() {
         </h3>
       </div>
       <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
-        Sincronize documentos com o Google Drive para backup e acesso remoto.
+        Sincronize documentos com o Google Drive para backup e acesso remoto via Service Account.
       </p>
 
       {/* Estado: conectado */}
-      {authenticated && (
+      {connected && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-success/8 border border-causa-success/20">
             <CheckCircle2 size={18} className="text-causa-success shrink-0" />
@@ -310,100 +309,108 @@ function GoogleDriveSection() {
               </p>
               {driveEmail && (
                 <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
-                  {driveEmail}
+                  Service Account: {driveEmail}
                 </p>
               )}
             </div>
-            <Button
-              variant="ghost"
-              onClick={handleDisconnect}
-              disabled={disconnecting}
-            >
-              <Unplug size={14} className="mr-1" />
-              {disconnecting ? 'Desconectando...' : 'Desconectar'}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Estado: configurado mas não conectado */}
-      {configured && !authenticated && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
-            <CloudOff size={18} className="text-[var(--color-text-muted)] shrink-0" />
-            <p className="text-sm-causa text-[var(--color-text-muted)]">
-              Credenciais configuradas. Conecte sua conta Google para ativar.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleConnect} disabled={connecting}>
-              <ExternalLink size={14} className="mr-1" />
-              {connecting ? 'Abrindo...' : 'Conectar conta Google'}
-            </Button>
-            <Button variant="ghost" onClick={() => setShowCredentials(!showCredentials)}>
-              Editar credenciais
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleTest}
+                disabled={testing}
+              >
+                <RefreshCw size={14} className={`mr-1 ${testing ? 'animate-spin' : ''}`} />
+                {testing ? 'Testando...' : 'Testar'}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+              >
+                <Unplug size={14} className="mr-1" />
+                {disconnecting ? 'Removendo...' : 'Remover'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Estado: não configurado */}
-      {!configured && !showCredentials && (
+      {!connected && !showSetup && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
             <Settings size={18} className="text-[var(--color-text-muted)]" />
-            <div>
-              <p className="text-sm-causa text-[var(--color-text-muted)]">
-                Configure as credenciais OAuth do Google Cloud Console para habilitar a integração.
-              </p>
-            </div>
+            <p className="text-sm-causa text-[var(--color-text-muted)]">
+              Configure uma Service Account do Google Cloud para habilitar a integração.
+            </p>
           </div>
-          <Button variant="ghost" onClick={() => setShowCredentials(true)}>
-            Configurar credenciais
+          <Button variant="ghost" onClick={() => setShowSetup(true)}>
+            Configurar Service Account
           </Button>
         </div>
       )}
 
-      {/* Formulário de credenciais */}
-      {(showCredentials || (!configured && showCredentials)) && (
-        <div className="mt-4 space-y-3 pt-4 border-t border-[var(--color-border)]">
+      {/* Setup com guia passo-a-passo */}
+      {!connected && showSetup && (
+        <div className="mt-2 space-y-4">
+          <div className="rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)] p-4">
+            <p className="text-sm-causa font-medium text-[var(--color-text)] mb-3">
+              Como criar a Service Account:
+            </p>
+            <ol className="text-xs-causa text-[var(--color-text-muted)] space-y-2 list-decimal list-inside">
+              <li>
+                Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] underline">Google Cloud Console</a> e crie um projeto (ou use um existente)
+              </li>
+              <li>
+                No menu lateral, vá em <strong>APIs e Serviços &gt; Biblioteca</strong> e ative a <strong>Google Drive API</strong>
+              </li>
+              <li>
+                Vá em <strong>APIs e Serviços &gt; Credenciais</strong>
+              </li>
+              <li>
+                Clique em <strong>Criar credenciais &gt; Conta de serviço</strong>
+              </li>
+              <li>
+                Dê um nome (ex: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded">causa-drive-backup</code>) e clique em <strong>Concluir</strong>
+              </li>
+              <li>
+                Na lista de contas de serviço, clique na conta criada
+              </li>
+              <li>
+                Vá na aba <strong>Chaves &gt; Adicionar chave &gt; Criar nova chave &gt; JSON</strong>
+              </li>
+              <li>
+                O arquivo JSON será baixado automaticamente. <strong>Abra-o e cole o conteúdo abaixo.</strong>
+              </li>
+            </ol>
+            <div className="mt-3 px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <p className="text-xs-causa text-[var(--color-text-muted)]">
+                <strong>Dica:</strong> Para que a Service Account acesse uma pasta específica do Drive, compartilhe a pasta com o e-mail da Service Account (campo <code>client_email</code> no JSON) com permissão de <strong>Editor</strong>.
+              </p>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
-              Client ID
+              JSON da Service Account
             </label>
-            <input
-              type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="xxxx.apps.googleusercontent.com"
-              className={inputClass}
+            <textarea
+              value={serviceAccountJson}
+              onChange={(e) => setServiceAccountJson(e.target.value)}
+              placeholder='{"type": "service_account", "project_id": "...", ...}'
+              rows={6}
+              className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-xs font-mono resize-y"
             />
           </div>
-          <div>
-            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
-              Client Secret
-            </label>
-            <input
-              type="password"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder="GOCSPX-..."
-              className={inputClass}
-            />
-          </div>
-          <p className="text-xs-causa text-[var(--color-text-muted)]">
-            Crie um projeto no Google Cloud Console, ative a API do Google Drive e gere credenciais OAuth 2.0 com redirect URI: <code className="bg-causa-surface-alt px-1 py-0.5 rounded text-xs">http://localhost:3456/api/google-drive/callback</code>
-          </p>
+
           <div className="flex gap-2">
-            <Button onClick={handleSaveCredentials} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving}>
               <Save size={14} className="mr-1" />
-              {saving ? 'Salvando...' : 'Salvar credenciais'}
+              {saving ? 'Salvando...' : 'Salvar e conectar'}
             </Button>
-            {configured && (
-              <Button variant="ghost" onClick={() => setShowCredentials(false)}>
-                Cancelar
-              </Button>
-            )}
+            <Button variant="ghost" onClick={() => { setShowSetup(false); setServiceAccountJson(''); }}>
+              Cancelar
+            </Button>
           </div>
         </div>
       )}

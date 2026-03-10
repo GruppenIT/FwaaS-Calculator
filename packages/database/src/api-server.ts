@@ -36,10 +36,7 @@ const DB_PATH = 'causa.db';
 const CONFIG_PATH = 'causa.config.json';
 
 interface GoogleDriveConfig {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  refreshToken?: string;
+  serviceAccountJson: string;
   rootFolderId?: string;
 }
 
@@ -178,13 +175,15 @@ function loadApp(): boolean {
   activeModuleKeys = config.moduleKeys ?? [];
 
   // Inicializar Google Drive se configurado
-  if (config.googleDrive?.clientId && config.googleDrive?.clientSecret) {
-    driveService = new GoogleDriveService({
-      clientId: config.googleDrive.clientId,
-      clientSecret: config.googleDrive.clientSecret,
-      redirectUri: config.googleDrive.redirectUri || 'http://localhost:3456/api/google-drive/callback',
-      refreshToken: config.googleDrive.refreshToken,
-    });
+  if (config.googleDrive?.serviceAccountJson) {
+    try {
+      const creds = JSON.parse(config.googleDrive.serviceAccountJson);
+      driveService = new GoogleDriveService(creds);
+    } catch (err) {
+      logger.error('GoogleDrive', 'Erro ao inicializar Service Account', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   // Inicializar Telegram se configurado
@@ -405,35 +404,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       return json(res, {
         financeiro: activeModuleKeys.includes(MODULE_CODES.financeiro),
-        googleDrive: driveService?.isAuthenticated ?? false,
+        googleDrive: driveService !== null,
         telegram: telegramService !== null,
       });
-    }
-
-    // === Google Drive OAuth callback (sem auth JWT — redirect do Google) ===
-    if (path === '/api/google-drive/callback' && method === 'GET') {
-      const code = url.searchParams.get('code');
-      if (!code) return error(res, 'Código de autorização não fornecido.', 400);
-      if (!driveService) return error(res, 'Google Drive não configurado.', 400);
-
-      try {
-        const refreshToken = await driveService.exchangeCode(code);
-        const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-        if (!config.googleDrive) return error(res, 'Configuração inválida.', 500);
-        config.googleDrive.refreshToken = refreshToken;
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-
-        res.writeHead(302, { Location: '/configuracoes?gdrive=ok' });
-        res.end();
-        return;
-      } catch (err) {
-        logger.error('GoogleDrive', 'Erro no callback OAuth', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-        res.writeHead(302, { Location: '/configuracoes?gdrive=error' });
-        res.end();
-        return;
-      }
     }
 
     // === Protected routes — require auth ===
@@ -1217,9 +1190,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       const gdConfig = config.googleDrive;
       return json(res, {
-        configured: !!gdConfig?.clientId,
-        authenticated: driveService?.isAuthenticated ?? false,
-        clientId: gdConfig?.clientId ?? null,
+        configured: !!gdConfig?.serviceAccountJson,
+        connected: driveService !== null,
         rootFolderId: gdConfig?.rootFolderId ?? null,
       });
     }
@@ -1227,47 +1199,35 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/google-drive/config' && method === 'PUT') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       const body = JSON.parse(await readBody(req)) as {
-        clientId?: string;
-        clientSecret?: string;
+        serviceAccountJson?: string;
         rootFolderId?: string;
       };
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       if (!config.googleDrive) {
-        config.googleDrive = {
-          clientId: '',
-          clientSecret: '',
-          redirectUri: 'http://localhost:3456/api/google-drive/callback',
-        };
+        config.googleDrive = { serviceAccountJson: '' };
       }
-      if (body.clientId !== undefined) config.googleDrive.clientId = body.clientId;
-      if (body.clientSecret !== undefined) config.googleDrive.clientSecret = body.clientSecret;
+      if (body.serviceAccountJson !== undefined) config.googleDrive.serviceAccountJson = body.serviceAccountJson;
       if (body.rootFolderId !== undefined) config.googleDrive.rootFolderId = body.rootFolderId;
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
       // Reinicializar o serviço
-      if (config.googleDrive.clientId && config.googleDrive.clientSecret) {
-        driveService = new GoogleDriveService({
-          clientId: config.googleDrive.clientId,
-          clientSecret: config.googleDrive.clientSecret,
-          redirectUri: config.googleDrive.redirectUri,
-          refreshToken: config.googleDrive.refreshToken,
-        });
+      if (config.googleDrive.serviceAccountJson) {
+        try {
+          const creds = JSON.parse(config.googleDrive.serviceAccountJson);
+          driveService = new GoogleDriveService(creds);
+        } catch {
+          driveService = null;
+          return error(res, 'JSON da Service Account inválido.', 400);
+        }
+      } else {
+        driveService = null;
       }
       return json(res, { ok: true });
     }
 
-    if (path === '/api/google-drive/auth-url' && method === 'GET') {
-      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
-      if (!driveService) {
-        return error(res, 'Google Drive não configurado. Configure clientId e clientSecret primeiro.', 400);
-      }
-      const url = driveService.generateAuthUrl();
-      return json(res, { url });
-    }
-
     if (path === '/api/google-drive/status' && method === 'GET') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
-      if (!driveService || !driveService.isAuthenticated) {
+      if (!driveService) {
         return json(res, { connected: false });
       }
       const result = await driveService.testConnection();
@@ -1277,26 +1237,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/google-drive/disconnect' && method === 'POST') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-      if (config.googleDrive) {
-        delete config.googleDrive.refreshToken;
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-      }
-      // Reinicializar sem refresh token
-      if (config.googleDrive?.clientId && config.googleDrive?.clientSecret) {
-        driveService = new GoogleDriveService({
-          clientId: config.googleDrive.clientId,
-          clientSecret: config.googleDrive.clientSecret,
-          redirectUri: config.googleDrive.redirectUri,
-        });
-      } else {
-        driveService = null;
-      }
+      delete config.googleDrive;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+      driveService = null;
       return json(res, { ok: true });
     }
 
     if (path === '/api/google-drive/sync' && method === 'POST') {
       if (!(await requirePermission(res, user, 'documentos:upload'))) return;
-      if (!driveService || !driveService.isAuthenticated) {
+      if (!driveService) {
         return error(res, 'Google Drive não conectado.', 400);
       }
 
@@ -1365,7 +1314,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     if (path === '/api/google-drive/sync-all' && method === 'POST') {
       if (!(await requirePermission(res, user, 'documentos:upload'))) return;
-      if (!driveService || !driveService.isAuthenticated) {
+      if (!driveService) {
         return error(res, 'Google Drive não conectado.', 400);
       }
 

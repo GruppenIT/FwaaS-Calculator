@@ -2,11 +2,18 @@ import { google, type drive_v3 } from 'googleapis';
 import { Readable } from 'node:stream';
 import { logger } from '../logger.js';
 
-export interface GoogleDriveCredentials {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  refreshToken?: string | undefined;
+export interface ServiceAccountCredentials {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+  universe_domain?: string;
 }
 
 export interface DriveUploadResult {
@@ -28,59 +35,30 @@ export interface DriveUploadResult {
  *     └── documentos avulsos...
  */
 export class GoogleDriveService {
-  private oauth2Client: InstanceType<typeof google.auth.OAuth2>;
-  private drive: drive_v3.Drive | null = null;
+  private drive: drive_v3.Drive;
   private folderCache = new Map<string, string>();
+  private serviceEmail: string;
 
-  constructor(private credentials: GoogleDriveCredentials) {
-    this.oauth2Client = new google.auth.OAuth2(
-      credentials.clientId,
-      credentials.clientSecret,
-      credentials.redirectUri,
-    );
-
-    if (credentials.refreshToken) {
-      this.oauth2Client.setCredentials({
-        refresh_token: credentials.refreshToken,
-      });
-      this.drive = google.drive({ version: 'v3', auth: this.oauth2Client });
-    }
-  }
-
-  /** Gera URL para o usuário autorizar o acesso ao Google Drive */
-  generateAuthUrl(): string {
-    return this.oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      prompt: 'consent',
-      scope: [
-        'https://www.googleapis.com/auth/drive.file',
-      ],
+  constructor(credentials: ServiceAccountCredentials) {
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: credentials.client_email,
+        private_key: credentials.private_key,
+      },
+      scopes: ['https://www.googleapis.com/auth/drive'],
     });
-  }
 
-  /** Troca o código de autorização por tokens */
-  async exchangeCode(code: string): Promise<string> {
-    const { tokens } = await this.oauth2Client.getToken(code);
-    this.oauth2Client.setCredentials(tokens);
-    this.drive = google.drive({ version: 'v3', auth: this.oauth2Client });
-
-    if (!tokens.refresh_token) {
-      throw new Error('Não foi possível obter refresh_token. Tente revogar o acesso e autorizar novamente.');
-    }
-
-    return tokens.refresh_token;
+    this.drive = google.drive({ version: 'v3', auth });
+    this.serviceEmail = credentials.client_email;
   }
 
   /** Verifica se está conectado e funcionando */
   async testConnection(): Promise<{ ok: boolean; email?: string | undefined; error?: string | undefined }> {
-    if (!this.drive) {
-      return { ok: false, error: 'Não autenticado no Google Drive.' };
-    }
     try {
       const about = await this.drive.about.get({ fields: 'user' });
       return {
         ok: true,
-        email: about.data.user?.emailAddress ?? undefined,
+        email: about.data.user?.emailAddress ?? this.serviceEmail,
       };
     } catch (err) {
       return {
@@ -95,8 +73,6 @@ export class GoogleDriveService {
     const cacheKey = `${parentId ?? 'root'}/${name}`;
     const cached = this.folderCache.get(cacheKey);
     if (cached) return cached;
-
-    if (!this.drive) throw new Error('Google Drive não autenticado.');
 
     // Busca pasta existente
     const queryParts = [
@@ -171,8 +147,6 @@ export class GoogleDriveService {
     content: Buffer;
     folderId: string;
   }): Promise<DriveUploadResult> {
-    if (!this.drive) throw new Error('Google Drive não autenticado.');
-
     const res = await this.drive.files.create({
       requestBody: {
         name: opts.name,
@@ -195,8 +169,6 @@ export class GoogleDriveService {
 
   /** Baixa o conteúdo de um arquivo do Google Drive */
   async downloadFile(fileId: string): Promise<Buffer> {
-    if (!this.drive) throw new Error('Google Drive não autenticado.');
-
     const res = await this.drive.files.get(
       { fileId, alt: 'media' },
       { responseType: 'arraybuffer' },
@@ -207,7 +179,6 @@ export class GoogleDriveService {
 
   /** Remove um arquivo do Google Drive */
   async deleteFile(fileId: string): Promise<void> {
-    if (!this.drive) throw new Error('Google Drive não autenticado.');
     await this.drive.files.delete({ fileId });
   }
 
@@ -217,8 +188,6 @@ export class GoogleDriveService {
     mimeType: string;
     content: Buffer;
   }): Promise<void> {
-    if (!this.drive) throw new Error('Google Drive não autenticado.');
-
     await this.drive.files.update({
       fileId,
       requestBody: opts.name ? { name: opts.name } : {},
@@ -229,8 +198,8 @@ export class GoogleDriveService {
     });
   }
 
-  /** Verifica se o serviço está pronto (tem credenciais) */
-  get isAuthenticated(): boolean {
-    return this.drive !== null;
+  /** E-mail da Service Account */
+  get email(): string {
+    return this.serviceEmail;
   }
 }
