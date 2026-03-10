@@ -22,6 +22,13 @@
       "when": 1742125200000,
       "tag": "0002_add_documentos_conteudo_texto",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1742211600000,
+      "tag": "0003_add_documentos_google_drive",
+      "breakpoints": true
     }
   ]
 }

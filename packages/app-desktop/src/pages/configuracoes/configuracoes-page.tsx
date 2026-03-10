@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Save, Moon, Sun, RefreshCw, Download, RotateCcw, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Settings, Save, Moon, Sun, RefreshCw, Download, RotateCcw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, ExternalLink, Unplug } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -179,6 +179,238 @@ function UpdateSection() {
   );
 }
 
+function GoogleDriveSection() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [configured, setConfigured] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [driveEmail, setDriveEmail] = useState<string | null>(null);
+  const [showCredentials, setShowCredentials] = useState(false);
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const config = await api.getGoogleDriveConfig();
+      setConfigured(config.configured);
+      setAuthenticated(config.authenticated);
+      setClientId(config.clientId ?? '');
+
+      if (config.authenticated) {
+        const status = await api.getGoogleDriveStatus();
+        if (status.connected) setDriveEmail(status.email ?? null);
+      }
+    } catch {
+      // Silently ignore — user may not have permission
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  // Checar se voltou do redirect OAuth com sucesso
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gdriveResult = params.get('gdrive');
+    if (gdriveResult === 'ok') {
+      toast('Google Drive conectado com sucesso!', 'success');
+      loadConfig();
+      // Limpar parâmetro da URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (gdriveResult === 'error') {
+      toast('Erro ao conectar Google Drive. Tente novamente.', 'error');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [toast, loadConfig]);
+
+  async function handleSaveCredentials() {
+    if (!clientId.trim() || !clientSecret.trim()) {
+      toast('Preencha Client ID e Client Secret.', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.updateGoogleDriveConfig({ clientId, clientSecret });
+      setConfigured(true);
+      setShowCredentials(false);
+      toast('Credenciais salvas. Agora conecte sua conta Google.', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleConnect() {
+    setConnecting(true);
+    try {
+      const { url } = await api.getGoogleDriveAuthUrl();
+      // Abrir URL do Google OAuth no browser
+      window.open(url, '_blank');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao gerar link de autorização.', 'error');
+    } finally {
+      setConnecting(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      await api.disconnectGoogleDrive();
+      setAuthenticated(false);
+      setDriveEmail(null);
+      toast('Google Drive desconectado.', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao desconectar.', 'error');
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+        <Skeleton className="h-4 w-32 mb-2" />
+        <Skeleton className="h-3.5 w-64 mb-4" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
+
+  const inputClass =
+    'w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-sm-causa';
+
+  return (
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Cloud size={18} className="text-[var(--color-primary)]" />
+        <h3 className="text-base-causa font-semibold text-[var(--color-text)]">
+          Google Drive
+        </h3>
+      </div>
+      <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+        Sincronize documentos com o Google Drive para backup e acesso remoto.
+      </p>
+
+      {/* Estado: conectado */}
+      {authenticated && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-success/8 border border-causa-success/20">
+            <CheckCircle2 size={18} className="text-causa-success shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm-causa font-medium text-[var(--color-text)]">
+                Conectado ao Google Drive
+              </p>
+              {driveEmail && (
+                <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
+                  {driveEmail}
+                </p>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+            >
+              <Unplug size={14} className="mr-1" />
+              {disconnecting ? 'Desconectando...' : 'Desconectar'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Estado: configurado mas não conectado */}
+      {configured && !authenticated && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
+            <CloudOff size={18} className="text-[var(--color-text-muted)] shrink-0" />
+            <p className="text-sm-causa text-[var(--color-text-muted)]">
+              Credenciais configuradas. Conecte sua conta Google para ativar.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleConnect} disabled={connecting}>
+              <ExternalLink size={14} className="mr-1" />
+              {connecting ? 'Abrindo...' : 'Conectar conta Google'}
+            </Button>
+            <Button variant="ghost" onClick={() => setShowCredentials(!showCredentials)}>
+              Editar credenciais
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Estado: não configurado */}
+      {!configured && !showCredentials && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
+            <Settings size={18} className="text-[var(--color-text-muted)]" />
+            <div>
+              <p className="text-sm-causa text-[var(--color-text-muted)]">
+                Configure as credenciais OAuth do Google Cloud Console para habilitar a integração.
+              </p>
+            </div>
+          </div>
+          <Button variant="ghost" onClick={() => setShowCredentials(true)}>
+            Configurar credenciais
+          </Button>
+        </div>
+      )}
+
+      {/* Formulário de credenciais */}
+      {(showCredentials || (!configured && showCredentials)) && (
+        <div className="mt-4 space-y-3 pt-4 border-t border-[var(--color-border)]">
+          <div>
+            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+              Client ID
+            </label>
+            <input
+              type="text"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder="xxxx.apps.googleusercontent.com"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+              Client Secret
+            </label>
+            <input
+              type="password"
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
+              placeholder="GOCSPX-..."
+              className={inputClass}
+            />
+          </div>
+          <p className="text-xs-causa text-[var(--color-text-muted)]">
+            Crie um projeto no Google Cloud Console, ative a API do Google Drive e gere credenciais OAuth 2.0 com redirect URI: <code className="bg-causa-surface-alt px-1 py-0.5 rounded text-xs">http://localhost:3456/api/google-drive/callback</code>
+          </p>
+          <div className="flex gap-2">
+            <Button onClick={handleSaveCredentials} disabled={saving}>
+              <Save size={14} className="mr-1" />
+              {saving ? 'Salvando...' : 'Salvar credenciais'}
+            </Button>
+            {configured && (
+              <Button variant="ghost" onClick={() => setShowCredentials(false)}>
+                Cancelar
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme();
   const { can } = usePermission();
@@ -267,6 +499,9 @@ export function ConfiguracoesPage() {
             ))}
           </div>
         </div>
+
+        {/* Google Drive — somente admin */}
+        {canManageLicenca && <GoogleDriveSection />}
 
         {/* Topologia — somente admin */}
         {canManageLicenca && (
