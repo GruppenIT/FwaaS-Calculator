@@ -8,6 +8,13 @@
       "when": 1772840813574,
       "tag": "0000_initial_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1742038800000,
+      "tag": "0001_fix_documentos_caminho_local_nullable",
+      "breakpoints": true
     }
   ]
 }
