@@ -6,6 +6,8 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../lib/auth-context';
 import { Moon, Sun } from 'lucide-react';
 
+declare const __APP_VERSION__: string;
+
 declare global {
   interface Window {
     causaElectron?: {
@@ -21,7 +23,7 @@ export function LoginPage() {
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [appVersion, setAppVersion] = useState('');
+  const [appVersion, setAppVersion] = useState(__APP_VERSION__);
   const { theme, toggleTheme } = useTheme();
   const { login } = useAuth();
 
