@@ -1,13 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag } from 'lucide-react';
+import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
+import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
-import type { ClienteData, EnderecoJson } from '../../lib/api';
+import type { ClienteData, EnderecoJson, DocumentoRow } from '../../lib/api';
 import * as api from '../../lib/api';
+
+const PREVIEWABLE_MIMES = new Set([
+  'application/pdf',
+  'text/plain',
+  'text/html',
+  'text/csv',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+function isPreviewable(tipoMime: string): boolean {
+  return PREVIEWABLE_MIMES.has(tipoMime) || tipoMime.startsWith('image/');
+}
 
 interface ProcessoRow {
   id: string;
@@ -75,17 +88,23 @@ export function ClienteDetailPage() {
 
   const [cliente, setCliente] = useState<ClienteData | null>(null);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
+  const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState<ClienteEditData | null | undefined>(undefined);
+  const [viewDocId, setViewDocId] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
     try {
       const c = await api.obterCliente(id);
       setCliente(c);
-      const matchedProcessos = await api.listarProcessos(c.nome);
+      const [matchedProcessos, docs] = await Promise.all([
+        api.listarProcessos(c.nome),
+        api.listarDocumentos({ clienteId: id }),
+      ]);
       const filtered = matchedProcessos.filter((p) => p.clienteNome === c.nome);
       setProcessos(filtered);
+      setDocumentos(docs);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao carregar cliente.', 'error');
     } finally {
@@ -96,6 +115,28 @@ export function ClienteDetailPage() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  async function handleDownloadDoc(docId: string) {
+    try {
+      const data = await api.downloadDocumento(docId);
+      const byteChars = atob(data.conteudo);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: data.tipoMime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.nome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao baixar documento.', 'error');
+    }
+  }
 
   function handleEdit() {
     if (!cliente) return;
@@ -348,6 +389,74 @@ export function ClienteDetailPage() {
           </table>
         )}
       </div>
+
+      {/* Documentos vinculados */}
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+          <FileText size={16} className="text-[var(--color-text-muted)]" />
+          <span className="text-sm-causa font-semibold text-[var(--color-text)]">Documentos</span>
+          <span className="text-xs-causa text-[var(--color-text-muted)] bg-[var(--color-bg)] px-1.5 py-0.5 rounded-full">
+            {documentos.length}
+          </span>
+        </div>
+        {documentos.length === 0 ? (
+          <p className="text-sm-causa text-[var(--color-text-muted)] py-6 text-center">
+            Nenhum documento vinculado a este cliente.
+          </p>
+        ) : (
+          <div className="divide-y divide-[var(--color-border)]">
+            {documentos.map((d) => (
+              <div key={d.id} className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText size={14} className="text-[var(--color-primary)] shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm-causa text-[var(--color-text)] font-medium truncate block">
+                      {d.nome}
+                    </span>
+                    {d.descricao && (
+                      <span className="text-xs-causa text-[var(--color-text-muted)] truncate block">
+                        {d.descricao}
+                      </span>
+                    )}
+                  </div>
+                  {d.categoria && (
+                    <span className="text-xs-causa text-[var(--color-text-muted)] shrink-0 ml-1">
+                      {d.categoria}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
+                    {new Date(d.createdAt).toLocaleDateString('pt-BR')}
+                  </span>
+                  {isPreviewable(d.tipoMime) && (
+                    <button
+                      type="button"
+                      onClick={() => setViewDocId(d.id)}
+                      className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                      title="Visualizar"
+                    >
+                      <Eye size={14} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadDoc(d.id)}
+                    className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                    title="Baixar"
+                  >
+                    <Download size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {viewDocId && (
+        <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
+      )}
 
       {editData !== undefined && (
         <ClienteModal

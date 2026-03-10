@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or, like, sql } from 'drizzle-orm';
 import type { CausaDatabase, DatabaseQueryBuilder } from '../client.js';
 import type { CausaSchema } from '../schema-provider.js';
 
@@ -36,8 +36,31 @@ export class DocumentoService {
     this.users = schema.users;
   }
 
+  private extractText(conteudo: string | undefined, tipoMime: string): string | null {
+    if (!conteudo) return null;
+    // Extrair texto de formatos baseados em texto
+    if (
+      tipoMime === 'text/plain' ||
+      tipoMime === 'text/csv' ||
+      tipoMime === 'text/html'
+    ) {
+      try {
+        const text = Buffer.from(conteudo, 'base64').toString('utf-8');
+        // Para HTML, remover tags
+        if (tipoMime === 'text/html') {
+          return text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+        return text;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   async criar(input: CreateDocumentoInput): Promise<string> {
     const id = uuid();
+    const conteudoTexto = this.extractText(input.conteudo, input.tipoMime);
     await (this.db as unknown as DatabaseQueryBuilder).insert(this.documentos).values({
       id,
       processoId: input.processoId ?? null,
@@ -46,6 +69,7 @@ export class DocumentoService {
       descricao: input.descricao ?? null,
       caminhoLocal: input.caminhoLocal ?? null,
       conteudo: input.conteudo ?? null,
+      conteudoTexto,
       tipoMime: input.tipoMime,
       tamanhoBytes: input.tamanhoBytes,
       hashSha256: input.hashSha256,
@@ -63,6 +87,7 @@ export class DocumentoService {
     clienteId?: string;
     categoria?: string;
     confidencial?: boolean;
+    q?: string;
   }) {
     const conditions = [];
     if (filtros?.processoId) {
@@ -76,6 +101,16 @@ export class DocumentoService {
     }
     if (filtros?.confidencial !== undefined) {
       conditions.push(eq(this.documentos.confidencial, filtros.confidencial));
+    }
+    if (filtros?.q) {
+      const termo = `%${filtros.q}%`;
+      conditions.push(
+        or(
+          like(this.documentos.nome, termo),
+          like(this.documentos.descricao, termo),
+          like(this.documentos.conteudoTexto, termo),
+        )!,
+      );
     }
 
     const query = (this.db as unknown as DatabaseQueryBuilder)

@@ -895,13 +895,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // --- Documentos ---
     if (path === '/api/documentos' && method === 'GET') {
       if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
-      const filtros: { processoId?: string; clienteId?: string; categoria?: string } = {};
+      const filtros: { processoId?: string; clienteId?: string; categoria?: string; q?: string } = {};
       const processoIdParam = url.searchParams.get('processoId');
       const clienteIdParam = url.searchParams.get('clienteId');
       const categoriaParam = url.searchParams.get('categoria');
+      const qParam = url.searchParams.get('q');
       if (processoIdParam) filtros.processoId = processoIdParam;
       if (clienteIdParam) filtros.clienteId = clienteIdParam;
       if (categoriaParam) filtros.categoria = categoriaParam;
+      if (qParam) filtros.q = qParam;
       // Se não tem permissão confidencial, filtrar apenas não-confidenciais
       const canConfidencial = await hasPermission(user, 'documentos:confidencial');
       if (!canConfidencial) {

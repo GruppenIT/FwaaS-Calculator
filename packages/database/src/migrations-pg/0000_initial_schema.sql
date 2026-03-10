@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS "documentos" (
 	"processo_id" text,
 	"cliente_id" text,
 	"nome" text NOT NULL,
-	"caminho_local" text NOT NULL,
+	"caminho_local" text,
 	"tipo_mime" text NOT NULL,
 	"tamanho_bytes" integer NOT NULL,
 	"versao" integer DEFAULT 1 NOT NULL,

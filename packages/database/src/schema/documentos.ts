@@ -35,6 +35,7 @@ export const documentos = sqliteTable('documentos', {
   confidencial: integer('confidencial', { mode: 'boolean' }).notNull().default(false),
   dataReferencia: text('data_referencia'),
   conteudo: text('conteudo'),
+  conteudoTexto: text('conteudo_texto'),
   uploadedBy: text('uploaded_by')
     .notNull()
     .references(() => users.id),
