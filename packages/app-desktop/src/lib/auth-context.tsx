@@ -20,7 +20,7 @@ interface AuthState {
   features: AppFeatures;
 }
 
-const DEFAULT_FEATURES: AppFeatures = { financeiro: false, googleDrive: false };
+const DEFAULT_FEATURES: AppFeatures = { financeiro: false, googleDrive: false, telegram: false };
 
 interface AuthContextValue extends AuthState {
   login: (email: string, senha: string) => Promise<void>;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Save, Moon, Sun, RefreshCw, Download, RotateCcw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, ExternalLink, Unplug } from 'lucide-react';
+import { Settings, Save, Moon, Sun, RefreshCw, Download, RotateCcw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, ExternalLink, Unplug, Send, MessageCircle, Bell } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -183,28 +183,26 @@ function GoogleDriveSection() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
   const [configured, setConfigured] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
-  const [showCredentials, setShowCredentials] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [serviceAccountJson, setServiceAccountJson] = useState('');
 
   const loadConfig = useCallback(async () => {
     try {
       const config = await api.getGoogleDriveConfig();
       setConfigured(config.configured);
-      setAuthenticated(config.authenticated);
-      setClientId(config.clientId ?? '');
+      setConnected(config.connected);
 
-      if (config.authenticated) {
+      if (config.connected) {
         const status = await api.getGoogleDriveStatus();
         if (status.connected) setDriveEmail(status.email ?? null);
       }
     } catch {
-      // Silently ignore — user may not have permission
+      // Silently ignore
     } finally {
       setLoading(false);
     }
@@ -214,32 +212,31 @@ function GoogleDriveSection() {
     loadConfig();
   }, [loadConfig]);
 
-  // Checar se voltou do redirect OAuth com sucesso
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const gdriveResult = params.get('gdrive');
-    if (gdriveResult === 'ok') {
-      toast('Google Drive conectado com sucesso!', 'success');
-      loadConfig();
-      // Limpar parâmetro da URL
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (gdriveResult === 'error') {
-      toast('Erro ao conectar Google Drive. Tente novamente.', 'error');
-      window.history.replaceState({}, '', window.location.pathname);
+  async function handleSave() {
+    if (!serviceAccountJson.trim()) {
+      toast('Cole o conteúdo do arquivo JSON da Service Account.', 'error');
+      return;
     }
-  }, [toast, loadConfig]);
-
-  async function handleSaveCredentials() {
-    if (!clientId.trim() || !clientSecret.trim()) {
-      toast('Preencha Client ID e Client Secret.', 'error');
+    // Validar JSON
+    try {
+      const parsed = JSON.parse(serviceAccountJson);
+      if (!parsed.client_email || !parsed.private_key) {
+        toast('JSON inválido: campos client_email e private_key são obrigatórios.', 'error');
+        return;
+      }
+    } catch {
+      toast('JSON inválido. Verifique o conteúdo colado.', 'error');
       return;
     }
     setSaving(true);
     try {
-      await api.updateGoogleDriveConfig({ clientId, clientSecret });
+      await api.updateGoogleDriveConfig({ serviceAccountJson });
       setConfigured(true);
-      setShowCredentials(false);
-      toast('Credenciais salvas. Agora conecte sua conta Google.', 'success');
+      setConnected(true);
+      setShowSetup(false);
+      setServiceAccountJson('');
+      toast('Service Account configurada com sucesso!', 'success');
+      loadConfig();
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     } finally {
@@ -247,16 +244,20 @@ function GoogleDriveSection() {
     }
   }
 
-  async function handleConnect() {
-    setConnecting(true);
+  async function handleTest() {
+    setTesting(true);
     try {
-      const { url } = await api.getGoogleDriveAuthUrl();
-      // Abrir URL do Google OAuth no browser
-      window.open(url, '_blank');
+      const status = await api.getGoogleDriveStatus();
+      if (status.connected) {
+        setDriveEmail(status.email ?? null);
+        toast('Conexão OK! Drive acessível.', 'success');
+      } else {
+        toast(status.error ?? 'Falha na conexão.', 'error');
+      }
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao gerar link de autorização.', 'error');
+      toast(err instanceof Error ? err.message : 'Erro ao testar.', 'error');
     } finally {
-      setConnecting(false);
+      setTesting(false);
     }
   }
 
@@ -264,9 +265,265 @@ function GoogleDriveSection() {
     setDisconnecting(true);
     try {
       await api.disconnectGoogleDrive();
-      setAuthenticated(false);
+      setConfigured(false);
+      setConnected(false);
       setDriveEmail(null);
       toast('Google Drive desconectado.', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao desconectar.', 'error');
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+        <Skeleton className="h-4 w-32 mb-2" />
+        <Skeleton className="h-3.5 w-64 mb-4" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Cloud size={18} className="text-[var(--color-primary)]" />
+        <h3 className="text-base-causa font-semibold text-[var(--color-text)]">
+          Google Drive
+        </h3>
+      </div>
+      <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+        Sincronize documentos com o Google Drive para backup e acesso remoto via Service Account.
+      </p>
+
+      {/* Estado: conectado */}
+      {connected && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-success/8 border border-causa-success/20">
+            <CheckCircle2 size={18} className="text-causa-success shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm-causa font-medium text-[var(--color-text)]">
+                Conectado ao Google Drive
+              </p>
+              {driveEmail && (
+                <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
+                  Service Account: {driveEmail}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleTest}
+                disabled={testing}
+              >
+                <RefreshCw size={14} className={`mr-1 ${testing ? 'animate-spin' : ''}`} />
+                {testing ? 'Testando...' : 'Testar'}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+              >
+                <Unplug size={14} className="mr-1" />
+                {disconnecting ? 'Removendo...' : 'Remover'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Estado: não configurado */}
+      {!connected && !showSetup && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
+            <Settings size={18} className="text-[var(--color-text-muted)]" />
+            <p className="text-sm-causa text-[var(--color-text-muted)]">
+              Configure uma Service Account do Google Cloud para habilitar a integração.
+            </p>
+          </div>
+          <Button variant="ghost" onClick={() => setShowSetup(true)}>
+            Configurar Service Account
+          </Button>
+        </div>
+      )}
+
+      {/* Setup com guia passo-a-passo */}
+      {!connected && showSetup && (
+        <div className="mt-2 space-y-4">
+          <div className="rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)] p-4">
+            <p className="text-sm-causa font-medium text-[var(--color-text)] mb-3">
+              Como criar a Service Account:
+            </p>
+            <ol className="text-xs-causa text-[var(--color-text-muted)] space-y-2 list-decimal list-inside">
+              <li>
+                Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] underline">Google Cloud Console</a> e crie um projeto (ou use um existente)
+              </li>
+              <li>
+                No menu lateral, vá em <strong>APIs e Serviços &gt; Biblioteca</strong> e ative a <strong>Google Drive API</strong>
+              </li>
+              <li>
+                Vá em <strong>APIs e Serviços &gt; Credenciais</strong>
+              </li>
+              <li>
+                Clique em <strong>Criar credenciais &gt; Conta de serviço</strong>
+              </li>
+              <li>
+                Dê um nome (ex: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded">causa-drive-backup</code>) e clique em <strong>Concluir</strong>
+              </li>
+              <li>
+                Na lista de contas de serviço, clique na conta criada
+              </li>
+              <li>
+                Vá na aba <strong>Chaves &gt; Adicionar chave &gt; Criar nova chave &gt; JSON</strong>
+              </li>
+              <li>
+                O arquivo JSON será baixado automaticamente. <strong>Abra-o e cole o conteúdo abaixo.</strong>
+              </li>
+            </ol>
+            <div className="mt-3 px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <p className="text-xs-causa text-[var(--color-text-muted)]">
+                <strong>Dica:</strong> Para que a Service Account acesse uma pasta específica do Drive, compartilhe a pasta com o e-mail da Service Account (campo <code>client_email</code> no JSON) com permissão de <strong>Editor</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+              JSON da Service Account
+            </label>
+            <textarea
+              value={serviceAccountJson}
+              onChange={(e) => setServiceAccountJson(e.target.value)}
+              placeholder='{"type": "service_account", "project_id": "...", ...}'
+              rows={6}
+              className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-xs font-mono resize-y"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleSave} disabled={saving}>
+              <Save size={14} className="mr-1" />
+              {saving ? 'Salvando...' : 'Salvar e conectar'}
+            </Button>
+            <Button variant="ghost" onClick={() => { setShowSetup(false); setServiceAccountJson(''); }}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TelegramSection() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [sendingSummary, setSendingSummary] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [configured, setConfigured] = useState(false);
+  const [botToken, setBotToken] = useState('');
+  const [chatId, setChatId] = useState('');
+  const [dailySummary, setDailySummary] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [availableChats, setAvailableChats] = useState<api.TelegramUpdate[]>([]);
+  const [loadingChats, setLoadingChats] = useState(false);
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const config = await api.getTelegramConfig();
+      setConfigured(config.configured);
+      setChatId(config.chatId ?? '');
+      setDailySummary(config.dailySummaryEnabled);
+    } catch {
+      // Silently ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  async function handleSave() {
+    if (!botToken.trim() && !configured) {
+      toast('Preencha o token do bot.', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      const data: Record<string, unknown> = { dailySummaryEnabled: dailySummary };
+      if (botToken.trim()) data.botToken = botToken;
+      if (chatId.trim()) data.chatId = chatId;
+      await api.updateTelegramConfig(data as Parameters<typeof api.updateTelegramConfig>[0]);
+      setConfigured(true);
+      setShowSetup(false);
+      toast('Configuração do Telegram salva.', 'success');
+      loadConfig();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTest() {
+    setTesting(true);
+    try {
+      const result = await api.testTelegram();
+      if (result.ok) {
+        toast(`Bot conectado: ${result.botName ?? 'ok'}. Mensagem de teste enviada!`, 'success');
+      } else {
+        toast(`Erro: ${result.error ?? 'falha na conexão'}`, 'error');
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao testar.', 'error');
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleSendSummary() {
+    setSendingSummary(true);
+    try {
+      await api.sendTelegramSummary();
+      toast('Resumo diário enviado!', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao enviar resumo.', 'error');
+    } finally {
+      setSendingSummary(false);
+    }
+  }
+
+  async function handleLoadChats() {
+    setLoadingChats(true);
+    try {
+      const chats = await api.getTelegramUpdates();
+      setAvailableChats(chats);
+      if (chats.length === 0) {
+        toast('Nenhuma conversa encontrada. Envie uma mensagem para o bot primeiro.', 'error');
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao buscar conversas.', 'error');
+    } finally {
+      setLoadingChats(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      await api.disconnectTelegram();
+      setConfigured(false);
+      setChatId('');
+      setBotToken('');
+      setDailySummary(false);
+      toast('Telegram desconectado.', 'success');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao desconectar.', 'error');
     } finally {
@@ -290,35 +547,64 @@ function GoogleDriveSection() {
   return (
     <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
       <div className="flex items-center gap-2 mb-1">
-        <Cloud size={18} className="text-[var(--color-primary)]" />
+        <MessageCircle size={18} className="text-[#0088cc]" />
         <h3 className="text-base-causa font-semibold text-[var(--color-text)]">
-          Google Drive
+          Telegram
         </h3>
       </div>
       <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
-        Sincronize documentos com o Google Drive para backup e acesso remoto.
+        Receba alertas de prazos e resumos diários pelo Telegram.
       </p>
 
-      {/* Estado: conectado */}
-      {authenticated && (
+      {/* Configurado */}
+      {configured && !showSetup && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-success/8 border border-causa-success/20">
             <CheckCircle2 size={18} className="text-causa-success shrink-0" />
             <div className="flex-1">
               <p className="text-sm-causa font-medium text-[var(--color-text)]">
-                Conectado ao Google Drive
+                Bot Telegram conectado
               </p>
-              {driveEmail && (
+              {chatId && (
                 <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
-                  {driveEmail}
+                  Chat ID: {chatId}
                 </p>
               )}
             </div>
-            <Button
-              variant="ghost"
-              onClick={handleDisconnect}
-              disabled={disconnecting}
-            >
+          </div>
+
+          {/* Opções */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
+            <Bell size={16} className="text-[var(--color-text-muted)] shrink-0" />
+            <label className="flex items-center gap-2 cursor-pointer text-sm-causa text-[var(--color-text)] flex-1">
+              <input
+                type="checkbox"
+                checked={dailySummary}
+                onChange={(e) => {
+                  setDailySummary(e.target.checked);
+                  api.updateTelegramConfig({ dailySummaryEnabled: e.target.checked })
+                    .then(() => toast('Configuração atualizada.', 'success'))
+                    .catch(() => {});
+                }}
+                className="accent-[var(--color-primary)]"
+              />
+              Resumo diário automático (8h)
+            </label>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="ghost" onClick={handleTest} disabled={testing}>
+              <Send size={14} className="mr-1" />
+              {testing ? 'Testando...' : 'Testar'}
+            </Button>
+            <Button variant="ghost" onClick={handleSendSummary} disabled={sendingSummary}>
+              <MessageCircle size={14} className="mr-1" />
+              {sendingSummary ? 'Enviando...' : 'Enviar resumo agora'}
+            </Button>
+            <Button variant="ghost" onClick={() => setShowSetup(true)}>
+              Editar config
+            </Button>
+            <Button variant="ghost" onClick={handleDisconnect} disabled={disconnecting}>
               <Unplug size={14} className="mr-1" />
               {disconnecting ? 'Desconectando...' : 'Desconectar'}
             </Button>
@@ -326,81 +612,101 @@ function GoogleDriveSection() {
         </div>
       )}
 
-      {/* Estado: configurado mas não conectado */}
-      {configured && !authenticated && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
-            <CloudOff size={18} className="text-[var(--color-text-muted)] shrink-0" />
-            <p className="text-sm-causa text-[var(--color-text-muted)]">
-              Credenciais configuradas. Conecte sua conta Google para ativar.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleConnect} disabled={connecting}>
-              <ExternalLink size={14} className="mr-1" />
-              {connecting ? 'Abrindo...' : 'Conectar conta Google'}
-            </Button>
-            <Button variant="ghost" onClick={() => setShowCredentials(!showCredentials)}>
-              Editar credenciais
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Estado: não configurado */}
-      {!configured && !showCredentials && (
+      {/* Não configurado */}
+      {!configured && !showSetup && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
             <Settings size={18} className="text-[var(--color-text-muted)]" />
-            <div>
-              <p className="text-sm-causa text-[var(--color-text-muted)]">
-                Configure as credenciais OAuth do Google Cloud Console para habilitar a integração.
-              </p>
-            </div>
+            <p className="text-sm-causa text-[var(--color-text-muted)]">
+              Crie um bot no @BotFather do Telegram e configure o token para receber alertas.
+            </p>
           </div>
-          <Button variant="ghost" onClick={() => setShowCredentials(true)}>
-            Configurar credenciais
+          <Button variant="ghost" onClick={() => setShowSetup(true)}>
+            Configurar bot
           </Button>
         </div>
       )}
 
-      {/* Formulário de credenciais */}
-      {(showCredentials || (!configured && showCredentials)) && (
+      {/* Formulário de configuração */}
+      {showSetup && (
         <div className="mt-4 space-y-3 pt-4 border-t border-[var(--color-border)]">
           <div>
             <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
-              Client ID
-            </label>
-            <input
-              type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="xxxx.apps.googleusercontent.com"
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
-              Client Secret
+              Token do Bot
             </label>
             <input
               type="password"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder="GOCSPX-..."
+              value={botToken}
+              onChange={(e) => setBotToken(e.target.value)}
+              placeholder="123456:ABC-DEF1234..."
               className={inputClass}
             />
+            <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+              Obtenha em @BotFather no Telegram.
+            </p>
           </div>
-          <p className="text-xs-causa text-[var(--color-text-muted)]">
-            Crie um projeto no Google Cloud Console, ative a API do Google Drive e gere credenciais OAuth 2.0 com redirect URI: <code className="bg-causa-surface-alt px-1 py-0.5 rounded text-xs">http://localhost:3456/api/google-drive/callback</code>
-          </p>
+
+          <div>
+            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+              Chat ID
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatId}
+                onChange={(e) => setChatId(e.target.value)}
+                placeholder="-1001234567890"
+                className={inputClass}
+              />
+              <Button
+                variant="ghost"
+                onClick={handleLoadChats}
+                disabled={loadingChats || !botToken.trim()}
+                title="Salve o token primeiro, envie uma mensagem ao bot, depois clique aqui"
+              >
+                {loadingChats ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              </Button>
+            </div>
+            {availableChats.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {availableChats.map((c) => (
+                  <button
+                    key={c.chatId}
+                    type="button"
+                    onClick={() => setChatId(c.chatId)}
+                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-sm-causa transition-causa cursor-pointer ${
+                      chatId === c.chatId
+                        ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
+                        : 'bg-causa-surface-alt text-[var(--color-text)] hover:bg-causa-bg'
+                    }`}
+                  >
+                    {c.chatTitle} <span className="text-[var(--color-text-muted)]">({c.chatId})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+              Envie uma mensagem ao bot e clique no botão de refresh para descobrir o chat ID.
+            </p>
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer text-sm-causa text-[var(--color-text)]">
+            <input
+              type="checkbox"
+              checked={dailySummary}
+              onChange={(e) => setDailySummary(e.target.checked)}
+              className="accent-[var(--color-primary)]"
+            />
+            Habilitar resumo diário automático (8h)
+          </label>
+
           <div className="flex gap-2">
-            <Button onClick={handleSaveCredentials} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving}>
               <Save size={14} className="mr-1" />
-              {saving ? 'Salvando...' : 'Salvar credenciais'}
+              {saving ? 'Salvando...' : 'Salvar'}
             </Button>
             {configured && (
-              <Button variant="ghost" onClick={() => setShowCredentials(false)}>
+              <Button variant="ghost" onClick={() => setShowSetup(false)}>
                 Cancelar
               </Button>
             )}
@@ -502,6 +808,9 @@ export function ConfiguracoesPage() {
 
         {/* Google Drive — somente admin */}
         {canManageLicenca && <GoogleDriveSection />}
+
+        {/* Telegram — somente admin */}
+        {canManageLicenca && <TelegramSection />}
 
         {/* Topologia — somente admin */}
         {canManageLicenca && (

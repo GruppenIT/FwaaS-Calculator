@@ -963,6 +963,7 @@ export function excluirTimesheet(id: string) {
 export interface AppFeatures {
   financeiro: boolean;
   googleDrive: boolean;
+  telegram: boolean;
 }
 
 export function getFeatures() {
@@ -1044,8 +1045,7 @@ export function getDashboardProdutividade() {
 // === Google Drive ===
 export interface GoogleDriveConfig {
   configured: boolean;
-  authenticated: boolean;
-  clientId: string | null;
+  connected: boolean;
   rootFolderId: string | null;
 }
 
@@ -1060,18 +1060,13 @@ export function getGoogleDriveConfig() {
 }
 
 export function updateGoogleDriveConfig(data: {
-  clientId?: string;
-  clientSecret?: string;
+  serviceAccountJson?: string;
   rootFolderId?: string;
 }) {
   return request<{ ok: boolean }>('/api/google-drive/config', {
     method: 'PUT',
     body: JSON.stringify(data),
   });
-}
-
-export function getGoogleDriveAuthUrl() {
-  return request<{ url: string }>('/api/google-drive/auth-url');
 }
 
 export function getGoogleDriveStatus() {
@@ -1096,4 +1091,57 @@ export function syncAllDocumentosDrive() {
     '/api/google-drive/sync-all',
     { method: 'POST' },
   );
+}
+
+// === Telegram ===
+export interface TelegramConfig {
+  configured: boolean;
+  botToken: string | null;
+  chatId: string | null;
+  dailySummaryEnabled: boolean;
+  alertDays: number[];
+}
+
+export interface TelegramUpdate {
+  chatId: string;
+  chatTitle: string;
+  from: string;
+}
+
+export function getTelegramConfig() {
+  return request<TelegramConfig>('/api/telegram/config');
+}
+
+export function updateTelegramConfig(data: {
+  botToken?: string;
+  chatId?: string;
+  dailySummaryEnabled?: boolean;
+  alertDays?: number[];
+}) {
+  return request<{ ok: boolean }>('/api/telegram/config', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function testTelegram() {
+  return request<{ ok: boolean; botName?: string; error?: string }>('/api/telegram/test', {
+    method: 'POST',
+  });
+}
+
+export function getTelegramUpdates() {
+  return request<TelegramUpdate[]>('/api/telegram/updates');
+}
+
+export function sendTelegramSummary() {
+  return request<{ ok: boolean }>('/api/telegram/send-summary', {
+    method: 'POST',
+  });
+}
+
+export function disconnectTelegram() {
+  return request<{ ok: boolean }>('/api/telegram/disconnect', {
+    method: 'POST',
+  });
 }
