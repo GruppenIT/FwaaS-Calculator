@@ -6,18 +6,6 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../lib/auth-context';
 import { Moon, Sun } from 'lucide-react';
 
-declare const __APP_VERSION__: string;
-
-declare global {
-  interface Window {
-    causaElectron?: {
-      getInstallConfig: () => Promise<{ topologia: string; postgresUrl?: string }>;
-      getApiStatus: () => Promise<{ started: boolean }>;
-      getAppVersion: () => Promise<string>;
-    };
-  }
-}
-
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
