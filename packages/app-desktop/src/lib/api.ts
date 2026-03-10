@@ -736,6 +736,16 @@ export function excluirDocumento(id: string) {
   });
 }
 
+export interface DocumentoDownload {
+  nome: string;
+  tipoMime: string;
+  conteudo: string;
+}
+
+export function downloadDocumento(id: string) {
+  return request<DocumentoDownload>(`/api/documentos/${id}/download`);
+}
+
 // === Parcelas ===
 export interface ParcelaRow {
   id: string;

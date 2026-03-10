@@ -8,7 +8,8 @@ export interface CreateDocumentoInput {
   clienteId?: string;
   nome: string;
   descricao?: string;
-  caminhoLocal: string;
+  caminhoLocal?: string;
+  conteudo?: string;
   tipoMime: string;
   tamanhoBytes: number;
   hashSha256: string;
@@ -43,7 +44,8 @@ export class DocumentoService {
       clienteId: input.clienteId ?? null,
       nome: input.nome,
       descricao: input.descricao ?? null,
-      caminhoLocal: input.caminhoLocal,
+      caminhoLocal: input.caminhoLocal ?? null,
+      conteudo: input.conteudo ?? null,
       tipoMime: input.tipoMime,
       tamanhoBytes: input.tamanhoBytes,
       hashSha256: input.hashSha256,
@@ -138,12 +140,24 @@ export class DocumentoService {
     return row ?? undefined;
   }
 
+  async obterConteudo(id: string) {
+    const [row] = await (this.db as unknown as DatabaseQueryBuilder)
+      .select({
+        nome: this.documentos.nome,
+        tipoMime: this.documentos.tipoMime,
+        conteudo: this.documentos.conteudo,
+      })
+      .from(this.documentos)
+      .where(eq(this.documentos.id, id));
+    return row ?? undefined;
+  }
+
   async atualizar(
     id: string,
     input: Partial<
       Omit<
         CreateDocumentoInput,
-        'uploadedBy' | 'caminhoLocal' | 'hashSha256' | 'tamanhoBytes' | 'tipoMime'
+        'uploadedBy' | 'caminhoLocal' | 'hashSha256' | 'tamanhoBytes' | 'tipoMime' | 'conteudo'
       >
     >,
   ) {

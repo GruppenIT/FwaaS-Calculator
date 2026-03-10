@@ -9,7 +9,7 @@ export const documentos = sqliteTable('documentos', {
   clienteId: text('cliente_id').references(() => clientes.id),
   nome: text('nome').notNull(),
   descricao: text('descricao'),
-  caminhoLocal: text('caminho_local').notNull(),
+  caminhoLocal: text('caminho_local'),
   tipoMime: text('tipo_mime').notNull(),
   tamanhoBytes: integer('tamanho_bytes').notNull(),
   versao: integer('versao').notNull().default(1),
@@ -34,6 +34,7 @@ export const documentos = sqliteTable('documentos', {
   tags: text('tags', { mode: 'json' }).$type<string[]>(),
   confidencial: integer('confidencial', { mode: 'boolean' }).notNull().default(false),
   dataReferencia: text('data_referencia'),
+  conteudo: text('conteudo'),
   uploadedBy: text('uploaded_by')
     .notNull()
     .references(() => users.id),

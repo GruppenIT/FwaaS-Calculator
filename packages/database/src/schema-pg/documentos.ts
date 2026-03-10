@@ -9,7 +9,7 @@ export const documentos = pgTable('documentos', {
   clienteId: text('cliente_id').references(() => clientes.id),
   nome: text('nome').notNull(),
   descricao: text('descricao'),
-  caminhoLocal: text('caminho_local').notNull(),
+  caminhoLocal: text('caminho_local'),
   tipoMime: text('tipo_mime').notNull(),
   tamanhoBytes: integer('tamanho_bytes').notNull(),
   versao: integer('versao').notNull().default(1),
@@ -18,6 +18,7 @@ export const documentos = pgTable('documentos', {
   tags: text('tags'),
   confidencial: boolean('confidencial').notNull().default(false),
   dataReferencia: text('data_referencia'),
+  conteudo: text('conteudo'),
   uploadedBy: text('uploaded_by')
     .notNull()
     .references(() => users.id),
