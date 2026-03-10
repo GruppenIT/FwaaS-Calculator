@@ -1,5 +1,7 @@
 import http from 'node:http';
-import { createDatabase, type CausaDatabase, type DatabaseQueryBuilder } from './client.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createDatabase, type CausaDatabase, type SqliteDatabase, type PgDatabase, type DatabaseQueryBuilder } from './client.js';
 import { getSchema, type CausaSchema } from './schema-provider.js';
 import { AuthService } from './services/auth.js';
 import { RbacService, type AuthenticatedUser } from './services/rbac.js';
@@ -16,10 +18,16 @@ import { ContatoService } from './services/contatos.js';
 import { TimesheetService } from './services/timesheets.js';
 import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services/automations.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
+import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
+import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import { count, eq, sum, and, lt, gte, lte } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
 import { logger } from './logger.js';
+
+const __apiDirname = path.dirname(fileURLToPath(import.meta.url));
+const MIGRATIONS_DIR = path.resolve(__apiDirname, 'migrations');
+const MIGRATIONS_PG_DIR = path.resolve(__apiDirname, 'migrations-pg');
 
 const DEFAULT_PORT = 3456;
 const DB_PATH = 'causa.db';
@@ -151,10 +159,31 @@ function loadApp(): boolean {
     sqlitePath: config.dbPath,
     ...(config.postgresUrl ? { postgresUrl: config.postgresUrl } : {}),
   });
+
+  // Aplicar migrations pendentes automaticamente (upgrade)
+  try {
+    if (config.topologia === 'solo') {
+      logger.info('API', 'Aplicando migrations SQLite pendentes...');
+      migrateSqlite(database as SqliteDatabase, { migrationsFolder: MIGRATIONS_DIR });
+    } else {
+      logger.info('API', 'Aplicando migrations PostgreSQL pendentes...');
+      // PG migrate é async mas loadApp é sync — tratado no startServer
+      pendingPgMigration = migratePg(database as PgDatabase, { migrationsFolder: MIGRATIONS_PG_DIR });
+    }
+    logger.info('API', 'Migrations aplicadas com sucesso');
+  } catch (err) {
+    logger.error('API', 'Erro ao aplicar migrations', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   const s = getSchema(config.topologia);
   initializeServices(database, s, config.jwtSecret);
   return true;
 }
+
+/** Promise de migration PG pendente (PG migrate é async) */
+let pendingPgMigration: Promise<void> | null = null;
 
 function json(res: http.ServerResponse, data: unknown, status = 200) {
   res.writeHead(status, {
@@ -1348,11 +1377,24 @@ export interface StartServerOptions {
  * Inicia o servidor da API CAUSA.
  * Retorna uma Promise que resolve com o http.Server quando estiver ouvindo.
  */
-export function startServer(options: StartServerOptions = {}): Promise<http.Server> {
+export async function startServer(options: StartServerOptions = {}): Promise<http.Server> {
   const port = options.port ?? DEFAULT_PORT;
 
   if (options.cwd) {
     process.chdir(options.cwd);
+  }
+
+  // Aguardar migration PG pendente (se houver) antes de aceitar requests
+  if (pendingPgMigration) {
+    try {
+      await pendingPgMigration;
+      logger.info('API', 'Migrations PostgreSQL aplicadas com sucesso');
+    } catch (err) {
+      logger.error('API', 'Erro ao aplicar migrations PostgreSQL', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    pendingPgMigration = null;
   }
 
   return new Promise((resolve) => {
