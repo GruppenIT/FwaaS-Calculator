@@ -17,6 +17,7 @@ import { DespesaService } from './services/despesas.js';
 import { ContatoService } from './services/contatos.js';
 import { TimesheetService } from './services/timesheets.js';
 import { GoogleDriveService } from './services/google-drive.js';
+import { TelegramService } from './services/telegram.js';
 import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services/automations.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
 import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
@@ -42,6 +43,13 @@ interface GoogleDriveConfig {
   rootFolderId?: string;
 }
 
+interface TelegramBotConfig {
+  botToken: string;
+  chatId: string;
+  dailySummaryEnabled?: boolean;
+  alertDays?: number[];
+}
+
 interface AppConfig {
   jwtSecret: string;
   topologia: 'solo' | 'escritorio';
@@ -49,6 +57,7 @@ interface AppConfig {
   postgresUrl?: string;
   moduleKeys?: string[];
   googleDrive?: GoogleDriveConfig;
+  telegram?: TelegramBotConfig;
 }
 
 /** Códigos de ativação de módulos opcionais */
@@ -73,6 +82,8 @@ let despesaService: DespesaService | null = null;
 let contatoService: ContatoService | null = null;
 let timesheetService: TimesheetService | null = null;
 let driveService: GoogleDriveService | null = null;
+let telegramService: TelegramService | null = null;
+let telegramAlertInterval: ReturnType<typeof setInterval> | null = null;
 
 function ensureService<T>(service: T | null, name: string): T {
   if (!service) {
@@ -173,6 +184,14 @@ function loadApp(): boolean {
       clientSecret: config.googleDrive.clientSecret,
       redirectUri: config.googleDrive.redirectUri || 'http://localhost:3456/api/google-drive/callback',
       refreshToken: config.googleDrive.refreshToken,
+    });
+  }
+
+  // Inicializar Telegram se configurado
+  if (config.telegram?.botToken && config.telegram?.chatId) {
+    telegramService = new TelegramService({
+      botToken: config.telegram.botToken,
+      chatId: config.telegram.chatId,
     });
   }
 
@@ -387,6 +406,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, {
         financeiro: activeModuleKeys.includes(MODULE_CODES.financeiro),
         googleDrive: driveService?.isAuthenticated ?? false,
+        telegram: telegramService !== null,
       });
     }
 
@@ -1414,6 +1434,102 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, { ok: true, total: pending.length, synced, errors });
     }
 
+    // --- Telegram ---
+    if (path === '/api/telegram/config' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const tgConfig = config.telegram;
+      return json(res, {
+        configured: !!tgConfig?.botToken && !!tgConfig?.chatId,
+        botToken: tgConfig?.botToken ? `${tgConfig.botToken.slice(0, 8)}...` : null,
+        chatId: tgConfig?.chatId ?? null,
+        dailySummaryEnabled: tgConfig?.dailySummaryEnabled ?? false,
+        alertDays: tgConfig?.alertDays ?? [15, 7, 3, 1],
+      });
+    }
+
+    if (path === '/api/telegram/config' && method === 'PUT') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const body = JSON.parse(await readBody(req)) as Partial<TelegramBotConfig>;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+
+      if (!config.telegram) {
+        config.telegram = { botToken: '', chatId: '' };
+      }
+      if (body.botToken !== undefined) config.telegram.botToken = body.botToken;
+      if (body.chatId !== undefined) config.telegram.chatId = body.chatId;
+      if (body.dailySummaryEnabled !== undefined) config.telegram.dailySummaryEnabled = body.dailySummaryEnabled;
+      if (body.alertDays !== undefined) config.telegram.alertDays = body.alertDays;
+
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+
+      // Reinicializar serviço
+      if (config.telegram.botToken && config.telegram.chatId) {
+        telegramService = new TelegramService({
+          botToken: config.telegram.botToken,
+          chatId: config.telegram.chatId,
+        });
+        startTelegramAlertJob(config.telegram);
+      } else {
+        telegramService = null;
+        if (telegramAlertInterval) {
+          clearInterval(telegramAlertInterval);
+          telegramAlertInterval = null;
+        }
+      }
+
+      return json(res, { ok: true });
+    }
+
+    if (path === '/api/telegram/test' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      if (!telegramService) {
+        return error(res, 'Telegram não configurado.', 400);
+      }
+      const result = await telegramService.testConnection();
+      if (result.ok) {
+        await telegramService.sendMessage('✅ <b>CAUSA</b> — Bot conectado com sucesso!');
+      }
+      return json(res, result);
+    }
+
+    if (path === '/api/telegram/updates' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      if (!telegramService) {
+        return error(res, 'Telegram não configurado. Salve o token do bot primeiro.', 400);
+      }
+      const updates = await telegramService.getUpdates();
+      return json(res, updates);
+    }
+
+    if (path === '/api/telegram/send-summary' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      if (!telegramService) {
+        return error(res, 'Telegram não configurado.', 400);
+      }
+
+      try {
+        const summaryData = await buildDailySummary();
+        const sent = await telegramService.sendDailySummary(summaryData);
+        return json(res, { ok: sent });
+      } catch (err) {
+        return error(res, `Erro ao enviar resumo: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+      }
+    }
+
+    if (path === '/api/telegram/disconnect' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      delete config.telegram;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+      telegramService = null;
+      if (telegramAlertInterval) {
+        clearInterval(telegramAlertInterval);
+        telegramAlertInterval = null;
+      }
+      return json(res, { ok: true });
+    }
+
     // --- Configurações ---
     if (path === '/api/configuracoes' && method === 'GET') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
@@ -1641,6 +1757,204 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   }
 }
 
+// === Telegram helpers ===
+
+/** Monta os dados do resumo diário a partir das queries do DB */
+async function buildDailySummary() {
+  const dbq = getDb();
+  const s = getAppSchema();
+
+  const hoje = new Date().toISOString().split('T')[0]!;
+  const amanha = new Date(Date.now() + 86400000).toISOString().split('T')[0]!;
+  const fimSemana = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]!;
+
+  // Prazos pendentes
+  type PrazoSummaryRow = { id: string; descricao: string; dataFatal: string; numeroCnj: string | null; fatal: boolean; responsavelNome: string | null; alertasEnviados: unknown };
+
+  const todosPrazos: PrazoSummaryRow[] = await dbq
+    .select({
+      id: s.prazos.id,
+      descricao: s.prazos.descricao,
+      dataFatal: s.prazos.dataFatal,
+      numeroCnj: s.processos.numeroCnj,
+      fatal: s.prazos.fatal,
+      responsavelNome: s.users.nome,
+      alertasEnviados: s.prazos.alertasEnviados,
+    })
+    .from(s.prazos)
+    .leftJoin(s.processos, eq(s.prazos.processoId, s.processos.id))
+    .leftJoin(s.users, eq(s.prazos.responsavelId, s.users.id))
+    .where(and(eq(s.prazos.status, 'pendente'), lte(s.prazos.dataFatal, fimSemana)));
+
+  const prazosHoje = todosPrazos.filter((p: PrazoSummaryRow) => p.dataFatal === hoje).length;
+  const prazosAmanha = todosPrazos.filter((p: PrazoSummaryRow) => p.dataFatal === amanha).length;
+  const prazosSemana = todosPrazos.filter((p: PrazoSummaryRow) => p.dataFatal > amanha && p.dataFatal <= fimSemana).length;
+
+  const prazosProximos = todosPrazos
+    .map((p: PrazoSummaryRow) => {
+      const dias = Math.ceil((new Date(p.dataFatal + 'T00:00:00').getTime() - new Date(hoje + 'T00:00:00').getTime()) / 86400000);
+      return { ...p, diasRestantes: dias };
+    })
+    .filter((p: PrazoSummaryRow & { diasRestantes: number }) => p.diasRestantes >= 0)
+    .sort((a: { diasRestantes: number }, b: { diasRestantes: number }) => a.diasRestantes - b.diasRestantes);
+
+  // Tarefas pendentes
+  const [tarefasPend] = await dbq
+    .select({ count: count() })
+    .from(s.tarefas)
+    .where(eq(s.tarefas.status, 'pendente'));
+
+  // Movimentações não lidas
+  const [movsNaoLidas] = await dbq
+    .select({ count: count() })
+    .from(s.movimentacoes)
+    .where(eq(s.movimentacoes.lido, false));
+
+  // Parcelas atrasadas
+  const [parcelasAtr] = await dbq
+    .select({ count: count() })
+    .from(s.parcelas)
+    .where(eq(s.parcelas.status, 'atrasado'));
+
+  // Audiências da semana
+  const audiencias = await dbq
+    .select({
+      titulo: s.agenda.titulo,
+      dataHoraInicio: s.agenda.dataHoraInicio,
+      local: s.agenda.local,
+    })
+    .from(s.agenda)
+    .where(and(gte(s.agenda.dataHoraInicio, hoje), lte(s.agenda.dataHoraInicio, fimSemana)));
+
+  return {
+    prazosHoje,
+    prazosAmanha,
+    prazosSemana,
+    tarefasPendentes: tarefasPend?.count ?? 0,
+    movimentacoesNaoLidas: movsNaoLidas?.count ?? 0,
+    parcelasAtrasadas: parcelasAtr?.count ?? 0,
+    audienciasSemana: audiencias,
+    prazosProximos: prazosProximos.map((p) => ({
+      descricao: p.descricao,
+      dataFatal: p.dataFatal,
+      numeroCnj: p.numeroCnj,
+      diasRestantes: p.diasRestantes,
+      fatal: p.fatal,
+    })),
+  };
+}
+
+/** Verifica prazos e envia alertas via Telegram */
+async function checkAndSendPrazoAlerts(alertDays: number[]) {
+  if (!telegramService || !db || !schema) return;
+
+  const dbq = db as unknown as DatabaseQueryBuilder;
+  const s = schema;
+  const hoje = new Date().toISOString().split('T')[0]!;
+
+  // Buscar prazos pendentes
+  const prazos = await dbq
+    .select({
+      id: s.prazos.id,
+      descricao: s.prazos.descricao,
+      dataFatal: s.prazos.dataFatal,
+      numeroCnj: s.processos.numeroCnj,
+      fatal: s.prazos.fatal,
+      prioridade: s.prazos.prioridade,
+      responsavelNome: s.users.nome,
+      alertasEnviados: s.prazos.alertasEnviados,
+    })
+    .from(s.prazos)
+    .leftJoin(s.processos, eq(s.prazos.processoId, s.processos.id))
+    .leftJoin(s.users, eq(s.prazos.responsavelId, s.users.id))
+    .where(eq(s.prazos.status, 'pendente'));
+
+  for (const prazo of prazos) {
+    const diasRestantes = Math.ceil(
+      (new Date(prazo.dataFatal + 'T00:00:00').getTime() - new Date(hoje + 'T00:00:00').getTime()) / 86400000,
+    );
+
+    if (diasRestantes < 0) continue;
+
+    // Checar se devemos enviar alerta para este número de dias
+    const deveAlertar = alertDays.includes(diasRestantes);
+    if (!deveAlertar) continue;
+
+    // Checar se já enviamos alerta para este dia
+    const enviados = prazo.alertasEnviados as { dias: number[]; enviados: string[] } | null;
+    const jaEnviado = enviados?.enviados?.includes(`tg_${diasRestantes}`);
+    if (jaEnviado) continue;
+
+    // Enviar alerta
+    const sent = await telegramService.sendPrazoAlert({
+      descricao: prazo.descricao,
+      dataFatal: prazo.dataFatal,
+      numeroCnj: prazo.numeroCnj,
+      responsavelNome: prazo.responsavelNome,
+      diasRestantes,
+      fatal: prazo.fatal,
+      prioridade: prazo.prioridade,
+    });
+
+    if (sent) {
+      // Marcar como enviado
+      const newEnviados = enviados ?? { dias: alertDays, enviados: [] };
+      newEnviados.enviados.push(`tg_${diasRestantes}`);
+      await dbq
+        .update(s.prazos)
+        .set({ alertasEnviados: newEnviados })
+        .where(eq(s.prazos.id, prazo.id));
+    }
+  }
+}
+
+/** Inicia job periódico de alertas Telegram */
+function startTelegramAlertJob(config: TelegramBotConfig) {
+  // Limpar intervalo anterior
+  if (telegramAlertInterval) {
+    clearInterval(telegramAlertInterval);
+    telegramAlertInterval = null;
+  }
+
+  if (!config.botToken || !config.chatId) return;
+
+  const alertDays = config.alertDays ?? [15, 7, 3, 1];
+
+  // Verificar a cada hora
+  telegramAlertInterval = setInterval(
+    () => {
+      checkAndSendPrazoAlerts(alertDays).catch((err) => {
+        logger.error('Telegram', 'Erro no job de alertas', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+
+      // Enviar resumo diário às 8h (se habilitado)
+      if (config.dailySummaryEnabled) {
+        const now = new Date();
+        if (now.getHours() === 8 && now.getMinutes() < 30) {
+          buildDailySummary()
+            .then((data) => telegramService?.sendDailySummary(data))
+            .catch((err) => {
+              logger.error('Telegram', 'Erro ao enviar resumo diário', {
+                error: err instanceof Error ? err.message : String(err),
+              });
+            });
+        }
+      }
+    },
+    30 * 60 * 1000, // 30 minutos
+  );
+
+  // Rodar imediatamente na primeira vez
+  checkAndSendPrazoAlerts(alertDays).catch(() => {});
+
+  logger.info('Telegram', 'Job de alertas iniciado', {
+    alertDays,
+    dailySummary: config.dailySummaryEnabled ?? false,
+  });
+}
+
 export interface StartServerOptions {
   /** Diretório de trabalho onde o banco e config serão armazenados */
   cwd?: string;
@@ -1669,6 +1983,18 @@ export async function startServer(options: StartServerOptions = {}): Promise<htt
       });
     }
     pendingPgMigration = null;
+  }
+
+  // Iniciar job de alertas Telegram se configurado
+  if (fs.existsSync(CONFIG_PATH)) {
+    try {
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      if (config.telegram?.botToken && config.telegram?.chatId) {
+        startTelegramAlertJob(config.telegram);
+      }
+    } catch {
+      // Non-critical
+    }
   }
 
   return new Promise((resolve) => {

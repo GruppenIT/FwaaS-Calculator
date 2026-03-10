@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Save, Moon, Sun, RefreshCw, Download, RotateCcw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, ExternalLink, Unplug } from 'lucide-react';
+import { Settings, Save, Moon, Sun, RefreshCw, Download, RotateCcw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, ExternalLink, Unplug, Send, MessageCircle, Bell } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -411,6 +411,305 @@ function GoogleDriveSection() {
   );
 }
 
+function TelegramSection() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [sendingSummary, setSendingSummary] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [configured, setConfigured] = useState(false);
+  const [botToken, setBotToken] = useState('');
+  const [chatId, setChatId] = useState('');
+  const [dailySummary, setDailySummary] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [availableChats, setAvailableChats] = useState<api.TelegramUpdate[]>([]);
+  const [loadingChats, setLoadingChats] = useState(false);
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const config = await api.getTelegramConfig();
+      setConfigured(config.configured);
+      setChatId(config.chatId ?? '');
+      setDailySummary(config.dailySummaryEnabled);
+    } catch {
+      // Silently ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  async function handleSave() {
+    if (!botToken.trim() && !configured) {
+      toast('Preencha o token do bot.', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      const data: Record<string, unknown> = { dailySummaryEnabled: dailySummary };
+      if (botToken.trim()) data.botToken = botToken;
+      if (chatId.trim()) data.chatId = chatId;
+      await api.updateTelegramConfig(data as Parameters<typeof api.updateTelegramConfig>[0]);
+      setConfigured(true);
+      setShowSetup(false);
+      toast('Configuração do Telegram salva.', 'success');
+      loadConfig();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTest() {
+    setTesting(true);
+    try {
+      const result = await api.testTelegram();
+      if (result.ok) {
+        toast(`Bot conectado: ${result.botName ?? 'ok'}. Mensagem de teste enviada!`, 'success');
+      } else {
+        toast(`Erro: ${result.error ?? 'falha na conexão'}`, 'error');
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao testar.', 'error');
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleSendSummary() {
+    setSendingSummary(true);
+    try {
+      await api.sendTelegramSummary();
+      toast('Resumo diário enviado!', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao enviar resumo.', 'error');
+    } finally {
+      setSendingSummary(false);
+    }
+  }
+
+  async function handleLoadChats() {
+    setLoadingChats(true);
+    try {
+      const chats = await api.getTelegramUpdates();
+      setAvailableChats(chats);
+      if (chats.length === 0) {
+        toast('Nenhuma conversa encontrada. Envie uma mensagem para o bot primeiro.', 'error');
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao buscar conversas.', 'error');
+    } finally {
+      setLoadingChats(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      await api.disconnectTelegram();
+      setConfigured(false);
+      setChatId('');
+      setBotToken('');
+      setDailySummary(false);
+      toast('Telegram desconectado.', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao desconectar.', 'error');
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+        <Skeleton className="h-4 w-32 mb-2" />
+        <Skeleton className="h-3.5 w-64 mb-4" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
+
+  const inputClass =
+    'w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-sm-causa';
+
+  return (
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <MessageCircle size={18} className="text-[#0088cc]" />
+        <h3 className="text-base-causa font-semibold text-[var(--color-text)]">
+          Telegram
+        </h3>
+      </div>
+      <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+        Receba alertas de prazos e resumos diários pelo Telegram.
+      </p>
+
+      {/* Configurado */}
+      {configured && !showSetup && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-success/8 border border-causa-success/20">
+            <CheckCircle2 size={18} className="text-causa-success shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm-causa font-medium text-[var(--color-text)]">
+                Bot Telegram conectado
+              </p>
+              {chatId && (
+                <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
+                  Chat ID: {chatId}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Opções */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
+            <Bell size={16} className="text-[var(--color-text-muted)] shrink-0" />
+            <label className="flex items-center gap-2 cursor-pointer text-sm-causa text-[var(--color-text)] flex-1">
+              <input
+                type="checkbox"
+                checked={dailySummary}
+                onChange={(e) => {
+                  setDailySummary(e.target.checked);
+                  api.updateTelegramConfig({ dailySummaryEnabled: e.target.checked })
+                    .then(() => toast('Configuração atualizada.', 'success'))
+                    .catch(() => {});
+                }}
+                className="accent-[var(--color-primary)]"
+              />
+              Resumo diário automático (8h)
+            </label>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="ghost" onClick={handleTest} disabled={testing}>
+              <Send size={14} className="mr-1" />
+              {testing ? 'Testando...' : 'Testar'}
+            </Button>
+            <Button variant="ghost" onClick={handleSendSummary} disabled={sendingSummary}>
+              <MessageCircle size={14} className="mr-1" />
+              {sendingSummary ? 'Enviando...' : 'Enviar resumo agora'}
+            </Button>
+            <Button variant="ghost" onClick={() => setShowSetup(true)}>
+              Editar config
+            </Button>
+            <Button variant="ghost" onClick={handleDisconnect} disabled={disconnecting}>
+              <Unplug size={14} className="mr-1" />
+              {disconnecting ? 'Desconectando...' : 'Desconectar'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Não configurado */}
+      {!configured && !showSetup && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
+            <Settings size={18} className="text-[var(--color-text-muted)]" />
+            <p className="text-sm-causa text-[var(--color-text-muted)]">
+              Crie um bot no @BotFather do Telegram e configure o token para receber alertas.
+            </p>
+          </div>
+          <Button variant="ghost" onClick={() => setShowSetup(true)}>
+            Configurar bot
+          </Button>
+        </div>
+      )}
+
+      {/* Formulário de configuração */}
+      {showSetup && (
+        <div className="mt-4 space-y-3 pt-4 border-t border-[var(--color-border)]">
+          <div>
+            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+              Token do Bot
+            </label>
+            <input
+              type="password"
+              value={botToken}
+              onChange={(e) => setBotToken(e.target.value)}
+              placeholder="123456:ABC-DEF1234..."
+              className={inputClass}
+            />
+            <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+              Obtenha em @BotFather no Telegram.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+              Chat ID
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatId}
+                onChange={(e) => setChatId(e.target.value)}
+                placeholder="-1001234567890"
+                className={inputClass}
+              />
+              <Button
+                variant="ghost"
+                onClick={handleLoadChats}
+                disabled={loadingChats || !botToken.trim()}
+                title="Salve o token primeiro, envie uma mensagem ao bot, depois clique aqui"
+              >
+                {loadingChats ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              </Button>
+            </div>
+            {availableChats.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {availableChats.map((c) => (
+                  <button
+                    key={c.chatId}
+                    type="button"
+                    onClick={() => setChatId(c.chatId)}
+                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-sm-causa transition-causa cursor-pointer ${
+                      chatId === c.chatId
+                        ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
+                        : 'bg-causa-surface-alt text-[var(--color-text)] hover:bg-causa-bg'
+                    }`}
+                  >
+                    {c.chatTitle} <span className="text-[var(--color-text-muted)]">({c.chatId})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+              Envie uma mensagem ao bot e clique no botão de refresh para descobrir o chat ID.
+            </p>
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer text-sm-causa text-[var(--color-text)]">
+            <input
+              type="checkbox"
+              checked={dailySummary}
+              onChange={(e) => setDailySummary(e.target.checked)}
+              className="accent-[var(--color-primary)]"
+            />
+            Habilitar resumo diário automático (8h)
+          </label>
+
+          <div className="flex gap-2">
+            <Button onClick={handleSave} disabled={saving}>
+              <Save size={14} className="mr-1" />
+              {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+            {configured && (
+              <Button variant="ghost" onClick={() => setShowSetup(false)}>
+                Cancelar
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme();
   const { can } = usePermission();
@@ -502,6 +801,9 @@ export function ConfiguracoesPage() {
 
         {/* Google Drive — somente admin */}
         {canManageLicenca && <GoogleDriveSection />}
+
+        {/* Telegram — somente admin */}
+        {canManageLicenca && <TelegramSection />}
 
         {/* Topologia — somente admin */}
         {canManageLicenca && (
