@@ -43,6 +43,13 @@
       "when": 1741866000000,
       "tag": "0005_phase4_timesheets",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1741952400000,
+      "tag": "0006_phase5_documentos_conteudo",
+      "breakpoints": true
     }
   ]
 }

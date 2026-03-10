@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Trash2, Lock, Tag } from 'lucide-react';
+import { FileText, Trash2, Lock, Tag, Download, Plus } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
+import { Button } from '../../components/ui/button';
 import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { usePermission } from '../../hooks/use-permission';
+import { DocumentoModal } from './documento-modal';
 import * as api from '../../lib/api';
 import type { DocumentoRow } from '../../lib/api';
 
@@ -45,6 +47,7 @@ export function DocumentosPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [categoriaFilter, setCategoriaFilter] = useState<string>('');
+  const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
   const { can } = usePermission();
 
@@ -83,6 +86,35 @@ export function DocumentosPage() {
     }
   }
 
+  async function handleDownload(id: string) {
+    try {
+      const data = await api.downloadDocumento(id);
+      const byteChars = atob(data.conteudo);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: data.tipoMime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.nome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao baixar documento.', 'error');
+    }
+  }
+
+  function handleModalSave() {
+    setModalOpen(false);
+    toast('Documento enviado com sucesso.', 'success');
+    load();
+  }
+
   const CATEGORIA_FILTERS = [
     { value: '', label: 'Todas' },
     { value: 'peticao', label: 'Petições' },
@@ -95,7 +127,18 @@ export function DocumentosPage() {
 
   return (
     <div>
-      <PageHeader title="Documentos" description="Gerenciamento de documentos do escritório" />
+      <PageHeader
+        title="Documentos"
+        description="Gerenciamento de documentos do escritório"
+        action={
+          canUpload ? (
+            <Button onClick={() => setModalOpen(true)}>
+              <Plus size={16} className="mr-1" />
+              Novo Documento
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {CATEGORIA_FILTERS.map((cf) => (
@@ -193,6 +236,14 @@ export function DocumentosPage() {
                           <Tag size={14} />
                         </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(d.id)}
+                        className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                        title="Baixar"
+                      >
+                        <Download size={16} />
+                      </button>
                       {canUpload && (
                         <button
                           type="button"
@@ -211,6 +262,12 @@ export function DocumentosPage() {
           </tbody>
         </table>
       </div>
+
+      <DocumentoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+      />
 
       <ConfirmDialog
         open={!!deleteId}

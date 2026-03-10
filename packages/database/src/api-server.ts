@@ -890,6 +890,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, { id }, 201);
     }
 
+    const documentoDownloadMatch = path.match(/^\/api\/documentos\/([^/]+)\/download$/);
+    if (documentoDownloadMatch && method === 'GET') {
+      if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
+      const id = documentoDownloadMatch[1] ?? '';
+      const d = await getDocumentoService().obterConteudo(id);
+      if (!d || !d.conteudo) return error(res, 'Conteúdo não encontrado.', 404);
+      return json(res, { nome: d.nome, tipoMime: d.tipoMime, conteudo: d.conteudo });
+    }
+
     const documentoMatch = path.match(/^\/api\/documentos\/([^/]+)$/);
     if (documentoMatch) {
       const id = documentoMatch[1] ?? '';
