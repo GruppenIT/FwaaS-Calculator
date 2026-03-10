@@ -700,6 +700,8 @@ export interface DocumentoRow {
   dataReferencia: string | null;
   uploadedBy: string;
   uploaderNome: string | null;
+  driveFileId: string | null;
+  driveSyncedAt: string | null;
   createdAt: string;
 }
 
@@ -960,6 +962,7 @@ export function excluirTimesheet(id: string) {
 // === Feature flags ===
 export interface AppFeatures {
   financeiro: boolean;
+  googleDrive: boolean;
 }
 
 export function getFeatures() {
@@ -1036,4 +1039,61 @@ export interface ProdutividadeEntry {
 
 export function getDashboardProdutividade() {
   return request<ProdutividadeEntry[]>('/api/dashboard/produtividade');
+}
+
+// === Google Drive ===
+export interface GoogleDriveConfig {
+  configured: boolean;
+  authenticated: boolean;
+  clientId: string | null;
+  rootFolderId: string | null;
+}
+
+export interface GoogleDriveStatus {
+  connected: boolean;
+  email?: string;
+  error?: string;
+}
+
+export function getGoogleDriveConfig() {
+  return request<GoogleDriveConfig>('/api/google-drive/config');
+}
+
+export function updateGoogleDriveConfig(data: {
+  clientId?: string;
+  clientSecret?: string;
+  rootFolderId?: string;
+}) {
+  return request<{ ok: boolean }>('/api/google-drive/config', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getGoogleDriveAuthUrl() {
+  return request<{ url: string }>('/api/google-drive/auth-url');
+}
+
+export function getGoogleDriveStatus() {
+  return request<GoogleDriveStatus>('/api/google-drive/status');
+}
+
+export function disconnectGoogleDrive() {
+  return request<{ ok: boolean }>('/api/google-drive/disconnect', {
+    method: 'POST',
+  });
+}
+
+export function syncDocumentoDrive(documentoId: string) {
+  return request<{ ok: boolean; fileId: string }>('/api/google-drive/sync', {
+    method: 'POST',
+    body: JSON.stringify({ documentoId }),
+  });
+}
+
+export function syncAllDocumentosDrive() {
+  return request<{ ok: boolean; total: number; synced: number; errors: number }>(
+    '/api/google-drive/sync-all',
+    { method: 'POST' },
+  );
 }

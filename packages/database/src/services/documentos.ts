@@ -130,6 +130,8 @@ export class DocumentoService {
         dataReferencia: this.documentos.dataReferencia,
         uploadedBy: this.documentos.uploadedBy,
         uploaderNome: this.users.nome,
+        driveFileId: this.documentos.driveFileId,
+        driveSyncedAt: this.documentos.driveSyncedAt,
         createdAt: this.documentos.createdAt,
       })
       .from(this.documentos)
@@ -164,6 +166,8 @@ export class DocumentoService {
         dataReferencia: this.documentos.dataReferencia,
         uploadedBy: this.documentos.uploadedBy,
         uploaderNome: this.users.nome,
+        driveFileId: this.documentos.driveFileId,
+        driveSyncedAt: this.documentos.driveSyncedAt,
         createdAt: this.documentos.createdAt,
         updatedAt: this.documentos.updatedAt,
       })

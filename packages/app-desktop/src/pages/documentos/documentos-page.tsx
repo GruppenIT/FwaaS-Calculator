@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FileText, Trash2, Lock, Tag, Download, Plus, Search, Eye } from 'lucide-react';
+import { FileText, Trash2, Lock, Tag, Download, Plus, Search, Eye, Cloud, CloudOff, RefreshCw, Loader2 } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -7,6 +7,7 @@ import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { usePermission } from '../../hooks/use-permission';
+import { useFeatures } from '../../lib/auth-context';
 import { DocumentoModal } from './documento-modal';
 import { DocumentoViewer } from './documento-viewer';
 import * as api from '../../lib/api';
@@ -64,11 +65,15 @@ export function DocumentosPage() {
   const [searchInput, setSearchInput] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [viewDocId, setViewDocId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { toast } = useToast();
   const { can } = usePermission();
+  const features = useFeatures();
 
   const canUpload = can('documentos:upload');
+  const driveEnabled = features.googleDrive;
 
   function handleSearchChange(value: string) {
     setSearchInput(value);
@@ -139,6 +144,35 @@ export function DocumentosPage() {
     load();
   }
 
+  async function handleSyncDrive(id: string) {
+    setSyncingId(id);
+    try {
+      await api.syncDocumentoDrive(id);
+      toast('Documento sincronizado com o Drive.', 'success');
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao sincronizar.', 'error');
+    } finally {
+      setSyncingId(null);
+    }
+  }
+
+  async function handleSyncAll() {
+    setSyncingAll(true);
+    try {
+      const result = await api.syncAllDocumentosDrive();
+      toast(
+        `Sincronização concluída: ${result.synced} enviados${result.errors > 0 ? `, ${result.errors} erros` : ''}.`,
+        result.errors > 0 ? 'error' : 'success',
+      );
+      load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao sincronizar.', 'error');
+    } finally {
+      setSyncingAll(false);
+    }
+  }
+
   const CATEGORIA_FILTERS = [
     { value: '', label: 'Todas' },
     { value: 'peticao', label: 'Petições' },
@@ -155,12 +189,24 @@ export function DocumentosPage() {
         title="Documentos"
         description="Gerenciamento de documentos do escritório"
         action={
-          canUpload ? (
-            <Button onClick={() => setModalOpen(true)}>
-              <Plus size={16} className="mr-1" />
-              Novo Documento
-            </Button>
-          ) : undefined
+          <div className="flex items-center gap-2">
+            {driveEnabled && canUpload && (
+              <Button variant="ghost" onClick={handleSyncAll} disabled={syncingAll}>
+                {syncingAll ? (
+                  <Loader2 size={16} className="animate-spin mr-1" />
+                ) : (
+                  <Cloud size={16} className="mr-1" />
+                )}
+                {syncingAll ? 'Sincronizando...' : 'Sync Drive'}
+              </Button>
+            )}
+            {canUpload && (
+              <Button onClick={() => setModalOpen(true)}>
+                <Plus size={16} className="mr-1" />
+                Novo Documento
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -271,6 +317,29 @@ export function DocumentosPage() {
                         >
                           <Tag size={14} />
                         </span>
+                      )}
+                      {driveEnabled && canUpload && (
+                        d.driveFileId ? (
+                          <span
+                            className="p-1.5 text-causa-success"
+                            title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
+                          >
+                            <Cloud size={14} />
+                          </span>
+                        ) : syncingId === d.id ? (
+                          <span className="p-1.5 text-[var(--color-primary)]">
+                            <Loader2 size={14} className="animate-spin" />
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSyncDrive(d.id)}
+                            className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                            title="Enviar ao Google Drive"
+                          >
+                            <CloudOff size={14} />
+                          </button>
+                        )
                       )}
                       {isPreviewable(d.tipoMime) && (
                         <button

@@ -36,6 +36,8 @@ export const documentos = sqliteTable('documentos', {
   dataReferencia: text('data_referencia'),
   conteudo: text('conteudo'),
   conteudoTexto: text('conteudo_texto'),
+  driveFileId: text('drive_file_id'),
+  driveSyncedAt: text('drive_synced_at'),
   uploadedBy: text('uploaded_by')
     .notNull()
     .references(() => users.id),

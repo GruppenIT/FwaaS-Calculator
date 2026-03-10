@@ -16,11 +16,12 @@ import { ParcelaService } from './services/parcelas.js';
 import { DespesaService } from './services/despesas.js';
 import { ContatoService } from './services/contatos.js';
 import { TimesheetService } from './services/timesheets.js';
+import { GoogleDriveService } from './services/google-drive.js';
 import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services/automations.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
 import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
-import { count, eq, sum, and, lt, gte, lte } from 'drizzle-orm';
+import { count, eq, sum, and, lt, gte, lte, sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
 import { logger } from './logger.js';
@@ -33,12 +34,21 @@ const DEFAULT_PORT = 3456;
 const DB_PATH = 'causa.db';
 const CONFIG_PATH = 'causa.config.json';
 
+interface GoogleDriveConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  refreshToken?: string;
+  rootFolderId?: string;
+}
+
 interface AppConfig {
   jwtSecret: string;
   topologia: 'solo' | 'escritorio';
   dbPath: string;
   postgresUrl?: string;
   moduleKeys?: string[];
+  googleDrive?: GoogleDriveConfig;
 }
 
 /** Códigos de ativação de módulos opcionais */
@@ -62,6 +72,7 @@ let parcelaService: ParcelaService | null = null;
 let despesaService: DespesaService | null = null;
 let contatoService: ContatoService | null = null;
 let timesheetService: TimesheetService | null = null;
+let driveService: GoogleDriveService | null = null;
 
 function ensureService<T>(service: T | null, name: string): T {
   if (!service) {
@@ -154,6 +165,17 @@ function loadApp(): boolean {
 
   const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
   activeModuleKeys = config.moduleKeys ?? [];
+
+  // Inicializar Google Drive se configurado
+  if (config.googleDrive?.clientId && config.googleDrive?.clientSecret) {
+    driveService = new GoogleDriveService({
+      clientId: config.googleDrive.clientId,
+      clientSecret: config.googleDrive.clientSecret,
+      redirectUri: config.googleDrive.redirectUri || 'http://localhost:3456/api/google-drive/callback',
+      refreshToken: config.googleDrive.refreshToken,
+    });
+  }
+
   const database = createDatabase({
     topologia: config.topologia,
     sqlitePath: config.dbPath,
@@ -364,7 +386,34 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       return json(res, {
         financeiro: activeModuleKeys.includes(MODULE_CODES.financeiro),
+        googleDrive: driveService?.isAuthenticated ?? false,
       });
+    }
+
+    // === Google Drive OAuth callback (sem auth JWT — redirect do Google) ===
+    if (path === '/api/google-drive/callback' && method === 'GET') {
+      const code = url.searchParams.get('code');
+      if (!code) return error(res, 'Código de autorização não fornecido.', 400);
+      if (!driveService) return error(res, 'Google Drive não configurado.', 400);
+
+      try {
+        const refreshToken = await driveService.exchangeCode(code);
+        const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+        if (!config.googleDrive) return error(res, 'Configuração inválida.', 500);
+        config.googleDrive.refreshToken = refreshToken;
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+
+        res.writeHead(302, { Location: '/configuracoes?gdrive=ok' });
+        res.end();
+        return;
+      } catch (err) {
+        logger.error('GoogleDrive', 'Erro no callback OAuth', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.writeHead(302, { Location: '/configuracoes?gdrive=error' });
+        res.end();
+        return;
+      }
     }
 
     // === Protected routes — require auth ===
@@ -1140,6 +1189,229 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         await getTimesheetService().excluir(id);
         return json(res, { ok: true });
       }
+    }
+
+    // --- Google Drive ---
+    if (path === '/api/google-drive/config' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const gdConfig = config.googleDrive;
+      return json(res, {
+        configured: !!gdConfig?.clientId,
+        authenticated: driveService?.isAuthenticated ?? false,
+        clientId: gdConfig?.clientId ?? null,
+        rootFolderId: gdConfig?.rootFolderId ?? null,
+      });
+    }
+
+    if (path === '/api/google-drive/config' && method === 'PUT') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const body = JSON.parse(await readBody(req)) as {
+        clientId?: string;
+        clientSecret?: string;
+        rootFolderId?: string;
+      };
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      if (!config.googleDrive) {
+        config.googleDrive = {
+          clientId: '',
+          clientSecret: '',
+          redirectUri: 'http://localhost:3456/api/google-drive/callback',
+        };
+      }
+      if (body.clientId !== undefined) config.googleDrive.clientId = body.clientId;
+      if (body.clientSecret !== undefined) config.googleDrive.clientSecret = body.clientSecret;
+      if (body.rootFolderId !== undefined) config.googleDrive.rootFolderId = body.rootFolderId;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+
+      // Reinicializar o serviço
+      if (config.googleDrive.clientId && config.googleDrive.clientSecret) {
+        driveService = new GoogleDriveService({
+          clientId: config.googleDrive.clientId,
+          clientSecret: config.googleDrive.clientSecret,
+          redirectUri: config.googleDrive.redirectUri,
+          refreshToken: config.googleDrive.refreshToken,
+        });
+      }
+      return json(res, { ok: true });
+    }
+
+    if (path === '/api/google-drive/auth-url' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      if (!driveService) {
+        return error(res, 'Google Drive não configurado. Configure clientId e clientSecret primeiro.', 400);
+      }
+      const url = driveService.generateAuthUrl();
+      return json(res, { url });
+    }
+
+    if (path === '/api/google-drive/status' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      if (!driveService || !driveService.isAuthenticated) {
+        return json(res, { connected: false });
+      }
+      const result = await driveService.testConnection();
+      return json(res, { connected: result.ok, email: result.email, error: result.error });
+    }
+
+    if (path === '/api/google-drive/disconnect' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      if (config.googleDrive) {
+        delete config.googleDrive.refreshToken;
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+      }
+      // Reinicializar sem refresh token
+      if (config.googleDrive?.clientId && config.googleDrive?.clientSecret) {
+        driveService = new GoogleDriveService({
+          clientId: config.googleDrive.clientId,
+          clientSecret: config.googleDrive.clientSecret,
+          redirectUri: config.googleDrive.redirectUri,
+        });
+      } else {
+        driveService = null;
+      }
+      return json(res, { ok: true });
+    }
+
+    if (path === '/api/google-drive/sync' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+      if (!driveService || !driveService.isAuthenticated) {
+        return error(res, 'Google Drive não conectado.', 400);
+      }
+
+      const body = JSON.parse(await readBody(req)) as { documentoId: string };
+      const docService = getDocumentoService();
+      const doc = await docService.obterPorId(body.documentoId);
+      if (!doc) return error(res, 'Documento não encontrado.', 404);
+
+      const conteudoData = await docService.obterConteudo(body.documentoId);
+      if (!conteudoData?.conteudo) return error(res, 'Conteúdo do documento não disponível.', 404);
+
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const rootFolderId = config.googleDrive?.rootFolderId;
+
+      try {
+        // Resolver pasta de destino
+        const folderId = await driveService.resolveFolderPath({
+          rootFolderId,
+          clienteNome: doc.clienteNome ?? undefined,
+          numeroCnj: doc.numeroCnj ?? undefined,
+        });
+
+        const contentBuffer = Buffer.from(conteudoData.conteudo, 'base64');
+
+        // Upload ou atualização
+        const existingDriveId = (doc as Record<string, unknown>).driveFileId as string | null;
+        let fileId: string;
+        if (existingDriveId) {
+          await driveService.updateFile(existingDriveId, {
+            name: doc.nome,
+            mimeType: doc.tipoMime,
+            content: contentBuffer,
+          });
+          fileId = existingDriveId;
+        } else {
+          const result = await driveService.uploadFile({
+            name: doc.nome,
+            mimeType: doc.tipoMime,
+            content: contentBuffer,
+            folderId,
+          });
+          fileId = result.fileId;
+        }
+
+        // Atualizar registro no banco com driveFileId
+        await docService.atualizar(body.documentoId, {});
+        const dbq = getDb();
+        const s = getAppSchema();
+        await dbq
+          .update(s.documentos)
+          .set({
+            driveFileId: fileId,
+            driveSyncedAt: new Date().toISOString(),
+          })
+          .where(eq(s.documentos.id, body.documentoId));
+
+        return json(res, { ok: true, fileId });
+      } catch (err) {
+        logger.error('GoogleDrive', 'Erro ao sincronizar documento', {
+          documentoId: body.documentoId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return error(res, `Erro ao sincronizar: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+      }
+    }
+
+    if (path === '/api/google-drive/sync-all' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+      if (!driveService || !driveService.isAuthenticated) {
+        return error(res, 'Google Drive não conectado.', 400);
+      }
+
+      const dbq = getDb();
+      const s = getAppSchema();
+
+      // Buscar documentos que têm conteúdo mas não estão sincronizados
+      const pending = await dbq
+        .select({
+          id: s.documentos.id,
+          nome: s.documentos.nome,
+          tipoMime: s.documentos.tipoMime,
+          driveFileId: s.documentos.driveFileId,
+        })
+        .from(s.documentos)
+        .where(
+          and(
+            sql`${s.documentos.conteudo} IS NOT NULL`,
+            sql`${s.documentos.driveFileId} IS NULL`,
+          ),
+        );
+
+      let synced = 0;
+      let errors = 0;
+
+      for (const doc of pending) {
+        try {
+          const conteudoData = await getDocumentoService().obterConteudo(doc.id);
+          if (!conteudoData?.conteudo) continue;
+
+          const docFull = await getDocumentoService().obterPorId(doc.id);
+          if (!docFull) continue;
+
+          const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+          const folderId = await driveService.resolveFolderPath({
+            rootFolderId: config.googleDrive?.rootFolderId,
+            clienteNome: docFull.clienteNome ?? undefined,
+            numeroCnj: docFull.numeroCnj ?? undefined,
+          });
+
+          const contentBuffer = Buffer.from(conteudoData.conteudo, 'base64');
+          const result = await driveService.uploadFile({
+            name: doc.nome,
+            mimeType: doc.tipoMime,
+            content: contentBuffer,
+            folderId,
+          });
+
+          await dbq
+            .update(s.documentos)
+            .set({
+              driveFileId: result.fileId,
+              driveSyncedAt: new Date().toISOString(),
+            })
+            .where(eq(s.documentos.id, doc.id));
+
+          synced++;
+        } catch (err) {
+          logger.error('GoogleDrive', `Erro ao sincronizar ${doc.nome}`, {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          errors++;
+        }
+      }
+
+      return json(res, { ok: true, total: pending.length, synced, errors });
     }
 
     // --- Configurações ---
