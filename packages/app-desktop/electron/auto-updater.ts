@@ -405,9 +405,13 @@ async function checkAndAutoUpdate(): Promise<void> {
     try {
       const token = refreshToken();
       logToFile('INFO', `Tentando download via electron-updater (token: ${token ? 'presente' : 'AUSENTE'})`);
+      // Guardar release para fallback caso electron-updater falhe assincronamente
+      // (ex: erro de verificação de assinatura após download concluído)
+      pendingRelease = { release, version: remoteVersion };
       await autoUpdater.checkForUpdates();
       return; // Progresso e conclusão tratados pelos event listeners
     } catch (err) {
+      pendingRelease = null;
       logToFile('WARN', `electron-updater falhou, tentando download direto: ${err instanceof Error ? err.message : String(err)}`);
     }
   } else {
@@ -469,6 +473,9 @@ async function downloadDirectFallback(release: ReleaseInfo, remoteVersion: strin
 /** Caminho do instalador baixado via download direto (null = usar electron-updater) */
 let downloadedInstallerPath: string | null = null;
 
+/** Guarda a release atual para o fallback poder usar quando electron-updater falha assincronamente */
+let pendingRelease: { release: ReleaseInfo; version: string } | null = null;
+
 export function setupAutoUpdater(mainWindow: BrowserWindow) {
   mainWin = mainWindow;
 
@@ -501,6 +508,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     });
 
     autoUpdater.on('update-downloaded', (info) => {
+      pendingRelease = null; // Download com sucesso, não precisa de fallback
       logToFile('INFO', `Atualização v${info.version} baixada e pronta.`);
       sendStatus({
         state: 'downloaded',
@@ -511,7 +519,18 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
     autoUpdater.on('error', (err) => {
       logToFile('ERROR', `Erro electron-updater: ${err.message}`);
-      // Não emitir status de erro aqui — o checkAndAutoUpdate já trata o fallback
+      // Se há uma release pendente, tentar fallback via download direto
+      // Isso cobre erros assíncronos como falha na verificação de assinatura digital
+      if (pendingRelease) {
+        const { release, version } = pendingRelease;
+        pendingRelease = null;
+        logToFile('INFO', 'Iniciando fallback via download direto após erro do electron-updater');
+        downloadDirectFallback(release, version).catch((fallbackErr) => {
+          logToFile('ERROR', 'Fallback de download direto também falhou', {
+            error: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr),
+          });
+        });
+      }
     });
   }
 
