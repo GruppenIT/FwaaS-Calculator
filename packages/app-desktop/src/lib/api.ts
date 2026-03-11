@@ -690,6 +690,7 @@ export interface DocumentoRow {
   numeroCnj: string | null;
   clienteId: string | null;
   clienteNome: string | null;
+  clienteTipo: string | null;
   nome: string;
   descricao: string | null;
   tipoMime: string;
@@ -1104,6 +1105,29 @@ export function syncAllDocumentosDrive() {
     '/api/google-drive/sync-all',
     { method: 'POST' },
   );
+}
+
+export interface UnclassifiedFolder {
+  clienteFolderName: string;
+  compartilhadoId: string;
+  files: Array<{ id: string; name: string; mimeType: string; webViewLink: string }>;
+}
+
+export function listarDocumentosNaoClassificados() {
+  return request<UnclassifiedFolder[]>('/api/google-drive/unclassified');
+}
+
+export function classificarDocumentoDrive(data: {
+  driveFileId: string;
+  sourceParentId: string;
+  clienteId: string;
+  processoId?: string | undefined;
+  keepOriginal?: boolean | undefined;
+}) {
+  return request<{ ok: boolean }>('/api/google-drive/classify', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // === Telegram ===

@@ -31,11 +31,12 @@ export interface DriveUploadResult {
  * Estrutura de pastas no Google Drive:
  * {rootFolder}/
  * ├── Clientes/
- * │   ├── {nomeCliente}-{CPF}/
+ * │   ├── PF.Nome Completo.CPF/          (ou PJ.Nome.CNPJ)
  * │   │   ├── Proc.-{numeroCnj}/
- * │   │   │   └── documentos...
- * │   │   └── Geral/
- * │   │       └── documentos sem processo...
+ * │   │   │   └── documentos do processo...
+ * │   │   ├── Compartilhado/
+ * │   │   │   └── documentos não classificados...
+ * │   │   └── documentos do cliente (raiz da pasta)
  * └── Sem Cliente/
  *     └── documentos avulsos...
  *
@@ -201,13 +202,27 @@ export class GoogleDriveService {
   }
 
   /**
+   * Monta o nome da pasta do cliente: PF.Nome.CPF ou PJ.Nome.CNPJ
+   */
+  static buildClienteFolderName(opts: {
+    clienteTipo?: string | undefined;
+    clienteNome: string;
+    clienteCpfCnpj?: string | undefined;
+  }): string {
+    const prefix = opts.clienteTipo === 'PJ' ? 'PJ' : 'PF';
+    const cpf = opts.clienteCpfCnpj ?? '';
+    return cpf ? `${prefix}.${opts.clienteNome}.${cpf}` : `${prefix}.${opts.clienteNome}`;
+  }
+
+  /**
    * Resolve o caminho de pasta para um documento baseado em cliente e processo.
-   * Estrutura: Clientes/{Nome}-{CPF}/Proc.-{numeroCnj}/
+   * Estrutura: Clientes/PF.Nome.CPF/Proc.-{numeroCnj}/
    * Retorna o ID da pasta final.
    */
   async resolveFolderPath(opts: {
     rootFolderId: string;
     clienteNome?: string | undefined;
+    clienteTipo?: string | undefined;
     clienteCpfCnpj?: string | undefined;
     numeroCnj?: string | undefined;
   }): Promise<string> {
@@ -219,18 +234,107 @@ export class GoogleDriveService {
 
     const clientesId = await this.findOrCreateFolder('Clientes', rootId);
 
-    // Pasta do cliente: "Nome Completo-CPF" ou só "Nome Completo"
-    const clienteFolderName = opts.clienteCpfCnpj
-      ? `${opts.clienteNome}-${opts.clienteCpfCnpj}`
-      : opts.clienteNome;
+    // Pasta do cliente: "PF.Nome Completo.CPF" ou "PJ.Nome.CNPJ"
+    const clienteFolderName = GoogleDriveService.buildClienteFolderName({
+      clienteTipo: opts.clienteTipo,
+      clienteNome: opts.clienteNome,
+      clienteCpfCnpj: opts.clienteCpfCnpj,
+    });
     const clienteFolderId = await this.findOrCreateFolder(clienteFolderName, clientesId);
 
     if (!opts.numeroCnj) {
-      return this.findOrCreateFolder('Geral', clienteFolderId);
+      // Documento do cliente — vai na raiz da pasta do cliente
+      return clienteFolderId;
     }
 
     // Pasta do processo: "Proc.-NUMEROCNJ"
     return this.findOrCreateFolder(`Proc.-${opts.numeroCnj}`, clienteFolderId);
+  }
+
+  /**
+   * Resolve a pasta "Compartilhado" dentro da pasta do cliente.
+   * Usada para documentos não classificados.
+   */
+  async resolveCompartilhadoFolder(opts: {
+    rootFolderId: string;
+    clienteNome: string;
+    clienteTipo?: string;
+    clienteCpfCnpj?: string;
+  }): Promise<string> {
+    const clientesId = await this.findOrCreateFolder('Clientes', opts.rootFolderId);
+    const clienteFolderName = GoogleDriveService.buildClienteFolderName({
+      clienteTipo: opts.clienteTipo,
+      clienteNome: opts.clienteNome,
+      clienteCpfCnpj: opts.clienteCpfCnpj,
+    });
+    const clienteFolderId = await this.findOrCreateFolder(clienteFolderName, clientesId);
+    return this.findOrCreateFolder('Compartilhado', clienteFolderId);
+  }
+
+  /** Move um arquivo de uma pasta para outra no Google Drive */
+  async moveFile(fileId: string, newParentId: string, oldParentId?: string): Promise<void> {
+    const params: Record<string, unknown> = {
+      fileId,
+      addParents: newParentId,
+      fields: 'id,parents',
+      supportsAllDrives: true,
+    };
+    if (oldParentId) params.removeParents = oldParentId;
+    await this.drive.files.update(params as unknown as Parameters<typeof this.drive.files.update>[0]);
+  }
+
+  /** Lista arquivos dentro de uma pasta */
+  async listFiles(folderId: string): Promise<Array<{ id: string; name: string; mimeType: string; webViewLink: string }>> {
+    const res = await this.drive.files.list({
+      q: `'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
+      fields: 'files(id,name,mimeType,webViewLink)',
+      spaces: 'drive',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+    });
+    return (res.data.files ?? []).map((f) => ({
+      id: f.id ?? '',
+      name: f.name ?? '',
+      mimeType: f.mimeType ?? '',
+      webViewLink: f.webViewLink ?? '',
+    }));
+  }
+
+  /** Lista subpastas "Compartilhado" de todos os clientes */
+  async listCompartilhadoFolders(rootFolderId: string): Promise<Array<{ clienteFolderId: string; clienteFolderName: string; compartilhadoId: string }>> {
+    const clientesId = await this.findOrCreateFolder('Clientes', rootFolderId);
+
+    // Listar pastas de clientes
+    const clienteRes = await this.drive.files.list({
+      q: `'${clientesId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      fields: 'files(id,name)',
+      spaces: 'drive',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+    });
+
+    const result: Array<{ clienteFolderId: string; clienteFolderName: string; compartilhadoId: string }> = [];
+
+    for (const folder of clienteRes.data.files ?? []) {
+      if (!folder.id || !folder.name) continue;
+      // Check if Compartilhado subfolder exists
+      const compRes = await this.drive.files.list({
+        q: `'${folder.id}' in parents and name = 'Compartilhado' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+        fields: 'files(id)',
+        spaces: 'drive',
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true,
+      });
+      if (compRes.data.files && compRes.data.files.length > 0 && compRes.data.files[0]?.id) {
+        result.push({
+          clienteFolderId: folder.id,
+          clienteFolderName: folder.name,
+          compartilhadoId: compRes.data.files[0].id,
+        });
+      }
+    }
+
+    return result;
   }
 
   /** Faz upload de um arquivo para o Google Drive */

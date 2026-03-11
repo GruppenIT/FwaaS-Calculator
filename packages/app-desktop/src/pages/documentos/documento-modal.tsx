@@ -24,6 +24,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
+  /** Pré-define o clienteId (oculta o campo de seleção) */
+  presetClienteId?: string | undefined;
+  /** Pré-define o processoId (oculta o campo de seleção) */
+  presetProcessoId?: string | undefined;
 }
 
 function formatFileSize(bytes: number): string {
@@ -32,7 +36,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function DocumentoModal({ open, onClose, onSave }: Props) {
+export function DocumentoModal({ open, onClose, onSave, presetClienteId, presetProcessoId }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -48,17 +52,17 @@ export function DocumentoModal({ open, onClose, onSave }: Props) {
 
   useEffect(() => {
     if (open) {
-      api.listarProcessos().then(setProcessos).catch(() => {});
-      api.listarClientes().then(setClientes).catch(() => {});
+      if (!presetProcessoId) api.listarProcessos().then(setProcessos).catch(() => {});
+      if (!presetClienteId) api.listarClientes().then(setClientes).catch(() => {});
       setFile(null);
       setDescricao('');
       setCategoria('');
-      setProcessoId('');
-      setClienteId('');
+      setProcessoId(presetProcessoId ?? '');
+      setClienteId(presetClienteId ?? '');
       setConfidencial(false);
       setError('');
     }
-  }, [open]);
+  }, [open, presetClienteId, presetProcessoId]);
 
   if (!open) return null;
 
@@ -212,40 +216,46 @@ export function DocumentoModal({ open, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {/* Vínculo */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Processo</label>
-              <select
-                value={processoId}
-                onChange={(e) => setProcessoId(e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Nenhum</option>
-                {processos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.numeroCnj}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Vínculo — oculto quando pre-definido pela tela pai */}
+          {(!presetProcessoId || !presetClienteId) && (
+            <div className="grid grid-cols-2 gap-3">
+              {!presetProcessoId && (
+                <div>
+                  <label className={labelClass}>Processo</label>
+                  <select
+                    value={processoId}
+                    onChange={(e) => setProcessoId(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Nenhum</option>
+                    {processos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.numeroCnj}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-            <div>
-              <label className={labelClass}>Cliente</label>
-              <select
-                value={clienteId}
-                onChange={(e) => setClienteId(e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Nenhum</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </select>
+              {!presetClienteId && (
+                <div>
+                  <label className={labelClass}>Cliente</label>
+                  <select
+                    value={clienteId}
+                    onChange={(e) => setClienteId(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Nenhum</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           {error && (
             <div className="text-sm-causa text-causa-danger bg-causa-danger/8 rounded-[var(--radius-md)] px-3 py-2 border border-causa-danger/20">

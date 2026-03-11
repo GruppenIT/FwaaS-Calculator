@@ -72,7 +72,7 @@ const NAV_SECTIONS: NavSection[] = [
       {
         to: '/app/documentos',
         icon: FileText,
-        label: 'Documentos',
+        label: 'Docs não Classificados',
         permissions: ['documentos:ler_todos'],
       },
       {

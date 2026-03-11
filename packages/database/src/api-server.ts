@@ -1408,6 +1408,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const folderId = await driveService.resolveFolderPath({
           rootFolderId,
           clienteNome: doc.clienteNome ?? undefined,
+          clienteTipo: (doc as Record<string, unknown>).clienteTipo as string | undefined,
           clienteCpfCnpj: (doc as Record<string, unknown>).clienteCpfCnpj as string | undefined,
           numeroCnj: doc.numeroCnj ?? undefined,
         });
@@ -1501,6 +1502,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           const folderId = await driveService.resolveFolderPath({
             rootFolderId: syncAllRootFolderId,
             clienteNome: docFull.clienteNome ?? undefined,
+            clienteTipo: (docFull as Record<string, unknown>).clienteTipo as string | undefined,
             clienteCpfCnpj: (docFull as Record<string, unknown>).clienteCpfCnpj as string | undefined,
             numeroCnj: docFull.numeroCnj ?? undefined,
           });
@@ -1531,6 +1533,108 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
 
       return json(res, { ok: true, total: pending.length, synced, errors });
+    }
+
+    // Lista documentos não classificados das pastas "Compartilhado" no Drive
+    if (path === '/api/google-drive/unclassified' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
+      if (!driveService) {
+        return error(res, 'Google Drive não conectado.', 400);
+      }
+
+      const ucConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const rootFolderId = ucConfig.googleDrive?.rootFolderId;
+      if (!rootFolderId) {
+        return error(res, 'Configure o ID da pasta raiz do Google Drive.', 400);
+      }
+
+      try {
+        const folders = await driveService.listCompartilhadoFolders(rootFolderId);
+        const result: Array<{
+          clienteFolderName: string;
+          compartilhadoId: string;
+          files: Array<{ id: string; name: string; mimeType: string; webViewLink: string }>;
+        }> = [];
+
+        for (const folder of folders) {
+          const files = await driveService.listFiles(folder.compartilhadoId);
+          if (files.length > 0) {
+            result.push({
+              clienteFolderName: folder.clienteFolderName,
+              compartilhadoId: folder.compartilhadoId,
+              files,
+            });
+          }
+        }
+
+        return json(res, result);
+      } catch (err) {
+        logger.error('GoogleDrive', 'Erro ao listar não classificados', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return error(res, `Erro ao listar: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+      }
+    }
+
+    // Classificar documento: mover arquivo no Drive para pasta do cliente ou processo
+    if (path === '/api/google-drive/classify' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'documentos:upload'))) return;
+      if (!driveService) {
+        return error(res, 'Google Drive não conectado.', 400);
+      }
+
+      const body = JSON.parse(await readBody(req)) as {
+        driveFileId: string;
+        sourceParentId: string;
+        clienteId: string;
+        processoId?: string;
+        keepOriginal?: boolean;
+      };
+
+      const clConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const rootFolderId = clConfig.googleDrive?.rootFolderId;
+      if (!rootFolderId) {
+        return error(res, 'Configure o ID da pasta raiz do Google Drive.', 400);
+      }
+
+      try {
+        // Buscar dados do cliente
+        const clienteService = getClienteService();
+        const cliente = await clienteService.obterPorId(body.clienteId);
+        if (!cliente) return error(res, 'Cliente não encontrado.', 404);
+
+        let numeroCnj: string | undefined;
+        if (body.processoId) {
+          const processoService = getProcessoService();
+          const processo = await processoService.obterPorId(body.processoId);
+          if (!processo) return error(res, 'Processo não encontrado.', 404);
+          numeroCnj = processo.numeroCnj;
+        }
+
+        // Resolver pasta de destino
+        const targetFolderId = await driveService.resolveFolderPath({
+          rootFolderId,
+          clienteNome: cliente.nome,
+          clienteTipo: cliente.tipo,
+          clienteCpfCnpj: cliente.cpfCnpj ?? undefined,
+          numeroCnj,
+        });
+
+        if (body.keepOriginal) {
+          // Copiar arquivo para a nova pasta
+          await driveService.moveFile(body.driveFileId, targetFolderId);
+        } else {
+          // Mover: adiciona nova pasta e remove pasta antiga
+          await driveService.moveFile(body.driveFileId, targetFolderId, body.sourceParentId);
+        }
+
+        return json(res, { ok: true });
+      } catch (err) {
+        logger.error('GoogleDrive', 'Erro ao classificar documento', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return error(res, `Erro ao classificar: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+      }
     }
 
     // --- Telegram ---
