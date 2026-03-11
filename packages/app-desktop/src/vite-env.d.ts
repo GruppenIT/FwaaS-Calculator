@@ -16,6 +16,7 @@ interface UpdateStatus {
   state: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
   version?: string;
   releaseNotes?: string;
+  releaseUrl?: string;
   percent?: number;
   bytesPerSecond?: number;
   transferred?: number;
@@ -30,6 +31,7 @@ interface CausaElectronAPI {
   checkForUpdate: () => Promise<void>;
   downloadUpdate: () => Promise<void>;
   installUpdate: () => Promise<void>;
+  openRelease: () => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 }

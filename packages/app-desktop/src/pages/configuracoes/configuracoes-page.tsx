@@ -97,12 +97,23 @@ function UpdateSection() {
               <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
                 O banco de dados será atualizado automaticamente ao reiniciar.
               </p>
+              {status.error && (
+                <p className="text-xs-causa text-causa-warning mt-1">{status.error}</p>
+              )}
             </div>
           </div>
-          <Button onClick={handleDownload}>
-            <Download size={16} className="mr-1.5" />
-            Baixar atualização
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleDownload}>
+              <Download size={16} className="mr-1.5" />
+              Baixar atualização
+            </Button>
+            {status.releaseUrl && (
+              <Button variant="ghost" onClick={() => window.causaElectron?.openRelease()}>
+                <ExternalLink size={16} className="mr-1.5" />
+                Ver no GitHub
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
