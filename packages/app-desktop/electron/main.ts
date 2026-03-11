@@ -117,6 +117,11 @@ function createSplashWindow() {
   splashWindow.once('ready-to-show', () => {
     splashWindow?.show();
     splashWindow?.focus();
+    // Injetar versão real da app na splash
+    const version = app.getVersion();
+    splashWindow?.webContents.executeJavaScript(
+      `document.getElementById('version').textContent = 'v${version}';`
+    ).catch(() => {});
   });
   splashWindow.on('closed', () => {
     splashWindow = null;
