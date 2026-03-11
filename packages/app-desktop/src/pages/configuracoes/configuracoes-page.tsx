@@ -163,6 +163,7 @@ function GoogleDriveSection() {
   const [testing, setTesting] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [syncingFolders, setSyncingFolders] = useState(false);
   const [connected, setConnected] = useState(false);
   const [authMode, setAuthMode] = useState<'oauth' | 'service_account'>('oauth');
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
@@ -296,6 +297,18 @@ function GoogleDriveSection() {
       toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     } finally {
       setSavingSettings(false);
+    }
+  }
+
+  async function handleSyncFolders() {
+    setSyncingFolders(true);
+    try {
+      const result = await api.syncDriveFolders();
+      toast(`Estrutura sincronizada: ${result.created}/${result.total} clientes processados.`, 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao sincronizar pastas.', 'error');
+    } finally {
+      setSyncingFolders(false);
     }
   }
 
@@ -446,10 +459,19 @@ function GoogleDriveSection() {
               </div>
             )}
 
-            <Button onClick={handleSaveSettings} disabled={savingSettings}>
-              <Save size={14} className="mr-1" />
-              {savingSettings ? 'Salvando...' : 'Salvar configurações'}
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleSaveSettings} disabled={savingSettings}>
+                <Save size={14} className="mr-1" />
+                {savingSettings ? 'Salvando...' : 'Salvar configurações'}
+              </Button>
+              <Button variant="ghost" onClick={handleSyncFolders} disabled={syncingFolders}>
+                <RefreshCw size={14} className={`mr-1 ${syncingFolders ? 'animate-spin' : ''}`} />
+                {syncingFolders ? 'Sincronizando...' : 'Sincronizar pastas'}
+              </Button>
+            </div>
+            <p className="text-xs-causa text-[var(--color-text-muted)]">
+              &quot;Sincronizar pastas&quot; cria a estrutura de pastas (Clientes/Nome/Compartilhado) para todos os clientes cadastrados.
+            </p>
           </div>
         </div>
       )}

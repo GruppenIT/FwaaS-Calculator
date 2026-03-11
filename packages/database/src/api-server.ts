@@ -548,6 +548,27 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         return error(res, msg, 400);
       }
       const id = await getClienteService().criar(validation.data, user.id);
+
+      // Criar pasta Compartilhado no Drive para o novo cliente (assíncrono, não bloqueia)
+      if (driveService) {
+        try {
+          const cConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+          const rootId = cConfig.googleDrive?.rootFolderId;
+          if (rootId) {
+            driveService.resolveCompartilhadoFolder({
+              rootFolderId: rootId,
+              clienteNome: validation.data.nome,
+              clienteTipo: validation.data.tipo,
+              clienteCpfCnpj: validation.data.cpfCnpj ?? undefined,
+            }).catch((err) => {
+              logger.error('GoogleDrive', 'Erro ao criar pasta Compartilhado para novo cliente', {
+                error: err instanceof Error ? err.message : String(err),
+              });
+            });
+          }
+        } catch { /* ignore config read error */ }
+      }
+
       return json(res, { id }, 201);
     }
 
@@ -1061,13 +1082,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // --- Documentos ---
     if (path === '/api/documentos' && method === 'GET') {
       if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
-      const filtros: { processoId?: string; clienteId?: string; categoria?: string; q?: string } = {};
+      const filtros: { processoId?: string; clienteId?: string; includeProcessoDocs?: boolean; categoria?: string; q?: string } = {};
       const processoIdParam = url.searchParams.get('processoId');
       const clienteIdParam = url.searchParams.get('clienteId');
+      const includeProcessoDocsParam = url.searchParams.get('includeProcessoDocs');
       const categoriaParam = url.searchParams.get('categoria');
       const qParam = url.searchParams.get('q');
       if (processoIdParam) filtros.processoId = processoIdParam;
       if (clienteIdParam) filtros.clienteId = clienteIdParam;
+      if (includeProcessoDocsParam === 'true') filtros.includeProcessoDocs = true;
       if (categoriaParam) filtros.categoria = categoriaParam;
       if (qParam) filtros.q = qParam;
       // Se não tem permissão confidencial, filtrar apenas não-confidenciais
@@ -1549,6 +1572,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
 
       try {
+        // Buscar driveFileIds já classificados no BD para filtrar
+        const dbq = getDb();
+        const s = getAppSchema();
+        const classifiedRows = await dbq
+          .select({ driveFileId: s.documentos.driveFileId })
+          .from(s.documentos)
+          .where(sql`${s.documentos.driveFileId} IS NOT NULL`);
+        const classifiedIds = new Set(classifiedRows.map((r: { driveFileId: string | null }) => r.driveFileId));
+
         const folders = await driveService.listCompartilhadoFolders(rootFolderId);
         const result: Array<{
           clienteFolderName: string;
@@ -1557,7 +1589,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         }> = [];
 
         for (const folder of folders) {
-          const files = await driveService.listFiles(folder.compartilhadoId);
+          const allFiles = await driveService.listFiles(folder.compartilhadoId);
+          // Filtrar arquivos já classificados (com registro no BD)
+          const files = allFiles.filter((f) => !classifiedIds.has(f.id));
           if (files.length > 0) {
             result.push({
               clienteFolderName: folder.clienteFolderName,
@@ -1576,7 +1610,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
     }
 
-    // Classificar documento: mover arquivo no Drive para pasta do cliente ou processo
+    // Classificar documento: mover arquivo no Drive para pasta do cliente ou processo + criar registro no BD
     if (path === '/api/google-drive/classify' && method === 'POST') {
       if (!(await requirePermission(res, user, 'documentos:upload'))) return;
       if (!driveService) {
@@ -1589,6 +1623,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         clienteId: string;
         processoId?: string;
         keepOriginal?: boolean;
+        // Metadados do documento
+        fileName: string;
+        mimeType?: string;
+        descricao?: string;
+        categoria?: string;
+        confidencial?: boolean;
+        dataReferencia?: string;
       };
 
       const clConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
@@ -1621,19 +1662,86 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         });
 
         if (body.keepOriginal) {
-          // Copiar arquivo para a nova pasta
+          // Manter na origem: adiciona pasta de destino sem remover a de origem
           await driveService.moveFile(body.driveFileId, targetFolderId);
         } else {
           // Mover: adiciona nova pasta e remove pasta antiga
           await driveService.moveFile(body.driveFileId, targetFolderId, body.sourceParentId);
         }
 
-        return json(res, { ok: true });
+        // Criar registro do documento no banco de dados
+        const docService = getDocumentoService();
+        const docId = await docService.criar({
+          nome: body.fileName,
+          descricao: body.descricao,
+          categoria: body.categoria,
+          confidencial: body.confidencial,
+          dataReferencia: body.dataReferencia,
+          clienteId: body.clienteId,
+          processoId: body.processoId,
+          tipoMime: body.mimeType ?? 'application/octet-stream',
+          tamanhoBytes: 0,
+          hashSha256: '',
+          uploadedBy: user.id,
+        });
+
+        // Marcar como sincronizado com Drive (driveFileId + driveSyncedAt)
+        const dbq = getDb();
+        const s = getAppSchema();
+        await dbq
+          .update(s.documentos)
+          .set({ driveFileId: body.driveFileId, driveSyncedAt: new Date().toISOString() })
+          .where(eq(s.documentos.id, docId));
+
+        return json(res, { ok: true, documentoId: docId });
       } catch (err) {
         logger.error('GoogleDrive', 'Erro ao classificar documento', {
           error: err instanceof Error ? err.message : String(err),
         });
         return error(res, `Erro ao classificar: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+      }
+    }
+
+    // Sincronizar estrutura de pastas no Drive (criar Compartilhado para todos os clientes)
+    if (path === '/api/google-drive/sync-folders' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      if (!driveService) {
+        return error(res, 'Google Drive não conectado.', 400);
+      }
+
+      const sfConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const rootFolderId = sfConfig.googleDrive?.rootFolderId;
+      if (!rootFolderId) {
+        return error(res, 'Configure o ID da pasta raiz do Google Drive.', 400);
+      }
+
+      try {
+        const clienteService = getClienteService();
+        const allClientes = await clienteService.listar();
+        let created = 0;
+
+        for (const cliente of allClientes) {
+          try {
+            await driveService.resolveCompartilhadoFolder({
+              rootFolderId,
+              clienteNome: cliente.nome,
+              clienteTipo: cliente.tipo,
+              clienteCpfCnpj: cliente.cpfCnpj ?? undefined,
+            });
+            created++;
+          } catch (err) {
+            logger.error('GoogleDrive', `Erro ao criar pasta para cliente ${cliente.nome}`, {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+
+        return json(res, { ok: true, total: allClientes.length, created });
+      } catch (err) {
+        logger.error('GoogleDrive', 'Erro ao sincronizar pastas', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return error(res, `Erro: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
       }
     }
 
