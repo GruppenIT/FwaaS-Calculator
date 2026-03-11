@@ -223,7 +223,8 @@ export class GoogleDriveService {
     clienteCpfCnpj?: string | undefined;
   }): string {
     const prefix = opts.clienteTipo === 'PJ' ? 'PJ' : 'PF';
-    const cpf = opts.clienteCpfCnpj ?? '';
+    // Sempre usar apenas dígitos para evitar pastas duplicadas (formatted vs raw)
+    const cpf = (opts.clienteCpfCnpj ?? '').replace(/\D/g, '');
     return cpf ? `${prefix}.${opts.clienteNome}.${cpf}` : `${prefix}.${opts.clienteNome}`;
   }
 
