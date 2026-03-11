@@ -38,6 +38,7 @@ const CONFIG_PATH = 'causa.config.json';
 interface GoogleDriveConfig {
   serviceAccountJson: string;
   rootFolderId?: string;
+  impersonateEmail?: string;
 }
 
 interface TelegramBotConfig {
@@ -178,7 +179,7 @@ function loadApp(): boolean {
   if (config.googleDrive?.serviceAccountJson) {
     try {
       const creds = JSON.parse(config.googleDrive.serviceAccountJson);
-      driveService = new GoogleDriveService(creds);
+      driveService = new GoogleDriveService(creds, config.googleDrive.impersonateEmail);
     } catch (err) {
       logger.error('GoogleDrive', 'Erro ao inicializar Service Account', {
         error: err instanceof Error ? err.message : String(err),
@@ -1219,6 +1220,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         configured: !!gdConfig?.serviceAccountJson,
         connected: driveService !== null,
         rootFolderId: gdConfig?.rootFolderId ?? null,
+        impersonateEmail: gdConfig?.impersonateEmail ?? null,
       });
     }
 
@@ -1227,6 +1229,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const body = JSON.parse(await readBody(req)) as {
         serviceAccountJson?: string;
         rootFolderId?: string;
+        impersonateEmail?: string;
       };
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       if (!config.googleDrive) {
@@ -1234,13 +1237,14 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       if (body.serviceAccountJson !== undefined) config.googleDrive.serviceAccountJson = body.serviceAccountJson;
       if (body.rootFolderId !== undefined) config.googleDrive.rootFolderId = body.rootFolderId;
+      if (body.impersonateEmail !== undefined) config.googleDrive.impersonateEmail = body.impersonateEmail || '';
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
       // Reinicializar o serviço
       if (config.googleDrive.serviceAccountJson) {
         try {
           const creds = JSON.parse(config.googleDrive.serviceAccountJson);
-          driveService = new GoogleDriveService(creds);
+          driveService = new GoogleDriveService(creds, config.googleDrive.impersonateEmail);
         } catch {
           driveService = null;
           return error(res, 'JSON da Service Account inválido.', 400);

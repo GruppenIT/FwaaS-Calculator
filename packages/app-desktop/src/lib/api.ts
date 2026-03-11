@@ -1047,6 +1047,7 @@ export interface GoogleDriveConfig {
   configured: boolean;
   connected: boolean;
   rootFolderId: string | null;
+  impersonateEmail: string | null;
 }
 
 export interface GoogleDriveStatus {
@@ -1062,6 +1063,7 @@ export function getGoogleDriveConfig() {
 export function updateGoogleDriveConfig(data: {
   serviceAccountJson?: string;
   rootFolderId?: string;
+  impersonateEmail?: string;
 }) {
   return request<{ ok: boolean }>('/api/google-drive/config', {
     method: 'PUT',

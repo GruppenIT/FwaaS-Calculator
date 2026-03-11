@@ -185,12 +185,13 @@ function GoogleDriveSection() {
   const { refreshFeatures } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingFolder, setSavingFolder] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [testing, setTesting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
   const [rootFolderId, setRootFolderId] = useState('');
+  const [impersonateEmail, setImpersonateEmail] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [serviceAccountJson, setServiceAccountJson] = useState('');
 
@@ -199,6 +200,7 @@ function GoogleDriveSection() {
       const config = await api.getGoogleDriveConfig();
       setConnected(config.connected);
       setRootFolderId(config.rootFolderId ?? '');
+      setImpersonateEmail(config.impersonateEmail ?? '');
 
       if (config.connected) {
         const status = await api.getGoogleDriveStatus();
@@ -249,19 +251,20 @@ function GoogleDriveSection() {
     }
   }
 
-  async function handleSaveFolder() {
+  async function handleSaveSettings() {
     if (!rootFolderId.trim()) {
       toast('Informe o ID da pasta raiz.', 'error');
       return;
     }
-    setSavingFolder(true);
+    setSavingSettings(true);
     try {
-      await api.updateGoogleDriveConfig({ rootFolderId });
-      toast('Pasta raiz salva.', 'success');
+      await api.updateGoogleDriveConfig({ rootFolderId, impersonateEmail: impersonateEmail.trim() || '' });
+      toast('Configurações salvas.', 'success');
+      loadConfig();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao salvar pasta.', 'error');
+      toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     } finally {
-      setSavingFolder(false);
+      setSavingSettings(false);
     }
   }
 
@@ -358,12 +361,29 @@ function GoogleDriveSection() {
             </div>
           </div>
 
-          {/* Pasta raiz */}
-          <div className="pt-3 border-t border-[var(--color-border)]">
-            <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
-              ID da pasta raiz no Drive
-            </label>
-            <div className="flex gap-2">
+          {/* Configurações */}
+          <div className="pt-3 border-t border-[var(--color-border)] space-y-3">
+            <div>
+              <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+                E-mail para impersonar (Google Workspace)
+              </label>
+              <input
+                type="email"
+                value={impersonateEmail}
+                onChange={(e) => setImpersonateEmail(e.target.value)}
+                placeholder="usuario@suaempresa.com.br"
+                className={inputClass}
+              />
+              <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+                <strong>Obrigatório.</strong> E-mail do usuário do Google Workspace cujo Drive será usado para armazenar os arquivos.
+                O administrador do Workspace deve habilitar a delegação de domínio para a Service Account.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+                ID da pasta raiz no Drive
+              </label>
               <input
                 type="text"
                 value={rootFolderId}
@@ -371,28 +391,25 @@ function GoogleDriveSection() {
                 placeholder="Ex: 1AbCdEfGhIjKlMnOpQrStUvWxYz"
                 className={inputClass}
               />
-              <Button onClick={handleSaveFolder} disabled={savingFolder} className="shrink-0">
-                <Save size={14} className="mr-1" />
-                {savingFolder ? 'Salvando...' : 'Salvar'}
-              </Button>
-            </div>
-            <div className="mt-2 px-3 py-2 rounded bg-causa-surface-alt border border-[var(--color-border)]">
-              <p className="text-xs-causa text-[var(--color-text-muted)]">
-                <strong>Obrigatório.</strong> Crie uma pasta no Google Drive da sua conta pessoal, compartilhe-a com o e-mail da Service Account
-                {driveEmail && (<> (<code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">{driveEmail}</code>)</>)} com permissão de <strong>Editor</strong>, e cole aqui o ID da pasta.
-              </p>
               <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
-                O ID da pasta é a parte final da URL: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">drive.google.com/drive/folders/<strong>ID_AQUI</strong></code>
+                ID da pasta onde os documentos serão organizados.
+                Copie da URL: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">drive.google.com/drive/folders/<strong>ID_AQUI</strong></code>
               </p>
             </div>
+
             {!rootFolderId && (
-              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded bg-causa-warning/8 border border-causa-warning/20">
+              <div className="flex items-center gap-2 px-3 py-2 rounded bg-causa-warning/8 border border-causa-warning/20">
                 <AlertCircle size={14} className="text-causa-warning shrink-0" />
                 <p className="text-xs-causa text-causa-warning">
                   Sem pasta raiz configurada. A sincronização de documentos não funcionará.
                 </p>
               </div>
             )}
+
+            <Button onClick={handleSaveSettings} disabled={savingSettings}>
+              <Save size={14} className="mr-1" />
+              {savingSettings ? 'Salvando...' : 'Salvar configurações'}
+            </Button>
           </div>
         </div>
       )}
@@ -439,13 +456,12 @@ function GoogleDriveSection() {
                 Abra o arquivo JSON baixado e <strong>cole o conteúdo abaixo</strong>
               </li>
               <li>
-                No seu Google Drive pessoal, <strong>crie uma pasta</strong> (ex: "CAUSA Backup")
+                No <strong>Google Admin Console</strong> (<a href="https://admin.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] underline">admin.google.com</a>),
+                vá em <strong>Segurança &gt; Controle de acesso e dados &gt; Controles de API &gt; Delegação em todo o domínio</strong> e
+                adicione o <code>client_id</code> do JSON com o escopo <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded">https://www.googleapis.com/auth/drive</code>
               </li>
               <li>
-                <strong>Compartilhe essa pasta</strong> com o e-mail da Service Account (campo <code>client_email</code> do JSON) como <strong>Editor</strong>
-              </li>
-              <li>
-                Copie o <strong>ID da pasta</strong> da URL (<code>drive.google.com/drive/folders/<strong>ID</strong></code>) — você vai precisar dele após salvar
+                Após salvar, informe o <strong>e-mail do usuário</strong> cujo Drive será usado e o <strong>ID da pasta raiz</strong>
               </li>
             </ol>
           </div>
