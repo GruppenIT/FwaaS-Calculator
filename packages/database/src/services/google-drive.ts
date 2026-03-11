@@ -43,14 +43,21 @@ export class GoogleDriveService {
   private folderCache = new Map<string, string>();
   private serviceEmail: string;
 
-  constructor(credentials: ServiceAccountCredentials) {
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: credentials.client_email,
-        private_key: credentials.private_key,
-      },
-      scopes: ['https://www.googleapis.com/auth/drive'],
-    });
+  /**
+   * @param credentials JSON da Service Account
+   * @param impersonateEmail (Opcional) E-mail do usuário para impersonar via
+   *   domain-wide delegation. Necessário para contas Google Workspace.
+   *   Sem impersonação, a SA precisa de um Shared Drive.
+   */
+  constructor(credentials: ServiceAccountCredentials, impersonateEmail?: string) {
+    // JWT(email, keyFile, key, scopes, subject)
+    const auth = new google.auth.JWT(
+      credentials.client_email,
+      undefined,
+      credentials.private_key,
+      ['https://www.googleapis.com/auth/drive'],
+      impersonateEmail || undefined,
+    );
 
     this.drive = google.drive({ version: 'v3', auth });
     this.serviceEmail = credentials.client_email;
@@ -119,6 +126,7 @@ export class GoogleDriveService {
 
   /**
    * Resolve o caminho de pasta para um documento baseado em cliente e processo.
+   * Usa rootFolderId diretamente como raiz (pasta compartilhada pelo usuário).
    * Retorna o ID da pasta final.
    */
   async resolveFolderPath(opts: {
@@ -126,7 +134,7 @@ export class GoogleDriveService {
     clienteNome?: string | undefined;
     numeroCnj?: string | undefined;
   }): Promise<string> {
-    const rootId = await this.findOrCreateFolder('CAUSA', opts.rootFolderId);
+    const rootId = opts.rootFolderId;
 
     if (!opts.clienteNome) {
       return this.findOrCreateFolder('Sem Cliente', rootId);
