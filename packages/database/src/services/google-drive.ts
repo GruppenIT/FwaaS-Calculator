@@ -16,6 +16,12 @@ export interface ServiceAccountCredentials {
   universe_domain?: string;
 }
 
+export interface OAuthTokens {
+  access_token: string;
+  refresh_token: string;
+  expiry_date: number;
+}
+
 export interface DriveUploadResult {
   fileId: string;
   webViewLink: string;
@@ -23,34 +29,73 @@ export interface DriveUploadResult {
 
 /**
  * Estrutura de pastas no Google Drive:
- * CAUSA/
+ * {rootFolder}/
  * ├── Clientes/
- * │   ├── {nomeCliente}/
- * │   │   ├── Processos/
- * │   │   │   ├── {numeroCnj}/
- * │   │   │   │   └── documentos...
+ * │   ├── {nomeCliente}-{CPF}/
+ * │   │   ├── Proc.-{numeroCnj}/
+ * │   │   │   └── documentos...
  * │   │   └── Geral/
  * │   │       └── documentos sem processo...
  * └── Sem Cliente/
  *     └── documentos avulsos...
  *
- * IMPORTANTE: Service Accounts não possuem cota de armazenamento própria.
- * Os arquivos DEVEM ser enviados para uma pasta compartilhada com a SA
- * (ou para um Shared Drive). O rootFolderId é obrigatório.
+ * Modos de autenticação:
+ * 1. OAuth 2.0 (recomendado) — funciona com qualquer conta Google (Gmail gratuito ou Workspace)
+ * 2. Service Account + domain-wide delegation — somente Google Workspace pago
  */
 export class GoogleDriveService {
   private drive: drive_v3.Drive;
   private folderCache = new Map<string, string>();
-  private serviceEmail: string;
+  private userEmail: string;
+  private onTokenRefresh?: (tokens: OAuthTokens) => void;
+
+  private constructor(drive: drive_v3.Drive, email: string) {
+    this.drive = drive;
+    this.userEmail = email;
+  }
 
   /**
-   * @param credentials JSON da Service Account
-   * @param impersonateEmail (Opcional) E-mail do usuário para impersonar via
-   *   domain-wide delegation. Necessário para contas Google Workspace.
-   *   Sem impersonação, a SA precisa de um Shared Drive.
+   * Cria instância via OAuth 2.0 — funciona com qualquer conta Google.
+   * @param clientId OAuth Client ID do Google Cloud Console
+   * @param clientSecret OAuth Client Secret
+   * @param tokens Tokens salvos (access_token + refresh_token)
+   * @param onTokenRefresh Callback para persistir tokens atualizados
    */
-  constructor(credentials: ServiceAccountCredentials, impersonateEmail?: string) {
-    // JWT(email, keyFile, key, scopes, subject)
+  static fromOAuth(
+    clientId: string,
+    clientSecret: string,
+    tokens: OAuthTokens,
+    onTokenRefresh?: (tokens: OAuthTokens) => void,
+  ): GoogleDriveService {
+    const oauth2 = new google.auth.OAuth2(clientId, clientSecret, 'urn:ietf:wg:oauth:2.0:oob');
+    oauth2.setCredentials({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expiry_date: tokens.expiry_date,
+    });
+
+    // Persistir tokens quando renovados automaticamente
+    oauth2.on('tokens', (newTokens) => {
+      const updated: OAuthTokens = {
+        access_token: newTokens.access_token ?? tokens.access_token,
+        refresh_token: newTokens.refresh_token ?? tokens.refresh_token,
+        expiry_date: newTokens.expiry_date ?? Date.now() + 3600_000,
+      };
+      if (onTokenRefresh) onTokenRefresh(updated);
+    });
+
+    const drive = google.drive({ version: 'v3', auth: oauth2 });
+    const service = new GoogleDriveService(drive, '');
+    if (onTokenRefresh) service.onTokenRefresh = onTokenRefresh;
+    return service;
+  }
+
+  /**
+   * Cria instância via Service Account (Google Workspace com domain-wide delegation).
+   * @param credentials JSON da Service Account
+   * @param impersonateEmail E-mail do usuário para impersonar (obrigatório para SA)
+   */
+  static fromServiceAccount(credentials: ServiceAccountCredentials, impersonateEmail?: string): GoogleDriveService {
     const auth = new google.auth.JWT(
       credentials.client_email,
       undefined,
@@ -58,19 +103,50 @@ export class GoogleDriveService {
       ['https://www.googleapis.com/auth/drive'],
       impersonateEmail || undefined,
     );
+    const drive = google.drive({ version: 'v3', auth });
+    return new GoogleDriveService(drive, credentials.client_email);
+  }
 
-    this.drive = google.drive({ version: 'v3', auth });
-    this.serviceEmail = credentials.client_email;
+  /**
+   * Gera URL de autorização para OAuth 2.0.
+   */
+  static getOAuthUrl(clientId: string, clientSecret: string, redirectUri: string): string {
+    const oauth2 = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+    return oauth2.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: ['https://www.googleapis.com/auth/drive'],
+    });
+  }
+
+  /**
+   * Troca authorization code por tokens.
+   */
+  static async exchangeCode(
+    clientId: string,
+    clientSecret: string,
+    code: string,
+    redirectUri: string,
+  ): Promise<OAuthTokens> {
+    const oauth2 = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+    const { tokens } = await oauth2.getToken(code);
+    if (!tokens.access_token || !tokens.refresh_token) {
+      throw new Error('Falha ao obter tokens. Certifique-se de que o consent screen está configurado corretamente.');
+    }
+    return {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expiry_date: tokens.expiry_date ?? Date.now() + 3600_000,
+    };
   }
 
   /** Verifica se está conectado e funcionando */
   async testConnection(): Promise<{ ok: boolean; email?: string | undefined; error?: string | undefined }> {
     try {
       const about = await this.drive.about.get({ fields: 'user' });
-      return {
-        ok: true,
-        email: about.data.user?.emailAddress ?? this.serviceEmail,
-      };
+      const email = about.data.user?.emailAddress ?? this.userEmail;
+      if (email) this.userEmail = email;
+      return { ok: true, email };
     } catch (err) {
       return {
         ok: false,
@@ -126,12 +202,13 @@ export class GoogleDriveService {
 
   /**
    * Resolve o caminho de pasta para um documento baseado em cliente e processo.
-   * Usa rootFolderId diretamente como raiz (pasta compartilhada pelo usuário).
+   * Estrutura: Clientes/{Nome}-{CPF}/Proc.-{numeroCnj}/
    * Retorna o ID da pasta final.
    */
   async resolveFolderPath(opts: {
     rootFolderId: string;
     clienteNome?: string | undefined;
+    clienteCpfCnpj?: string | undefined;
     numeroCnj?: string | undefined;
   }): Promise<string> {
     const rootId = opts.rootFolderId;
@@ -141,14 +218,19 @@ export class GoogleDriveService {
     }
 
     const clientesId = await this.findOrCreateFolder('Clientes', rootId);
-    const clienteId = await this.findOrCreateFolder(opts.clienteNome, clientesId);
+
+    // Pasta do cliente: "Nome Completo-CPF" ou só "Nome Completo"
+    const clienteFolderName = opts.clienteCpfCnpj
+      ? `${opts.clienteNome}-${opts.clienteCpfCnpj}`
+      : opts.clienteNome;
+    const clienteFolderId = await this.findOrCreateFolder(clienteFolderName, clientesId);
 
     if (!opts.numeroCnj) {
-      return this.findOrCreateFolder('Geral', clienteId);
+      return this.findOrCreateFolder('Geral', clienteFolderId);
     }
 
-    const processosId = await this.findOrCreateFolder('Processos', clienteId);
-    return this.findOrCreateFolder(opts.numeroCnj, processosId);
+    // Pasta do processo: "Proc.-NUMEROCNJ"
+    return this.findOrCreateFolder(`Proc.-${opts.numeroCnj}`, clienteFolderId);
   }
 
   /** Faz upload de um arquivo para o Google Drive */
@@ -211,8 +293,8 @@ export class GoogleDriveService {
     });
   }
 
-  /** E-mail da Service Account */
+  /** E-mail do usuário conectado */
   get email(): string {
-    return this.serviceEmail;
+    return this.userEmail;
   }
 }

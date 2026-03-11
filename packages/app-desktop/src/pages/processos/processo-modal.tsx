@@ -251,6 +251,7 @@ export function ProcessoModal({ onClose, onSaved, editData }: Props) {
     const e: Record<string, string> = {};
     const cnjDigits = form.numeroCnj.replace(/\D/g, '');
     if (cnjDigits.length !== 20) e.numeroCnj = 'Número CNJ deve ter 20 dígitos';
+    if (!form.clienteId) e.clienteId = 'Cliente é obrigatório';
     if (!form.tribunalSigla.trim()) e.tribunalSigla = 'Obrigatório';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -275,7 +276,7 @@ export function ProcessoModal({ onClose, onSaved, editData }: Props) {
         segredoJustica: form.segredoJustica,
         justicaGratuita: form.justicaGratuita,
       };
-      if (form.clienteId) payload.clienteId = form.clienteId;
+      payload.clienteId = form.clienteId;
       if (form.clienteQualidade) payload.clienteQualidade = form.clienteQualidade;
       if (form.numeroAntigo) payload.numeroAntigo = form.numeroAntigo;
       if (form.grau) payload.grau = form.grau;
@@ -315,7 +316,7 @@ export function ProcessoModal({ onClose, onSaved, editData }: Props) {
 
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Número CNJ"
+            label="Número CNJ *"
             placeholder="0000000-00.0000.0.00.0000"
             value={form.numeroCnj}
             onChange={(e) => update('numeroCnj', formatCnj(e.target.value))}
@@ -335,8 +336,11 @@ export function ProcessoModal({ onClose, onSaved, editData }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
             <label className="text-sm-causa font-medium text-[var(--color-text-muted)]">
-              Cliente
+              Cliente *
             </label>
+            {errors.clienteId && (
+              <span className="text-xs-causa text-causa-danger">{errors.clienteId}</span>
+            )}
             {clienteNome ? (
               <div className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
                 <span className="flex-1 text-base-causa text-[var(--color-text)]">

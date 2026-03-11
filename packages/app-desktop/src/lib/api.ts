@@ -1044,10 +1044,12 @@ export function getDashboardProdutividade() {
 
 // === Google Drive ===
 export interface GoogleDriveConfig {
+  authMode: 'oauth' | 'service_account';
   configured: boolean;
   connected: boolean;
   rootFolderId: string | null;
   impersonateEmail: string | null;
+  oauthClientId: string | null;
 }
 
 export interface GoogleDriveStatus {
@@ -1061,6 +1063,9 @@ export function getGoogleDriveConfig() {
 }
 
 export function updateGoogleDriveConfig(data: {
+  authMode?: 'oauth' | 'service_account';
+  oauthClientId?: string;
+  oauthClientSecret?: string;
   serviceAccountJson?: string;
   rootFolderId?: string;
   impersonateEmail?: string;
@@ -1068,6 +1073,12 @@ export function updateGoogleDriveConfig(data: {
   return request<{ ok: boolean }>('/api/google-drive/config', {
     method: 'PUT',
     body: JSON.stringify(data),
+  });
+}
+
+export function getGoogleDriveOAuthUrl() {
+  return request<{ authUrl: string }>('/api/google-drive/oauth/url', {
+    method: 'POST',
   });
 }
 

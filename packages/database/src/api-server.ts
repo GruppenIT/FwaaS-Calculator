@@ -16,7 +16,7 @@ import { ParcelaService } from './services/parcelas.js';
 import { DespesaService } from './services/despesas.js';
 import { ContatoService } from './services/contatos.js';
 import { TimesheetService } from './services/timesheets.js';
-import { GoogleDriveService } from './services/google-drive.js';
+import { GoogleDriveService, type OAuthTokens } from './services/google-drive.js';
 import { TelegramService } from './services/telegram.js';
 import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services/automations.js';
 import { setupDatabase, type SetupInput } from './services/setup.js';
@@ -25,6 +25,7 @@ import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import { count, eq, sum, and, lt, gte, lte, sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
+import { createClienteSchema, createProcessoSchema } from '@causa/shared';
 import { logger } from './logger.js';
 
 const __apiDirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,9 +37,16 @@ const DB_PATH = 'causa.db';
 const CONFIG_PATH = 'causa.config.json';
 
 interface GoogleDriveConfig {
+  authMode?: 'oauth' | 'service_account';
+  // OAuth 2.0 (contas gratuitas e Workspace)
+  oauthClientId?: string;
+  oauthClientSecret?: string;
+  oauthTokens?: OAuthTokens;
+  // Service Account (Workspace com domain-wide delegation)
   serviceAccountJson: string;
-  rootFolderId?: string;
   impersonateEmail?: string;
+  // Comum
+  rootFolderId?: string;
 }
 
 interface TelegramBotConfig {
@@ -81,6 +89,52 @@ let contatoService: ContatoService | null = null;
 let timesheetService: TimesheetService | null = null;
 let driveService: GoogleDriveService | null = null;
 let telegramService: TelegramService | null = null;
+
+/** Callback para persistir tokens OAuth renovados */
+function persistOAuthTokens(tokens: OAuthTokens): void {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) return;
+    const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+    if (config.googleDrive) {
+      config.googleDrive.oauthTokens = tokens;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+    }
+  } catch (err) {
+    logger.error('GoogleDrive', 'Erro ao persistir tokens OAuth', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/** Inicializa GoogleDriveService a partir da configuração salva */
+function initDriveFromConfig(gdConfig: GoogleDriveConfig): void {
+  driveService = null;
+  const mode = gdConfig.authMode ?? (gdConfig.serviceAccountJson ? 'service_account' : 'oauth');
+
+  if (mode === 'oauth' && gdConfig.oauthClientId && gdConfig.oauthClientSecret && gdConfig.oauthTokens) {
+    try {
+      driveService = GoogleDriveService.fromOAuth(
+        gdConfig.oauthClientId,
+        gdConfig.oauthClientSecret,
+        gdConfig.oauthTokens,
+        persistOAuthTokens,
+      );
+    } catch (err) {
+      logger.error('GoogleDrive', 'Erro ao inicializar OAuth', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  } else if (mode === 'service_account' && gdConfig.serviceAccountJson) {
+    try {
+      const creds = JSON.parse(gdConfig.serviceAccountJson);
+      driveService = GoogleDriveService.fromServiceAccount(creds, gdConfig.impersonateEmail);
+    } catch (err) {
+      logger.error('GoogleDrive', 'Erro ao inicializar Service Account', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+}
 let telegramAlertInterval: ReturnType<typeof setInterval> | null = null;
 
 function ensureService<T>(service: T | null, name: string): T {
@@ -176,15 +230,8 @@ function loadApp(): boolean {
   activeModuleKeys = config.moduleKeys ?? [];
 
   // Inicializar Google Drive se configurado
-  if (config.googleDrive?.serviceAccountJson) {
-    try {
-      const creds = JSON.parse(config.googleDrive.serviceAccountJson);
-      driveService = new GoogleDriveService(creds, config.googleDrive.impersonateEmail);
-    } catch (err) {
-      logger.error('GoogleDrive', 'Erro ao inicializar Service Account', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+  if (config.googleDrive) {
+    initDriveFromConfig(config.googleDrive);
   }
 
   // Inicializar Telegram se configurado
@@ -436,6 +483,46 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       });
     }
 
+    // OAuth callback — sem autenticação (é chamado pelo redirect do Google)
+    if (path === '/api/google-drive/oauth/callback' && method === 'GET') {
+      const code = url.searchParams.get('code');
+      if (!code) {
+        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end('<html><body><h2>Erro: codigo de autorizacao nao recebido.</h2><p>Feche esta janela e tente novamente.</p></body></html>');
+        return;
+      }
+      try {
+        const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+        const clientId = config.googleDrive?.oauthClientId;
+        const clientSecret = config.googleDrive?.oauthClientSecret;
+        if (!clientId || !clientSecret) {
+          res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end('<html><body><h2>Erro: Client ID/Secret nao configurados.</h2></body></html>');
+          return;
+        }
+        const redirectUri = `http://localhost:${DEFAULT_PORT}/api/google-drive/oauth/callback`;
+        const tokens = await GoogleDriveService.exchangeCode(clientId, clientSecret, code, redirectUri);
+
+        if (!config.googleDrive) config.googleDrive = { serviceAccountJson: '' };
+        config.googleDrive.authMode = 'oauth';
+        config.googleDrive.oauthTokens = tokens;
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+
+        initDriveFromConfig(config.googleDrive);
+
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end('<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2 style="color:#22c55e">Google Drive conectado com sucesso!</h2><p>Pode fechar esta janela e voltar ao CAUSA.</p><script>setTimeout(()=>window.close(),3000)</script></body></html>');
+        return;
+      } catch (err) {
+        logger.error('GoogleDrive', 'Erro no OAuth callback', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<html><body><h2>Erro ao conectar</h2><p>${err instanceof Error ? err.message : 'Erro desconhecido'}</p></body></html>`);
+        return;
+      }
+    }
+
     // === Protected routes — require auth ===
     const user = getAuthenticatedUser(req);
     if (!user) {
@@ -455,7 +542,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/clientes' && method === 'POST') {
       if (!(await requirePermission(res, user, 'clientes:criar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await getClienteService().criar(body, user.id);
+      const validation = createClienteSchema.safeParse(body);
+      if (!validation.success) {
+        const msg = validation.error.issues.map((i) => i.message).join('; ');
+        return error(res, msg, 400);
+      }
+      const id = await getClienteService().criar(validation.data, user.id);
       return json(res, { id }, 201);
     }
 
@@ -500,7 +592,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/processos' && method === 'POST') {
       if (!(await requirePermission(res, user, 'processos:criar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await getProcessoService().criar(body);
+      const validation = createProcessoSchema.safeParse(body);
+      if (!validation.success) {
+        const msg = validation.error.issues.map((i) => i.message).join('; ');
+        return error(res, msg, 400);
+      }
+      const id = await getProcessoService().criar(validation.data);
       return json(res, { id }, 201);
     }
 
@@ -1217,16 +1314,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       const gdConfig = config.googleDrive;
       return json(res, {
-        configured: !!gdConfig?.serviceAccountJson,
+        authMode: gdConfig?.authMode ?? (gdConfig?.serviceAccountJson ? 'service_account' : 'oauth'),
+        configured: !!(gdConfig?.oauthTokens || gdConfig?.serviceAccountJson),
         connected: driveService !== null,
         rootFolderId: gdConfig?.rootFolderId ?? null,
         impersonateEmail: gdConfig?.impersonateEmail ?? null,
+        oauthClientId: gdConfig?.oauthClientId ?? null,
       });
     }
 
     if (path === '/api/google-drive/config' && method === 'PUT') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       const body = JSON.parse(await readBody(req)) as {
+        authMode?: 'oauth' | 'service_account';
+        oauthClientId?: string;
+        oauthClientSecret?: string;
         serviceAccountJson?: string;
         rootFolderId?: string;
         impersonateEmail?: string;
@@ -1235,24 +1337,32 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (!config.googleDrive) {
         config.googleDrive = { serviceAccountJson: '' };
       }
+      if (body.authMode !== undefined) config.googleDrive.authMode = body.authMode;
+      if (body.oauthClientId !== undefined) config.googleDrive.oauthClientId = body.oauthClientId;
+      if (body.oauthClientSecret !== undefined) config.googleDrive.oauthClientSecret = body.oauthClientSecret;
       if (body.serviceAccountJson !== undefined) config.googleDrive.serviceAccountJson = body.serviceAccountJson;
       if (body.rootFolderId !== undefined) config.googleDrive.rootFolderId = body.rootFolderId;
       if (body.impersonateEmail !== undefined) config.googleDrive.impersonateEmail = body.impersonateEmail || '';
+
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
       // Reinicializar o serviço
-      if (config.googleDrive.serviceAccountJson) {
-        try {
-          const creds = JSON.parse(config.googleDrive.serviceAccountJson);
-          driveService = new GoogleDriveService(creds, config.googleDrive.impersonateEmail);
-        } catch {
-          driveService = null;
-          return error(res, 'JSON da Service Account inválido.', 400);
-        }
-      } else {
-        driveService = null;
-      }
+      initDriveFromConfig(config.googleDrive);
       return json(res, { ok: true });
+    }
+
+    // OAuth: gerar URL de autorização
+    if (path === '/api/google-drive/oauth/url' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const clientId = config.googleDrive?.oauthClientId;
+      const clientSecret = config.googleDrive?.oauthClientSecret;
+      if (!clientId || !clientSecret) {
+        return error(res, 'Configure o Client ID e Client Secret OAuth antes de conectar.', 400);
+      }
+      const redirectUri = `http://localhost:${DEFAULT_PORT}/api/google-drive/oauth/callback`;
+      const authUrl = GoogleDriveService.getOAuthUrl(clientId, clientSecret, redirectUri);
+      return json(res, { authUrl });
     }
 
     if (path === '/api/google-drive/status' && method === 'GET') {
@@ -1298,6 +1408,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const folderId = await driveService.resolveFolderPath({
           rootFolderId,
           clienteNome: doc.clienteNome ?? undefined,
+          clienteCpfCnpj: (doc as Record<string, unknown>).clienteCpfCnpj as string | undefined,
           numeroCnj: doc.numeroCnj ?? undefined,
         });
 
@@ -1390,6 +1501,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           const folderId = await driveService.resolveFolderPath({
             rootFolderId: syncAllRootFolderId,
             clienteNome: docFull.clienteNome ?? undefined,
+            clienteCpfCnpj: (docFull as Record<string, unknown>).clienteCpfCnpj as string | undefined,
             numeroCnj: docFull.numeroCnj ?? undefined,
           });
 
