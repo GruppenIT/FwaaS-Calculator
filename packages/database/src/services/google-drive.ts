@@ -156,11 +156,19 @@ export class GoogleDriveService {
     }
   }
 
+  /** Limpa o cache de pastas (útil antes de operações de sync) */
+  clearFolderCache(): void {
+    this.folderCache.clear();
+  }
+
   /** Busca ou cria uma pasta pelo nome dentro de um parent */
   private async findOrCreateFolder(name: string, parentId: string): Promise<string> {
     const cacheKey = `${parentId}/${name}`;
     const cached = this.folderCache.get(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      logger.info('GoogleDrive', `findOrCreateFolder: cache hit para "${name}" (parent=${parentId}) → ${cached}`);
+      return cached;
+    }
 
     // Busca pasta existente
     const q = [
@@ -170,9 +178,11 @@ export class GoogleDriveService {
       `'${parentId}' in parents`,
     ].join(' and ');
 
+    logger.info('GoogleDrive', `findOrCreateFolder: buscando "${name}" em parent=${parentId}`);
+
     const res = await this.drive.files.list({
       q,
-      fields: 'files(id)',
+      fields: 'files(id,name)',
       spaces: 'drive',
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
@@ -180,11 +190,13 @@ export class GoogleDriveService {
 
     if (res.data.files && res.data.files.length > 0 && res.data.files[0]?.id) {
       const id = res.data.files[0].id;
+      logger.info('GoogleDrive', `findOrCreateFolder: ENCONTRADA "${name}" → ${id}`);
       this.folderCache.set(cacheKey, id);
       return id;
     }
 
     // Cria pasta
+    logger.info('GoogleDrive', `findOrCreateFolder: CRIANDO "${name}" em parent=${parentId}`);
     const folder = await this.drive.files.create({
       requestBody: {
         name,
@@ -197,6 +209,7 @@ export class GoogleDriveService {
 
     const id = folder.data.id;
     if (!id) throw new Error(`Falha ao criar pasta "${name}"`);
+    logger.info('GoogleDrive', `findOrCreateFolder: CRIADA "${name}" → ${id}`);
     this.folderCache.set(cacheKey, id);
     return id;
   }
@@ -261,14 +274,18 @@ export class GoogleDriveService {
     clienteTipo?: string | undefined;
     clienteCpfCnpj?: string | undefined;
   }): Promise<string> {
-    const clientesId = await this.findOrCreateFolder('Clientes', opts.rootFolderId);
     const clienteFolderName = GoogleDriveService.buildClienteFolderName({
       clienteTipo: opts.clienteTipo,
       clienteNome: opts.clienteNome,
       clienteCpfCnpj: opts.clienteCpfCnpj,
     });
+    logger.info('GoogleDrive', `resolveCompartilhadoFolder: cliente="${opts.clienteNome}" → pasta="${clienteFolderName}" (root=${opts.rootFolderId})`);
+
+    const clientesId = await this.findOrCreateFolder('Clientes', opts.rootFolderId);
     const clienteFolderId = await this.findOrCreateFolder(clienteFolderName, clientesId);
-    return this.findOrCreateFolder('Compartilhado', clienteFolderId);
+    const compartilhadoId = await this.findOrCreateFolder('Compartilhado', clienteFolderId);
+    logger.info('GoogleDrive', `resolveCompartilhadoFolder: Compartilhado criado/encontrado → ${compartilhadoId}`);
+    return compartilhadoId;
   }
 
   /** Move um arquivo de uma pasta para outra no Google Drive */

@@ -304,7 +304,13 @@ function GoogleDriveSection() {
     setSyncingFolders(true);
     try {
       const result = await api.syncDriveFolders();
-      toast(`Estrutura sincronizada: ${result.created}/${result.total} clientes processados.`, 'success');
+      const failed = result.details?.filter((d) => !d.ok) ?? [];
+      if (failed.length > 0) {
+        toast(`Sincronização parcial: ${result.created}/${result.total}. Erros: ${failed.map((d) => d.nome).join(', ')}`, 'error');
+      } else {
+        const folderNames = result.details?.map((d) => d.folderName).join(', ') ?? '';
+        toast(`Estrutura sincronizada: ${result.created}/${result.total} clientes. Pastas: ${folderNames}`, 'success');
+      }
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao sincronizar pastas.', 'error');
     } finally {
