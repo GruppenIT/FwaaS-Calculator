@@ -6,8 +6,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
+export type UpdateUserChoice = 'install-now' | 'install-later' | 'ignore';
+
 export interface UpdateStatus {
-  state: 'idle' | 'checking' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
+  state: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
   version?: string;
   releaseNotes?: string;
   percent?: number;
@@ -15,6 +17,8 @@ export interface UpdateStatus {
   transferred?: number;
   total?: number;
   error?: string;
+  /** Se true, o download está ocorrendo em segundo plano (sem overlay) */
+  background?: boolean;
 }
 
 interface ReleaseAsset {
@@ -320,6 +324,7 @@ function downloadAssetDirect(asset: ReleaseAsset, destPath: string): Promise<voi
               bytesPerSecond,
               transferred,
               total: totalSize,
+              background: backgroundMode,
             });
           });
 
@@ -349,12 +354,15 @@ function downloadAssetDirect(asset: ReleaseAsset, destPath: string): Promise<voi
   });
 }
 
+/** Se true, o download atual é em segundo plano (não mostra overlay) */
+let backgroundMode = false;
+
+/** Release disponível aguardando decisão do usuário */
+let availableRelease: { release: ReleaseInfo; version: string } | null = null;
+
 /**
- * Verifica se há atualização e, se houver, inicia o download automaticamente.
- * Fluxo: checking → downloading (com progresso) → downloaded → restart
- *
- * Tenta primeiro via electron-updater (requer latest.yml na release).
- * Se falhar, faz download direto do .exe via GitHub API.
+ * Verifica se há atualização disponível.
+ * Fluxo: checking → available (aguarda usuário) → downloading → downloaded → restart
  */
 async function checkAndAutoUpdate(): Promise<void> {
   sendStatus({ state: 'checking' });
@@ -386,13 +394,48 @@ async function checkAndAutoUpdate(): Promise<void> {
     return;
   }
 
-  // Atualização disponível — iniciar download automaticamente
-  logToFile('INFO', `Atualização ${remoteVersion} disponível. Iniciando download...`);
+  logToFile('INFO', `Atualização ${remoteVersion} disponível. Aguardando decisão do usuário.`);
+
+  // Se já temos um instalador baixado para esta versão, ir direto para downloaded
+  if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
+    logToFile('INFO', `Instalador já disponível em: ${downloadedInstallerPath}`);
+    sendStatus({
+      state: 'downloaded',
+      version: remoteVersion,
+      ...(release.body ? { releaseNotes: release.body } : {}),
+    });
+    return;
+  }
+
+  // Guardar release e notificar UI para perguntar ao usuário
+  availableRelease = { release, version: remoteVersion };
+  sendStatus({
+    state: 'available',
+    version: remoteVersion,
+    ...(release.body ? { releaseNotes: release.body } : {}),
+  });
+}
+
+/**
+ * Inicia o download da atualização (chamado após decisão do usuário).
+ * @param background Se true, baixa em segundo plano sem overlay.
+ */
+async function startDownload(background: boolean): Promise<void> {
+  if (!availableRelease) {
+    logToFile('ERROR', 'startDownload chamado sem release disponível');
+    return;
+  }
+
+  const { release, version } = availableRelease;
+  backgroundMode = background;
+
+  logToFile('INFO', `Iniciando download (modo: ${background ? 'segundo plano' : 'imediato'})...`);
 
   if (isDev) {
     sendStatus({
       state: 'downloaded',
-      version: remoteVersion,
+      version,
+      background,
       ...(release.body ? { releaseNotes: release.body } : {}),
     });
     return;
@@ -405,11 +448,9 @@ async function checkAndAutoUpdate(): Promise<void> {
     try {
       const token = refreshToken();
       logToFile('INFO', `Tentando download via electron-updater (token: ${token ? 'presente' : 'AUSENTE'})`);
-      // Guardar release para fallback caso electron-updater falhe assincronamente
-      // (ex: erro de verificação de assinatura após download concluído)
-      pendingRelease = { release, version: remoteVersion };
+      pendingRelease = { release, version };
       await autoUpdater.checkForUpdates();
-      return; // Progresso e conclusão tratados pelos event listeners
+      return;
     } catch (err) {
       pendingRelease = null;
       logToFile('WARN', `electron-updater falhou, tentando download direto: ${err instanceof Error ? err.message : String(err)}`);
@@ -419,7 +460,7 @@ async function checkAndAutoUpdate(): Promise<void> {
   }
 
   // Fallback: download direto do .exe
-  await downloadDirectFallback(release, remoteVersion);
+  await downloadDirectFallback(release, version);
 }
 
 /** Baixa o instalador diretamente dos assets da release do GitHub */
@@ -441,23 +482,40 @@ async function downloadDirectFallback(release: ReleaseInfo, remoteVersion: strin
   }
 
   try {
-    const tempDir = path.join(app.getPath('temp'), 'causa-update');
+    const tempDir = getUpdateDir();
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
     const installerPath = path.join(tempDir, setupAsset.name);
 
+    // Verificar se o instalador já foi baixado anteriormente (mesma versão e arquivo válido)
+    const persisted = loadPersistedInstaller();
+    if (persisted && persisted.version === remoteVersion && persisted.installerPath === installerPath) {
+      logToFile('INFO', `Usando instalador já baixado: ${installerPath}`);
+      downloadedInstallerPath = installerPath;
+      sendStatus({
+        state: 'downloaded',
+        version: remoteVersion,
+        background: backgroundMode,
+        ...(release.body ? { releaseNotes: release.body } : {}),
+      });
+      return;
+    }
+
     await downloadAssetDirect(setupAsset, installerPath);
 
     logToFile('INFO', `Instalador baixado: ${installerPath}`);
+
+    // Guardar o caminho do instalador para usar no restart e persistir para próxima sessão
+    downloadedInstallerPath = installerPath;
+    persistInstallerPath(installerPath, remoteVersion);
+
     sendStatus({
       state: 'downloaded',
       version: remoteVersion,
+      background: backgroundMode,
       ...(release.body ? { releaseNotes: release.body } : {}),
     });
-
-    // Guardar o caminho do instalador para usar no restart
-    downloadedInstallerPath = installerPath;
   } catch (err) {
     logToFile('ERROR', 'Erro ao baixar instalador diretamente', {
       error: err instanceof Error ? err.message : String(err),
@@ -475,6 +533,60 @@ let downloadedInstallerPath: string | null = null;
 
 /** Guarda a release atual para o fallback poder usar quando electron-updater falha assincronamente */
 let pendingRelease: { release: ReleaseInfo; version: string } | null = null;
+
+/** Diretório padrão para downloads de atualização */
+function getUpdateDir(): string {
+  return path.join(app.getPath('temp'), 'causa-update');
+}
+
+/** Arquivo de metadados que persiste o caminho do instalador entre sessões */
+function getInstallerMetaPath(): string {
+  return path.join(getUpdateDir(), 'installer-meta.json');
+}
+
+/** Salva o caminho do instalador baixado em disco para sobreviver a reinícios */
+function persistInstallerPath(installerPath: string, version: string): void {
+  try {
+    const metaPath = getInstallerMetaPath();
+    fs.writeFileSync(metaPath, JSON.stringify({ installerPath, version }), 'utf-8');
+    logToFile('DEBUG', `Caminho do instalador persistido: ${installerPath}`);
+  } catch (err) {
+    logToFile('WARN', `Falha ao persistir caminho do instalador: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/** Carrega o caminho do instalador de uma sessão anterior, se existir e o arquivo for válido */
+function loadPersistedInstaller(): { installerPath: string; version: string } | null {
+  try {
+    const metaPath = getInstallerMetaPath();
+    if (!fs.existsSync(metaPath)) return null;
+    const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as { installerPath?: string; version?: string };
+    if (meta.installerPath && meta.version && fs.existsSync(meta.installerPath)) {
+      // Verificar se o arquivo tem tamanho razoável (> 10 MB para um instalador)
+      const stats = fs.statSync(meta.installerPath);
+      if (stats.size > 10 * 1024 * 1024) {
+        logToFile('INFO', `Instalador já baixado encontrado: ${meta.installerPath} (${(stats.size / 1024 / 1024).toFixed(1)} MB, v${meta.version})`);
+        return { installerPath: meta.installerPath, version: meta.version };
+      }
+      logToFile('WARN', `Instalador encontrado mas tamanho suspeito: ${stats.size} bytes`);
+    }
+  } catch (err) {
+    logToFile('WARN', `Falha ao carregar instalador persistido: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return null;
+}
+
+/** Remove os metadados e arquivo do instalador persistido */
+function clearPersistedInstaller(): void {
+  try {
+    const metaPath = getInstallerMetaPath();
+    if (fs.existsSync(metaPath)) {
+      fs.unlinkSync(metaPath);
+    }
+  } catch {
+    // Falha silenciosa
+  }
+}
 
 export function setupAutoUpdater(mainWindow: BrowserWindow) {
   mainWin = mainWindow;
@@ -494,7 +606,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     } else {
       logToFile('WARN', 'GH_TOKEN não encontrado — configure via Configurações > Atualizações');
     }
-    autoUpdater.autoDownload = true;
+    autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
 
     autoUpdater.on('download-progress', (progress) => {
@@ -504,23 +616,31 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
         bytesPerSecond: progress.bytesPerSecond,
         transferred: progress.transferred,
         total: progress.total,
+        background: backgroundMode,
       });
     });
 
     autoUpdater.on('update-downloaded', (info) => {
-      pendingRelease = null; // Download com sucesso, não precisa de fallback
-      logToFile('INFO', `Atualização v${info.version} baixada e pronta.`);
+      pendingRelease = null;
+      logToFile('INFO', `Atualização v${info.version} baixada e pronta (background: ${backgroundMode}).`);
       sendStatus({
         state: 'downloaded',
         version: info.version,
+        background: backgroundMode,
         ...(typeof info.releaseNotes === 'string' ? { releaseNotes: info.releaseNotes } : {}),
+      });
+    });
+
+    // Quando electron-updater detectar atualização, iniciar download manualmente
+    autoUpdater.on('update-available', () => {
+      logToFile('INFO', 'electron-updater: update-available, iniciando download...');
+      autoUpdater.downloadUpdate().catch((err) => {
+        logToFile('ERROR', `Erro ao iniciar download via electron-updater: ${err instanceof Error ? err.message : String(err)}`);
       });
     });
 
     autoUpdater.on('error', (err) => {
       logToFile('ERROR', `Erro electron-updater: ${err.message}`);
-      // Se há uma release pendente, tentar fallback via download direto
-      // Isso cobre erros assíncronos como falha na verificação de assinatura digital
       if (pendingRelease) {
         const { release, version } = pendingRelease;
         pendingRelease = null;
@@ -534,12 +654,59 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     });
   }
 
+  // Carregar instalador persistido de sessão anterior
+  const persisted = loadPersistedInstaller();
+  if (persisted) {
+    const currentVersion = app.getVersion();
+    if (isNewerVersion(persisted.version, currentVersion)) {
+      downloadedInstallerPath = persisted.installerPath;
+      logToFile('INFO', `Instalador da sessão anterior carregado: v${persisted.version} em ${persisted.installerPath}`);
+    } else {
+      logToFile('INFO', 'Instalador persistido não é mais necessário (versão já atualizada), removendo...');
+      clearPersistedInstaller();
+    }
+  }
+
+  // Instalar automaticamente ao fechar o app se o download foi em segundo plano
+  app.on('before-quit', () => {
+    if (backgroundMode && downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
+      logToFile('INFO', `Instalando atualização em segundo plano ao fechar: ${downloadedInstallerPath}`);
+      try {
+        spawn(downloadedInstallerPath, ['/S', '--updated'], {
+          detached: true,
+          stdio: 'ignore',
+        }).unref();
+        clearPersistedInstaller();
+      } catch (err) {
+        logToFile('ERROR', `Falha ao executar instalador no before-quit: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  });
+
   // IPC: verificar atualização manualmente
   ipcMain.handle('update-check', async () => {
     try {
       await checkAndAutoUpdate();
     } catch (err) {
       logToFile('ERROR', 'Erro no IPC update-check', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      sendStatus({ state: 'error', error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // IPC: resposta do usuário à atualização disponível
+  ipcMain.handle('update-respond', async (_event, choice: UpdateUserChoice) => {
+    logToFile('INFO', `Usuário escolheu: ${choice}`);
+    if (choice === 'ignore') {
+      availableRelease = null;
+      sendStatus({ state: 'idle' });
+      return;
+    }
+    try {
+      await startDownload(choice === 'install-later');
+    } catch (err) {
+      logToFile('ERROR', 'Erro ao iniciar download após escolha do usuário', {
         error: err instanceof Error ? err.message : String(err),
       });
       sendStatus({ state: 'error', error: err instanceof Error ? err.message : String(err) });
@@ -558,7 +725,11 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
       // Instalador baixado via download direto — executar NSIS silenciosamente
       logToFile('INFO', `Executando instalador: ${downloadedInstallerPath}`);
-      spawn(downloadedInstallerPath, ['/S', '--updated'], {
+      const installerToRun = downloadedInstallerPath;
+      // Limpar referência para evitar que before-quit execute novamente
+      downloadedInstallerPath = null;
+      clearPersistedInstaller();
+      spawn(installerToRun, ['/S', '--updated'], {
         detached: true,
         stdio: 'ignore',
       }).unref();
