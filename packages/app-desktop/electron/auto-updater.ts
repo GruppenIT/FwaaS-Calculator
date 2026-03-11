@@ -1,6 +1,6 @@
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
