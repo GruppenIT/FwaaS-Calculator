@@ -64,7 +64,6 @@ interface AppConfig {
   moduleKeys?: string[];
   googleDrive?: GoogleDriveConfig;
   telegram?: TelegramBotConfig;
-  ghToken?: string;
 }
 
 /** Códigos de ativação de módulos opcionais */
@@ -1877,12 +1876,16 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
 
     // --- GH Token (para auto-updater) ---
+    // NOTA: O auto-updater do Electron lê de "causa-config.json" (com hífen),
+    // que é diferente do CONFIG_PATH "causa.config.json" (com ponto) usado pela API.
+    const GH_TOKEN_CONFIG = 'causa-config.json';
+
     if (path === '/api/gh-token' && method === 'GET') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       try {
-        if (fs.existsSync(CONFIG_PATH)) {
-          const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-          return json(res, { token: config.ghToken ?? '' });
+        if (fs.existsSync(GH_TOKEN_CONFIG)) {
+          const config = JSON.parse(fs.readFileSync(GH_TOKEN_CONFIG, 'utf-8')) as Record<string, unknown>;
+          return json(res, { token: (config.ghToken as string) ?? '' });
         }
       } catch { /* ignorar */ }
       return json(res, { token: '' });
@@ -1891,12 +1894,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/gh-token' && method === 'PUT') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       const body = JSON.parse(await readBody(req)) as { token: string };
-      const config: AppConfig = fs.existsSync(CONFIG_PATH)
-        ? JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'))
-        : {} as AppConfig;
+      let config: Record<string, unknown> = {};
+      try {
+        if (fs.existsSync(GH_TOKEN_CONFIG)) {
+          config = JSON.parse(fs.readFileSync(GH_TOKEN_CONFIG, 'utf-8')) as Record<string, unknown>;
+        }
+      } catch { /* ignorar */ }
       config.ghToken = body.token;
-      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-      logger.info('API', 'GH_TOKEN salvo via API', { hasToken: !!body.token });
+      fs.writeFileSync(GH_TOKEN_CONFIG, JSON.stringify(config, null, 2));
+      logger.info('API', `GH_TOKEN salvo em ${GH_TOKEN_CONFIG}`, { hasToken: !!body.token });
       return json(res, { ok: true });
     }
 
