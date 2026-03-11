@@ -258,8 +258,8 @@ export class GoogleDriveService {
   async resolveCompartilhadoFolder(opts: {
     rootFolderId: string;
     clienteNome: string;
-    clienteTipo?: string;
-    clienteCpfCnpj?: string;
+    clienteTipo?: string | undefined;
+    clienteCpfCnpj?: string | undefined;
   }): Promise<string> {
     const clientesId = await this.findOrCreateFolder('Clientes', opts.rootFolderId);
     const clienteFolderName = GoogleDriveService.buildClienteFolderName({

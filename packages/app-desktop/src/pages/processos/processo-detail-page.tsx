@@ -26,6 +26,7 @@ import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ProcessoModal } from './processo-modal';
 import type { ProcessoEditData } from './processo-modal';
 import { DocumentoModal } from '../documentos/documento-modal';
+import { DocumentoEditModal } from '../documentos/documento-edit-modal';
 import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
@@ -122,6 +123,7 @@ export function ProcessoDetailPage() {
   const [viewDocId, setViewDocId] = useState<string | null>(null);
   const [syncingDocId, setSyncingDocId] = useState<string | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
+  const [editDoc, setEditDoc] = useState<DocumentoRow | null>(null);
   const canUpload = can('documentos:upload');
 
   const carregar = useCallback(async () => {
@@ -586,6 +588,16 @@ export function ProcessoDetailPage() {
                       </button>
                     )
                   )}
+                  {canUpload && (
+                    <button
+                      type="button"
+                      onClick={() => setEditDoc(d)}
+                      className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                      title="Editar metadados"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
                   {isPreviewable(d.tipoMime) && (
                     <button
                       type="button"
@@ -698,6 +710,14 @@ export function ProcessoDetailPage() {
 
       {viewDocId && (
         <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
+      )}
+
+      {editDoc && (
+        <DocumentoEditModal
+          documento={editDoc}
+          onClose={() => setEditDoc(null)}
+          onSave={() => { setEditDoc(null); carregar(); }}
+        />
       )}
 
       <ConfirmDialog

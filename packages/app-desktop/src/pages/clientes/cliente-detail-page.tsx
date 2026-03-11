@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2, Plus, Scale } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
 import { DocumentoModal } from '../documentos/documento-modal';
+import { DocumentoEditModal } from '../documentos/documento-edit-modal';
 import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
 import { useFeatures } from '../../lib/auth-context';
@@ -97,6 +98,7 @@ export function ClienteDetailPage() {
   const [viewDocId, setViewDocId] = useState<string | null>(null);
   const [syncingDocId, setSyncingDocId] = useState<string | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
+  const [editDoc, setEditDoc] = useState<DocumentoRow | null>(null);
   const canUpload = can('documentos:upload');
 
   const carregar = useCallback(async () => {
@@ -106,7 +108,7 @@ export function ClienteDetailPage() {
       setCliente(c);
       const [matchedProcessos, docs] = await Promise.all([
         api.listarProcessos(c.nome),
-        api.listarDocumentos({ clienteId: id }),
+        api.listarDocumentos({ clienteId: id, includeProcessoDocs: true }),
       ]);
       const filtered = matchedProcessos.filter((p) => p.clienteNome === c.nome);
       setProcessos(filtered);
@@ -449,11 +451,23 @@ export function ClienteDetailPage() {
                     <span className="text-sm-causa text-[var(--color-text)] font-medium truncate block">
                       {d.nome}
                     </span>
-                    {d.descricao && (
-                      <span className="text-xs-causa text-[var(--color-text-muted)] truncate block">
-                        {d.descricao}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {d.descricao && (
+                        <span className="text-xs-causa text-[var(--color-text-muted)] truncate">
+                          {d.descricao}
+                        </span>
+                      )}
+                      {d.processoId && d.numeroCnj && (
+                        <Link
+                          to={`/processos/${d.processoId}`}
+                          className="inline-flex items-center gap-0.5 text-xs-causa text-[var(--color-primary)] hover:underline shrink-0"
+                          title={`Processo ${d.numeroCnj}`}
+                        >
+                          <Scale size={10} />
+                          {d.numeroCnj}
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   {d.categoria && (
                     <span className="text-xs-causa text-[var(--color-text-muted)] shrink-0 ml-1">
@@ -487,6 +501,16 @@ export function ClienteDetailPage() {
                         <CloudOff size={14} />
                       </button>
                     )
+                  )}
+                  {canUpload && (
+                    <button
+                      type="button"
+                      onClick={() => setEditDoc(d)}
+                      className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                      title="Editar metadados"
+                    >
+                      <Pencil size={14} />
+                    </button>
                   )}
                   {isPreviewable(d.tipoMime) && (
                     <button
@@ -522,6 +546,14 @@ export function ClienteDetailPage() {
 
       {viewDocId && (
         <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
+      )}
+
+      {editDoc && (
+        <DocumentoEditModal
+          documento={editDoc}
+          onClose={() => setEditDoc(null)}
+          onSave={() => { setEditDoc(null); carregar(); }}
+        />
       )}
 
       {editData !== undefined && (

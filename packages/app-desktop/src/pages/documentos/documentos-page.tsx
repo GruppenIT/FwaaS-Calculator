@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, FolderOpen, RefreshCw, Loader2, Search, Tag as TagIcon, ExternalLink } from 'lucide-react';
+import { FileText, FolderOpen, RefreshCw, Loader2, Search, ExternalLink } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -9,13 +9,31 @@ import { useFeatures } from '../../lib/auth-context';
 import * as api from '../../lib/api';
 import type { UnclassifiedFolder, ClienteData, ProcessoListRow } from '../../lib/api';
 
+const CATEGORIAS = [
+  { value: '', label: 'Sem categoria' },
+  { value: 'peticao', label: 'Petição' },
+  { value: 'procuracao', label: 'Procuração' },
+  { value: 'contrato', label: 'Contrato' },
+  { value: 'substabelecimento', label: 'Substabelecimento' },
+  { value: 'certidao', label: 'Certidão' },
+  { value: 'laudo_pericial', label: 'Laudo Pericial' },
+  { value: 'comprovante', label: 'Comprovante' },
+  { value: 'sentenca', label: 'Sentença' },
+  { value: 'acordao', label: 'Acórdão' },
+  { value: 'ata_audiencia', label: 'Ata de Audiência' },
+  { value: 'correspondencia', label: 'Correspondência' },
+  { value: 'nota_fiscal', label: 'Nota Fiscal' },
+  { value: 'outro', label: 'Outro' },
+];
+
 interface ClassifyTarget {
   driveFileId: string;
   fileName: string;
+  mimeType: string;
   sourceParentId: string;
 }
 
-type ClassifyStep = 'vinculo' | 'cliente' | 'processo' | 'confirmar';
+type ClassifyStep = 'vinculo' | 'cliente' | 'processo' | 'metadados' | 'confirmar';
 
 export function DocumentosPage() {
   const [folders, setFolders] = useState<UnclassifiedFolder[]>([]);
@@ -39,6 +57,12 @@ export function DocumentosPage() {
   const [classifying, setClassifying] = useState(false);
   const [clienteSearch, setClienteSearch] = useState('');
   const [processoSearch, setProcessoSearch] = useState('');
+
+  // Metadados
+  const [descricao, setDescricao] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [confidencial, setConfidencial] = useState(false);
+  const [dataReferencia, setDataReferencia] = useState('');
 
   const load = useCallback(async () => {
     if (!driveEnabled) {
@@ -65,8 +89,8 @@ export function DocumentosPage() {
     load();
   }
 
-  function startClassify(file: { id: string; name: string }, compartilhadoId: string) {
-    setClassifyTarget({ driveFileId: file.id, fileName: file.name, sourceParentId: compartilhadoId });
+  function startClassify(file: { id: string; name: string; mimeType: string }, compartilhadoId: string) {
+    setClassifyTarget({ driveFileId: file.id, fileName: file.name, mimeType: file.mimeType, sourceParentId: compartilhadoId });
     setClassifyStep('vinculo');
     setVinculoType('cliente');
     setSelectedClienteId('');
@@ -74,6 +98,10 @@ export function DocumentosPage() {
     setKeepOriginal(false);
     setClienteSearch('');
     setProcessoSearch('');
+    setDescricao('');
+    setCategoria('');
+    setConfidencial(false);
+    setDataReferencia('');
   }
 
   function cancelClassify() {
@@ -81,7 +109,6 @@ export function DocumentosPage() {
   }
 
   async function handleStepVinculo() {
-    // Load clientes
     try {
       const c = await api.listarClientes();
       setClientes(c);
@@ -98,9 +125,8 @@ export function DocumentosPage() {
       return;
     }
     if (vinculoType === 'cliente') {
-      setClassifyStep('confirmar');
+      setClassifyStep('metadados');
     } else {
-      // Load processos for selected client
       try {
         const allProcessos = await api.listarProcessos();
         const cliente = clientes.find((c) => c.id === selectedClienteId);
@@ -119,6 +145,10 @@ export function DocumentosPage() {
       toast('Selecione um processo.', 'error');
       return;
     }
+    setClassifyStep('metadados');
+  }
+
+  function handleStepMetadados() {
     setClassifyStep('confirmar');
   }
 
@@ -132,6 +162,12 @@ export function DocumentosPage() {
         clienteId: selectedClienteId,
         processoId: vinculoType === 'processo' ? selectedProcessoId : undefined,
         keepOriginal,
+        fileName: classifyTarget.fileName,
+        mimeType: classifyTarget.mimeType || undefined,
+        descricao: descricao || undefined,
+        categoria: categoria || undefined,
+        confidencial: confidencial || undefined,
+        dataReferencia: dataReferencia || undefined,
       });
       toast('Documento classificado com sucesso.', 'success');
       setClassifyTarget(null);
@@ -157,6 +193,19 @@ export function DocumentosPage() {
     );
   }
 
+  const inputClass =
+    'w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-sm-causa';
+  const labelClass = 'block text-sm-causa font-medium text-[var(--color-text)] mb-1';
+
+  function goBack() {
+    if (classifyStep === 'confirmar') setClassifyStep('metadados');
+    else if (classifyStep === 'metadados') {
+      if (vinculoType === 'processo') setClassifyStep('processo');
+      else setClassifyStep('cliente');
+    } else if (classifyStep === 'processo') setClassifyStep('cliente');
+    else if (classifyStep === 'cliente') setClassifyStep('vinculo');
+  }
+
   // Classification modal
   const classifyModal = classifyTarget && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -172,7 +221,7 @@ export function DocumentosPage() {
           </button>
         </div>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="text-sm-causa text-[var(--color-text-muted)]">
             Arquivo: <span className="font-medium text-[var(--color-text)]">{classifyTarget.fileName}</span>
           </div>
@@ -287,6 +336,56 @@ export function DocumentosPage() {
             </div>
           )}
 
+          {classifyStep === 'metadados' && (
+            <div className="space-y-3">
+              <p className="text-sm-causa text-[var(--color-text)] font-medium">Metadados do documento:</p>
+              <div>
+                <label className={labelClass}>Descrição</label>
+                <input
+                  type="text"
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="Descrição opcional do documento"
+                  className={inputClass}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Categoria</label>
+                  <select
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                    className={inputClass}
+                  >
+                    {CATEGORIAS.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Data de referência</label>
+                  <input
+                    type="date"
+                    value={dataReferencia}
+                    onChange={(e) => setDataReferencia(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer text-sm-causa text-[var(--color-text)]">
+                <input
+                  type="checkbox"
+                  checked={confidencial}
+                  onChange={(e) => setConfidencial(e.target.checked)}
+                  className="accent-[var(--color-primary)]"
+                />
+                Confidencial
+              </label>
+            </div>
+          )}
+
           {classifyStep === 'confirmar' && (
             <div className="space-y-3">
               <p className="text-sm-causa text-[var(--color-text)]">
@@ -312,6 +411,23 @@ export function DocumentosPage() {
                       {processos.find((p) => p.id === selectedProcessoId)?.numeroCnj}
                     </span>
                   </div>
+                )}
+                {descricao && (
+                  <div>
+                    <span className="text-[var(--color-text-muted)]">Descrição:</span>{' '}
+                    <span className="text-[var(--color-text)]">{descricao}</span>
+                  </div>
+                )}
+                {categoria && (
+                  <div>
+                    <span className="text-[var(--color-text-muted)]">Categoria:</span>{' '}
+                    <span className="text-[var(--color-text)]">
+                      {CATEGORIAS.find((c) => c.value === categoria)?.label}
+                    </span>
+                  </div>
+                )}
+                {confidencial && (
+                  <div className="text-causa-danger font-medium">Confidencial</div>
                 )}
               </div>
               <div className="flex gap-3 mt-2">
@@ -347,28 +463,11 @@ export function DocumentosPage() {
             Cancelar
           </Button>
           <div className="flex gap-2">
-            {classifyStep !== 'vinculo' && classifyStep !== 'confirmar' && (
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  if (classifyStep === 'cliente') setClassifyStep('vinculo');
-                  if (classifyStep === 'processo') setClassifyStep('cliente');
-                }}
-              >
+            {classifyStep !== 'vinculo' && (
+              <Button variant="ghost" onClick={goBack}>
                 Voltar
               </Button>
             )}
-            {classifyStep === 'confirmar' ? (
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  if (vinculoType === 'processo') setClassifyStep('processo');
-                  else setClassifyStep('cliente');
-                }}
-              >
-                Voltar
-              </Button>
-            ) : null}
             {classifyStep === 'vinculo' && (
               <Button onClick={handleStepVinculo}>Avançar</Button>
             )}
@@ -381,6 +480,9 @@ export function DocumentosPage() {
               <Button onClick={handleStepProcesso} disabled={!selectedProcessoId}>
                 Avançar
               </Button>
+            )}
+            {classifyStep === 'metadados' && (
+              <Button onClick={handleStepMetadados}>Avançar</Button>
             )}
             {classifyStep === 'confirmar' && (
               <Button onClick={handleConfirmClassify} disabled={classifying}>

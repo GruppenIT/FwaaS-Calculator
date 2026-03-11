@@ -709,12 +709,14 @@ export interface DocumentoRow {
 export function listarDocumentos(filtros?: {
   processoId?: string;
   clienteId?: string;
+  includeProcessoDocs?: boolean;
   categoria?: string;
   q?: string;
 }) {
   const params = new URLSearchParams();
   if (filtros?.processoId) params.set('processoId', filtros.processoId);
   if (filtros?.clienteId) params.set('clienteId', filtros.clienteId);
+  if (filtros?.includeProcessoDocs) params.set('includeProcessoDocs', 'true');
   if (filtros?.categoria) params.set('categoria', filtros.categoria);
   if (filtros?.q) params.set('q', filtros.q);
   const qs = params.toString();
@@ -1123,10 +1125,22 @@ export function classificarDocumentoDrive(data: {
   clienteId: string;
   processoId?: string | undefined;
   keepOriginal?: boolean | undefined;
+  fileName: string;
+  mimeType?: string | undefined;
+  descricao?: string | undefined;
+  categoria?: string | undefined;
+  confidencial?: boolean | undefined;
+  dataReferencia?: string | undefined;
 }) {
-  return request<{ ok: boolean }>('/api/google-drive/classify', {
+  return request<{ ok: boolean; documentoId: string }>('/api/google-drive/classify', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export function syncDriveFolders() {
+  return request<{ ok: boolean; total: number; created: number }>('/api/google-drive/sync-folders', {
+    method: 'POST',
   });
 }
 

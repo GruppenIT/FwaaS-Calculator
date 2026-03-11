@@ -4,19 +4,19 @@ import type { CausaDatabase, DatabaseQueryBuilder } from '../client.js';
 import type { CausaSchema } from '../schema-provider.js';
 
 export interface CreateDocumentoInput {
-  processoId?: string;
-  clienteId?: string;
+  processoId?: string | undefined;
+  clienteId?: string | undefined;
   nome: string;
-  descricao?: string;
-  caminhoLocal?: string;
-  conteudo?: string;
+  descricao?: string | undefined;
+  caminhoLocal?: string | undefined;
+  conteudo?: string | undefined;
   tipoMime: string;
   tamanhoBytes: number;
   hashSha256: string;
-  categoria?: string;
-  tags?: string[];
-  confidencial?: boolean;
-  dataReferencia?: string;
+  categoria?: string | undefined;
+  tags?: string[] | undefined;
+  confidencial?: boolean | undefined;
+  dataReferencia?: string | undefined;
   uploadedBy: string;
 }
 
@@ -85,6 +85,8 @@ export class DocumentoService {
   async listar(filtros?: {
     processoId?: string;
     clienteId?: string;
+    /** Incluir documentos vinculados a processos do cliente */
+    includeProcessoDocs?: boolean;
     categoria?: string;
     confidencial?: boolean;
     q?: string;
@@ -94,7 +96,17 @@ export class DocumentoService {
       conditions.push(eq(this.documentos.processoId, filtros.processoId));
     }
     if (filtros?.clienteId) {
-      conditions.push(eq(this.documentos.clienteId, filtros.clienteId));
+      if (filtros.includeProcessoDocs) {
+        // Documentos diretamente do cliente OU de processos vinculados ao cliente
+        conditions.push(
+          or(
+            eq(this.documentos.clienteId, filtros.clienteId),
+            sql`${this.documentos.processoId} IN (SELECT id FROM processos WHERE cliente_id = ${filtros.clienteId})`,
+          )!,
+        );
+      } else {
+        conditions.push(eq(this.documentos.clienteId, filtros.clienteId));
+      }
     }
     if (filtros?.categoria) {
       conditions.push(eq(this.documentos.categoria, filtros.categoria as 'outro'));
