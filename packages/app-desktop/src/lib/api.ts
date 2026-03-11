@@ -988,6 +988,17 @@ export function atualizarConfiguracoes(data: Partial<{ topologia: 'solo' | 'escr
   });
 }
 
+export function getGhToken() {
+  return request<{ token: string }>('/api/gh-token');
+}
+
+export function setGhToken(token: string) {
+  return request<{ ok: boolean }>('/api/gh-token', {
+    method: 'PUT',
+    body: JSON.stringify({ token }),
+  });
+}
+
 // === Dashboard ===
 export interface AudienciaSemanaRow {
   id: string;
