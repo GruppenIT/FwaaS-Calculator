@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Download, CheckCircle2, AlertCircle, Loader2, RefreshCw, Clock, ArrowDownToLine, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Download, CheckCircle2, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { CausaLogo } from './ui/causa-logo';
 
@@ -16,22 +16,47 @@ function formatBytes(bytes: number): string {
 export function UpdateOverlay() {
   const [status, setStatus] = useState<UpdateStatus>({ state: 'idle' });
   const [dismissed, setDismissed] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refreshStatus = useCallback(() => {
-    window.causaElectron?.getUpdateStatus().then(setStatus).catch(() => {});
+    window.causaElectron?.getUpdateStatus().then((s) => {
+      if (s) setStatus(s);
+    }).catch((err) => {
+      console.warn('[UpdateOverlay] Erro ao obter status:', err);
+    });
   }, []);
 
   useEffect(() => {
+    // Buscar status atual ao montar
     refreshStatus();
+
+    // Escutar mudanças de status em tempo real
     const unsub = window.causaElectron?.onUpdateStatus((s) => {
       setStatus(s);
-      // Quando muda para 'available', resetar dismissed
       if (s.state === 'available') {
         setDismissed(false);
       }
     });
-    return () => { unsub?.(); };
+
+    // Polling como fallback: se o evento IPC foi perdido (race condition no startup),
+    // o polling garante que o overlay apareça quando o status mudar.
+    pollRef.current = setInterval(refreshStatus, 3000);
+
+    return () => {
+      unsub?.();
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [refreshStatus]);
+
+  // Parar polling quando o overlay estiver visível (não precisa mais)
+  useEffect(() => {
+    if (status.state === 'available' || status.state === 'downloading' || status.state === 'downloaded') {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    }
+  }, [status.state]);
 
   function handleChoice(choice: UpdateUserChoice) {
     if (choice === 'ignore') {
@@ -70,7 +95,7 @@ export function UpdateOverlay() {
           <div className="space-y-6">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <ArrowDownToLine size={20} className="text-[var(--color-primary)]" />
+                <Download size={20} className="text-[var(--color-primary)]" />
                 <h2 className="text-lg font-semibold text-[var(--color-text)]">
                   Nova versão disponível
                 </h2>
@@ -101,7 +126,7 @@ export function UpdateOverlay() {
                 onClick={() => handleChoice('install-later')}
                 className="w-full justify-center"
               >
-                <Clock size={16} className="mr-2" />
+                <RefreshCw size={16} className="mr-2" />
                 Baixar em segundo plano e instalar depois
               </Button>
 
@@ -110,7 +135,6 @@ export function UpdateOverlay() {
                 onClick={() => handleChoice('ignore')}
                 className="w-full flex items-center justify-center gap-1.5 py-2 text-sm-causa text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer transition-colors"
               >
-                <X size={14} />
                 Ignorar esta atualização
               </button>
             </div>
