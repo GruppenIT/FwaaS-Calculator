@@ -14,4 +14,8 @@ contextBridge.exposeInMainWorld('causaElectron', {
     ipcRenderer.on('update-status', handler);
     return () => { ipcRenderer.removeListener('update-status', handler); };
   },
+
+  // Config (causa-config.json)
+  getGhToken: () => ipcRenderer.invoke('get-gh-token'),
+  setGhToken: (token: string) => ipcRenderer.invoke('set-gh-token', token),
 });

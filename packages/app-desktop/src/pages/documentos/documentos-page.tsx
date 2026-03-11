@@ -1,402 +1,486 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { FileText, Trash2, Lock, Tag, Download, Plus, Search, Eye, Cloud, CloudOff, RefreshCw, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { FileText, FolderOpen, RefreshCw, Loader2, Search, Tag as TagIcon, ExternalLink } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
-import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { usePermission } from '../../hooks/use-permission';
 import { useFeatures } from '../../lib/auth-context';
-import { DocumentoModal } from './documento-modal';
-import { DocumentoViewer } from './documento-viewer';
 import * as api from '../../lib/api';
-import type { DocumentoRow } from '../../lib/api';
+import type { UnclassifiedFolder, ClienteData, ProcessoListRow } from '../../lib/api';
 
-const PREVIEWABLE_MIMES = new Set([
-  'application/pdf',
-  'text/plain',
-  'text/html',
-  'text/csv',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-]);
-
-function isPreviewable(tipoMime: string): boolean {
-  return PREVIEWABLE_MIMES.has(tipoMime) || tipoMime.startsWith('image/');
+interface ClassifyTarget {
+  driveFileId: string;
+  fileName: string;
+  sourceParentId: string;
 }
 
-const CATEGORIA_LABELS: Record<string, string> = {
-  peticao: 'Petição',
-  procuracao: 'Procuração',
-  contrato: 'Contrato',
-  substabelecimento: 'Substabelecimento',
-  certidao: 'Certidão',
-  laudo_pericial: 'Laudo Pericial',
-  comprovante: 'Comprovante',
-  sentenca: 'Sentença',
-  acordao: 'Acórdão',
-  ata_audiencia: 'Ata de Audiência',
-  correspondencia: 'Correspondência',
-  nota_fiscal: 'Nota Fiscal',
-  outro: 'Outro',
-};
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
+type ClassifyStep = 'vinculo' | 'cliente' | 'processo' | 'confirmar';
 
 export function DocumentosPage() {
-  const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
+  const [folders, setFolders] = useState<UnclassifiedFolder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [categoriaFilter, setCategoriaFilter] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [viewDocId, setViewDocId] = useState<string | null>(null);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [syncingAll, setSyncingAll] = useState(false);
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
   const { can } = usePermission();
   const features = useFeatures();
-
   const canUpload = can('documentos:upload');
   const driveEnabled = features.googleDrive;
 
-  function handleSearchChange(value: string) {
-    setSearchInput(value);
-    clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => setSearchTerm(value), 300);
-  }
+  // Classification flow state
+  const [classifyTarget, setClassifyTarget] = useState<ClassifyTarget | null>(null);
+  const [classifyStep, setClassifyStep] = useState<ClassifyStep>('vinculo');
+  const [vinculoType, setVinculoType] = useState<'cliente' | 'processo'>('cliente');
+  const [clientes, setClientes] = useState<ClienteData[]>([]);
+  const [processos, setProcessos] = useState<ProcessoListRow[]>([]);
+  const [selectedClienteId, setSelectedClienteId] = useState('');
+  const [selectedProcessoId, setSelectedProcessoId] = useState('');
+  const [keepOriginal, setKeepOriginal] = useState(false);
+  const [classifying, setClassifying] = useState(false);
+  const [clienteSearch, setClienteSearch] = useState('');
+  const [processoSearch, setProcessoSearch] = useState('');
 
   const load = useCallback(async () => {
+    if (!driveEnabled) {
+      setLoading(false);
+      return;
+    }
     try {
-      setLoading(true);
-      const filtros: { categoria?: string; q?: string } = {};
-      if (categoriaFilter) filtros.categoria = categoriaFilter;
-      if (searchTerm) filtros.q = searchTerm;
-      const data = await api.listarDocumentos(filtros);
-      setDocumentos(data);
+      const data = await api.listarDocumentosNaoClassificados();
+      setFolders(data);
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao carregar documentos.', 'error');
+      toast(err instanceof Error ? err.message : 'Erro ao carregar documentos não classificados.', 'error');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [categoriaFilter, searchTerm, toast]);
+  }, [driveEnabled, toast]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  async function handleDelete() {
-    if (!deleteId) return;
-    setDeleting(true);
-    try {
-      await api.excluirDocumento(deleteId);
-      toast('Documento excluído.', 'success');
-      setDeleteId(null);
-      load();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao excluir documento.', 'error');
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  async function handleDownload(id: string) {
-    try {
-      const data = await api.downloadDocumento(id);
-      const byteChars = atob(data.conteudo);
-      const byteNumbers = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) {
-        byteNumbers[i] = byteChars.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: data.tipoMime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = data.nome;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao baixar documento.', 'error');
-    }
-  }
-
-  function handleModalSave() {
-    setModalOpen(false);
-    toast('Documento enviado com sucesso.', 'success');
+  function handleRefresh() {
+    setRefreshing(true);
     load();
   }
 
-  async function handleSyncDrive(id: string) {
-    setSyncingId(id);
+  function startClassify(file: { id: string; name: string }, compartilhadoId: string) {
+    setClassifyTarget({ driveFileId: file.id, fileName: file.name, sourceParentId: compartilhadoId });
+    setClassifyStep('vinculo');
+    setVinculoType('cliente');
+    setSelectedClienteId('');
+    setSelectedProcessoId('');
+    setKeepOriginal(false);
+    setClienteSearch('');
+    setProcessoSearch('');
+  }
+
+  function cancelClassify() {
+    setClassifyTarget(null);
+  }
+
+  async function handleStepVinculo() {
+    // Load clientes
     try {
-      await api.syncDocumentoDrive(id);
-      toast('Documento sincronizado com o Drive.', 'success');
-      load();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao sincronizar.', 'error');
-    } finally {
-      setSyncingId(null);
+      const c = await api.listarClientes();
+      setClientes(c);
+    } catch {
+      toast('Erro ao carregar clientes.', 'error');
+      return;
+    }
+    setClassifyStep('cliente');
+  }
+
+  async function handleStepCliente() {
+    if (!selectedClienteId) {
+      toast('Selecione um cliente.', 'error');
+      return;
+    }
+    if (vinculoType === 'cliente') {
+      setClassifyStep('confirmar');
+    } else {
+      // Load processos for selected client
+      try {
+        const allProcessos = await api.listarProcessos();
+        const cliente = clientes.find((c) => c.id === selectedClienteId);
+        const filtered = allProcessos.filter((p) => p.clienteNome === cliente?.nome);
+        setProcessos(filtered);
+      } catch {
+        toast('Erro ao carregar processos.', 'error');
+        return;
+      }
+      setClassifyStep('processo');
     }
   }
 
-  async function handleSyncAll() {
-    setSyncingAll(true);
+  function handleStepProcesso() {
+    if (!selectedProcessoId) {
+      toast('Selecione um processo.', 'error');
+      return;
+    }
+    setClassifyStep('confirmar');
+  }
+
+  async function handleConfirmClassify() {
+    if (!classifyTarget) return;
+    setClassifying(true);
     try {
-      const result = await api.syncAllDocumentosDrive();
-      toast(
-        `Sincronização concluída: ${result.synced} enviados${result.errors > 0 ? `, ${result.errors} erros` : ''}.`,
-        result.errors > 0 ? 'error' : 'success',
-      );
+      await api.classificarDocumentoDrive({
+        driveFileId: classifyTarget.driveFileId,
+        sourceParentId: classifyTarget.sourceParentId,
+        clienteId: selectedClienteId,
+        processoId: vinculoType === 'processo' ? selectedProcessoId : undefined,
+        keepOriginal,
+      });
+      toast('Documento classificado com sucesso.', 'success');
+      setClassifyTarget(null);
       load();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao sincronizar.', 'error');
+      toast(err instanceof Error ? err.message : 'Erro ao classificar documento.', 'error');
     } finally {
-      setSyncingAll(false);
+      setClassifying(false);
     }
   }
 
-  const CATEGORIA_FILTERS = [
-    { value: '', label: 'Todas' },
-    { value: 'peticao', label: 'Petições' },
-    { value: 'contrato', label: 'Contratos' },
-    { value: 'procuracao', label: 'Procurações' },
-    { value: 'certidao', label: 'Certidões' },
-    { value: 'sentenca', label: 'Sentenças' },
-    { value: 'comprovante', label: 'Comprovantes' },
-  ];
+  const totalFiles = folders.reduce((sum, f) => sum + f.files.length, 0);
+
+  if (!driveEnabled) {
+    return (
+      <div>
+        <PageHeader
+          title="Documentos não Classificados"
+          description="Documentos nas pastas Compartilhado aguardando classificação"
+        />
+        <EmptyState icon={FileText} message="Integração com Google Drive não está habilitada. Ative nas Configurações." />
+      </div>
+    );
+  }
+
+  // Classification modal
+  const classifyModal = classifyTarget && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-lg w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
+          <h2 className="text-lg font-semibold text-[var(--color-text)]">Classificar Documento</h2>
+          <button
+            type="button"
+            onClick={cancelClassify}
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer text-xl"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4">
+          <div className="text-sm-causa text-[var(--color-text-muted)]">
+            Arquivo: <span className="font-medium text-[var(--color-text)]">{classifyTarget.fileName}</span>
+          </div>
+
+          {classifyStep === 'vinculo' && (
+            <div className="space-y-3">
+              <p className="text-sm-causa text-[var(--color-text)]">O documento será vinculado a:</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setVinculoType('cliente')}
+                  className={`flex-1 px-4 py-3 rounded-[var(--radius-md)] border text-sm-causa font-medium transition-causa cursor-pointer ${
+                    vinculoType === 'cliente'
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+                      : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-causa-bg'
+                  }`}
+                >
+                  Cliente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVinculoType('processo')}
+                  className={`flex-1 px-4 py-3 rounded-[var(--radius-md)] border text-sm-causa font-medium transition-causa cursor-pointer ${
+                    vinculoType === 'processo'
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+                      : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-causa-bg'
+                  }`}
+                >
+                  Processo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {classifyStep === 'cliente' && (
+            <div className="space-y-3">
+              <p className="text-sm-causa text-[var(--color-text)]">Selecione o cliente:</p>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <input
+                  type="text"
+                  value={clienteSearch}
+                  onChange={(e) => setClienteSearch(e.target.value)}
+                  placeholder="Buscar cliente..."
+                  className="w-full pl-8 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-sm-causa text-[var(--color-text)]"
+                />
+              </div>
+              <div className="max-h-48 overflow-auto border border-[var(--color-border)] rounded-[var(--radius-md)]">
+                {clientes
+                  .filter((c) => !clienteSearch || c.nome.toLowerCase().includes(clienteSearch.toLowerCase()))
+                  .map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedClienteId(c.id)}
+                      className={`w-full text-left px-3 py-2 text-sm-causa transition-causa cursor-pointer border-b border-[var(--color-border)] last:border-0 ${
+                        selectedClienteId === c.id
+                          ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)] font-medium'
+                          : 'text-[var(--color-text)] hover:bg-causa-bg'
+                      }`}
+                    >
+                      <div>{c.nome}</div>
+                      {c.cpfCnpj && (
+                        <div className="text-xs-causa text-[var(--color-text-muted)]">{c.cpfCnpj}</div>
+                      )}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {classifyStep === 'processo' && (
+            <div className="space-y-3">
+              <p className="text-sm-causa text-[var(--color-text)]">Selecione o processo:</p>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <input
+                  type="text"
+                  value={processoSearch}
+                  onChange={(e) => setProcessoSearch(e.target.value)}
+                  placeholder="Buscar processo..."
+                  className="w-full pl-8 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-sm-causa text-[var(--color-text)]"
+                />
+              </div>
+              <div className="max-h-48 overflow-auto border border-[var(--color-border)] rounded-[var(--radius-md)]">
+                {processos.length === 0 ? (
+                  <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
+                    Nenhum processo encontrado para este cliente.
+                  </p>
+                ) : (
+                  processos
+                    .filter((p) => !processoSearch || p.numeroCnj.includes(processoSearch))
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedProcessoId(p.id)}
+                        className={`w-full text-left px-3 py-2 text-sm-causa transition-causa cursor-pointer border-b border-[var(--color-border)] last:border-0 ${
+                          selectedProcessoId === p.id
+                            ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)] font-medium'
+                            : 'text-[var(--color-text)] hover:bg-causa-bg'
+                        }`}
+                      >
+                        <div className="font-[var(--font-mono)]">{p.numeroCnj}</div>
+                        <div className="text-xs-causa text-[var(--color-text-muted)]">
+                          {p.area} &middot; {p.status}
+                        </div>
+                      </button>
+                    ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {classifyStep === 'confirmar' && (
+            <div className="space-y-3">
+              <p className="text-sm-causa text-[var(--color-text)]">
+                Confirme a classificação:
+              </p>
+              <div className="bg-causa-bg rounded-[var(--radius-md)] p-3 text-sm-causa space-y-1">
+                <div>
+                  <span className="text-[var(--color-text-muted)]">Vínculo:</span>{' '}
+                  <span className="text-[var(--color-text)] font-medium">
+                    {vinculoType === 'cliente' ? 'Cliente' : 'Processo'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[var(--color-text-muted)]">Cliente:</span>{' '}
+                  <span className="text-[var(--color-text)] font-medium">
+                    {clientes.find((c) => c.id === selectedClienteId)?.nome}
+                  </span>
+                </div>
+                {vinculoType === 'processo' && selectedProcessoId && (
+                  <div>
+                    <span className="text-[var(--color-text-muted)]">Processo:</span>{' '}
+                    <span className="text-[var(--color-text)] font-medium font-[var(--font-mono)]">
+                      {processos.find((p) => p.id === selectedProcessoId)?.numeroCnj}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setKeepOriginal(false)}
+                  className={`flex-1 px-3 py-2 rounded-[var(--radius-md)] border text-sm-causa font-medium transition-causa cursor-pointer ${
+                    !keepOriginal
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+                      : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-causa-bg'
+                  }`}
+                >
+                  Mover arquivo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setKeepOriginal(true)}
+                  className={`flex-1 px-3 py-2 rounded-[var(--radius-md)] border text-sm-causa font-medium transition-causa cursor-pointer ${
+                    keepOriginal
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+                      : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-causa-bg'
+                  }`}
+                >
+                  Manter na origem
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between px-6 py-4 border-t border-[var(--color-border)]">
+          <Button variant="ghost" onClick={cancelClassify}>
+            Cancelar
+          </Button>
+          <div className="flex gap-2">
+            {classifyStep !== 'vinculo' && classifyStep !== 'confirmar' && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (classifyStep === 'cliente') setClassifyStep('vinculo');
+                  if (classifyStep === 'processo') setClassifyStep('cliente');
+                }}
+              >
+                Voltar
+              </Button>
+            )}
+            {classifyStep === 'confirmar' ? (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (vinculoType === 'processo') setClassifyStep('processo');
+                  else setClassifyStep('cliente');
+                }}
+              >
+                Voltar
+              </Button>
+            ) : null}
+            {classifyStep === 'vinculo' && (
+              <Button onClick={handleStepVinculo}>Avançar</Button>
+            )}
+            {classifyStep === 'cliente' && (
+              <Button onClick={handleStepCliente} disabled={!selectedClienteId}>
+                Avançar
+              </Button>
+            )}
+            {classifyStep === 'processo' && (
+              <Button onClick={handleStepProcesso} disabled={!selectedProcessoId}>
+                Avançar
+              </Button>
+            )}
+            {classifyStep === 'confirmar' && (
+              <Button onClick={handleConfirmClassify} disabled={classifying}>
+                {classifying ? 'Classificando...' : 'Classificar'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div>
       <PageHeader
-        title="Documentos"
-        description="Gerenciamento de documentos do escritório"
+        title="Documentos não Classificados"
+        description="Documentos nas pastas Compartilhado do Google Drive aguardando classificação"
         action={
-          <div className="flex items-center gap-2">
-            {driveEnabled && canUpload && (
-              <Button variant="ghost" onClick={handleSyncAll} disabled={syncingAll}>
-                {syncingAll ? (
-                  <Loader2 size={16} className="animate-spin mr-1" />
-                ) : (
-                  <Cloud size={16} className="mr-1" />
-                )}
-                {syncingAll ? 'Sincronizando...' : 'Sync Drive'}
-              </Button>
+          <Button variant="ghost" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? (
+              <Loader2 size={16} className="animate-spin mr-1" />
+            ) : (
+              <RefreshCw size={16} className="mr-1" />
             )}
-            {canUpload && (
-              <Button onClick={() => setModalOpen(true)}>
-                <Plus size={16} className="mr-1" />
-                Novo Documento
-              </Button>
-            )}
-          </div>
+            {refreshing ? 'Atualizando...' : 'Atualizar'}
+          </Button>
         }
       />
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Buscar documentos..."
-            className="pl-9 pr-3 py-1.5 w-64 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] text-sm-causa text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {CATEGORIA_FILTERS.map((cf) => (
-            <button
-              key={cf.value}
-              type="button"
-              onClick={() => setCategoriaFilter(cf.value)}
-              className={`px-3 py-1.5 rounded-[var(--radius-md)] text-sm-causa font-medium transition-causa cursor-pointer ${
-                categoriaFilter === cf.value
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-causa-bg'
-              }`}
-            >
-              {cf.label}
-            </button>
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 bg-causa-surface-alt rounded-[var(--radius-md)] animate-pulse" />
           ))}
         </div>
-      </div>
-
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
-        <table className="w-full text-sm-causa">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-bg">
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Nome
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Categoria
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Processo
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Tamanho
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Enviado por
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Data
-              </th>
-              <th className="text-right px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows cols={7} rows={5} />
-            ) : documentos.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
-                  <EmptyState icon={FileText} message="Nenhum documento encontrado" />
-                </td>
-              </tr>
-            ) : (
-              documentos.map((d) => (
-                <tr
-                  key={d.id}
-                  className="border-b border-[var(--color-border)] hover:bg-causa-bg/50 transition-causa"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <FileText size={16} className="text-[var(--color-primary)] shrink-0" />
-                      <div>
-                        <div className="font-medium text-[var(--color-text)]">
-                          {d.nome}
-                          {d.confidencial && (
-                            <Lock size={12} className="inline ml-1 text-causa-danger" />
-                          )}
-                        </div>
-                        {d.descricao && (
-                          <div className="text-xs text-[var(--color-text-muted)] truncate max-w-[200px]">
-                            {d.descricao}
-                          </div>
-                        )}
-                      </div>
+      ) : totalFiles === 0 ? (
+        <EmptyState
+          icon={FolderOpen}
+          message="Nenhum documento não classificado encontrado nas pastas Compartilhado"
+        />
+      ) : (
+        <div className="space-y-4">
+          {folders.map((folder) => (
+            <div
+              key={folder.compartilhadoId}
+              className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden"
+            >
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+                <FolderOpen size={16} className="text-[var(--color-text-muted)]" />
+                <span className="text-sm-causa font-semibold text-[var(--color-text)]">
+                  {folder.clienteFolderName}
+                </span>
+                <span className="text-xs-causa text-[var(--color-text-muted)]">/ Compartilhado</span>
+                <span className="text-xs-causa text-[var(--color-text-muted)] bg-[var(--color-bg)] px-1.5 py-0.5 rounded-full ml-1">
+                  {folder.files.length}
+                </span>
+              </div>
+              <div className="divide-y divide-[var(--color-border)]">
+                {folder.files.map((file) => (
+                  <div key={file.id} className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText size={14} className="text-[var(--color-primary)] shrink-0" />
+                      <span className="text-sm-causa text-[var(--color-text)] font-medium truncate">
+                        {file.name}
+                      </span>
+                      <span className="text-xs-causa text-[var(--color-text-muted)] shrink-0">
+                        {file.mimeType.split('/').pop()}
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {d.categoria ? (CATEGORIA_LABELS[d.categoria] ?? d.categoria) : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">{d.numeroCnj ?? '—'}</td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {formatFileSize(d.tamanhoBytes)}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">{d.uploaderNome ?? '—'}</td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">{formatDate(d.createdAt)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {d.tags && d.tags.length > 0 && (
-                        <span
-                          className="p-1.5 text-[var(--color-text-muted)]"
-                          title={d.tags.join(', ')}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {file.webViewLink && (
+                        <a
+                          href={file.webViewLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa"
+                          title="Abrir no Drive"
                         >
-                          <Tag size={14} />
-                        </span>
+                          <ExternalLink size={14} />
+                        </a>
                       )}
-                      {driveEnabled && canUpload && (
-                        d.driveFileId ? (
-                          <span
-                            className="p-1.5 text-causa-success"
-                            title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
-                          >
-                            <Cloud size={14} />
-                          </span>
-                        ) : syncingId === d.id ? (
-                          <span className="p-1.5 text-[var(--color-primary)]">
-                            <Loader2 size={14} className="animate-spin" />
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSyncDrive(d.id)}
-                            className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-                            title="Enviar ao Google Drive"
-                          >
-                            <CloudOff size={14} />
-                          </button>
-                        )
-                      )}
-                      {isPreviewable(d.tipoMime) && (
-                        <button
-                          type="button"
-                          onClick={() => setViewDocId(d.id)}
-                          className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-                          title="Visualizar"
-                        >
-                          <Eye size={16} />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(d.id)}
-                        className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-                        title="Baixar"
-                      >
-                        <Download size={16} />
-                      </button>
                       {canUpload && (
                         <button
                           type="button"
-                          onClick={() => setDeleteId(d.id)}
-                          className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
-                          title="Excluir"
+                          onClick={() => startClassify(file, folder.compartilhadoId)}
+                          className="px-2.5 py-1 rounded-[var(--radius-sm)] text-xs-causa font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
                         >
-                          <Trash2 size={16} />
+                          Classificar
                         </button>
                       )}
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <DocumentoModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleModalSave}
-      />
-
-      {viewDocId && (
-        <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
-      <ConfirmDialog
-        open={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
-        title="Excluir Documento"
-        message="Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita."
-        confirmLabel="Excluir"
-        loading={deleting}
-      />
+      {classifyModal}
     </div>
   );
 }

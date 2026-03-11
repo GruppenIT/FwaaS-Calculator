@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2, Plus } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
+import { DocumentoModal } from '../documentos/documento-modal';
 import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
 import { useFeatures } from '../../lib/auth-context';
@@ -95,6 +96,8 @@ export function ClienteDetailPage() {
   const [editData, setEditData] = useState<ClienteEditData | null | undefined>(undefined);
   const [viewDocId, setViewDocId] = useState<string | null>(null);
   const [syncingDocId, setSyncingDocId] = useState<string | null>(null);
+  const [docModalOpen, setDocModalOpen] = useState(false);
+  const canUpload = can('documentos:upload');
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -152,6 +155,12 @@ export function ClienteDetailPage() {
     } finally {
       setSyncingDocId(null);
     }
+  }
+
+  function handleDocModalSave() {
+    setDocModalOpen(false);
+    toast('Documento enviado com sucesso.', 'success');
+    carregar();
   }
 
   function handleEdit() {
@@ -414,6 +423,17 @@ export function ClienteDetailPage() {
           <span className="text-xs-causa text-[var(--color-text-muted)] bg-[var(--color-bg)] px-1.5 py-0.5 rounded-full">
             {documentos.length}
           </span>
+          <div className="flex-1" />
+          {canUpload && (
+            <button
+              type="button"
+              onClick={() => setDocModalOpen(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-sm)] text-xs-causa font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+            >
+              <Plus size={14} />
+              Novo Documento
+            </button>
+          )}
         </div>
         {documentos.length === 0 ? (
           <p className="text-sm-causa text-[var(--color-text-muted)] py-6 text-center">
@@ -492,6 +512,13 @@ export function ClienteDetailPage() {
           </div>
         )}
       </div>
+
+      <DocumentoModal
+        open={docModalOpen}
+        onClose={() => setDocModalOpen(false)}
+        onSave={handleDocModalSave}
+        presetClienteId={id}
+      />
 
       {viewDocId && (
         <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
