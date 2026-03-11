@@ -103,6 +103,19 @@ function getGhToken(): string {
     // Ignorar
   }
 
+  // 3. Arquivo .gh-token na raiz do app (incluído via extraResources no build)
+  try {
+    const resourcesPath = (app as { isPackaged?: boolean }).isPackaged
+      ? path.join(process.resourcesPath, '.gh-token')
+      : path.join(app.getAppPath(), '.gh-token');
+    if (fs.existsSync(resourcesPath)) {
+      const token = fs.readFileSync(resourcesPath, 'utf-8').trim();
+      if (token) return token;
+    }
+  } catch {
+    // Ignorar
+  }
+
   return '';
 }
 
@@ -274,8 +287,11 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
   if (!isDev) {
     const ghToken = getGhToken();
     if (ghToken) {
+      // electron-updater lê process.env.GH_TOKEN internamente para autenticar
+      // downloads de repos privados (latest.yml, .exe, etc.)
+      process.env.GH_TOKEN = ghToken;
       autoUpdater.requestHeaders = { Authorization: `token ${ghToken}` };
-      logToFile('INFO', 'GH_TOKEN configurado para electron-updater');
+      logToFile('INFO', 'GH_TOKEN configurado para electron-updater (env + headers)');
     } else {
       logToFile('WARN', 'GH_TOKEN não encontrado — electron-updater pode falhar em repos privados');
     }

@@ -8,6 +8,7 @@ build/
 
 # Environment
 .env
+.gh-token
 .env.local
 .env.*.local
 

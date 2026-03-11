@@ -17,6 +17,12 @@ files:
 
 asar: false
 
+extraResources:
+  - from: ".gh-token"
+    to: ".gh-token"
+    filter:
+      - "**/*"
+
 publish:
   provider: github
   owner: GruppenIT
