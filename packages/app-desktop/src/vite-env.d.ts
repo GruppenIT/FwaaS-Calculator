@@ -13,7 +13,7 @@ declare module '*.png' {
 declare const __APP_VERSION__: string;
 
 interface UpdateStatus {
-  state: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  state: 'idle' | 'checking' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
   version?: string;
   releaseNotes?: string;
   percent?: number;
@@ -28,8 +28,7 @@ interface CausaElectronAPI {
   getApiStatus: () => Promise<{ started: boolean }>;
   getAppVersion: () => Promise<string>;
   checkForUpdate: () => Promise<void>;
-  downloadUpdate: () => Promise<void>;
-  installUpdate: () => Promise<void>;
+  restartAndUpdate: () => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 }

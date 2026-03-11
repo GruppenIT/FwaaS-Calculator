@@ -44,9 +44,9 @@ jobs:
           pnpm --filter @causa/connectors run build
           pnpm --filter @causa/app-desktop run build
 
-      - name: Build installer
+      - name: Build installer and publish to GitHub Release
         working-directory: packages/installer
-        run: npx electron-builder --win --config electron-builder.yml --publish never
+        run: npx electron-builder --win --config electron-builder.yml --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -55,11 +55,3 @@ jobs:
         with:
           name: causa-installer
           path: dist-installer/*.exe
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist-installer/*.exe
-          generate_release_notes: true
-          draft: false
-          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}

@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth-context';
 import { ToastProvider } from './components/ui/toast';
+import { UpdateOverlay } from './components/update-overlay';
 import { usePermission } from './hooks/use-permission';
 import { SetupPage } from './pages/setup/setup-page';
 import { LoginPage } from './pages/login/login-page';
@@ -202,6 +203,7 @@ export function App() {
     <HashRouter>
       <AuthProvider>
         <ToastProvider>
+          <UpdateOverlay />
           <AppRoutes />
         </ToastProvider>
       </AuthProvider>
