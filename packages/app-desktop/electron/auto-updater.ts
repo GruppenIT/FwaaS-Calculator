@@ -742,7 +742,24 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   // IPC: obter status atual
   ipcMain.handle('update-get-status', () => {
+    logToFile('DEBUG', `IPC update-get-status chamado, retornando: ${currentStatus.state}`);
     return currentStatus;
+  });
+
+  // Re-enviar status quando a página terminar de carregar
+  // Isso garante que o React receba o status mesmo se o check terminou
+  // antes do React montar os listeners.
+  mainWindow.webContents.on('did-finish-load', () => {
+    logToFile('INFO', `Página carregou (did-finish-load). Status atual: ${currentStatus.state}`);
+    if (currentStatus.state !== 'idle') {
+      // Pequeno delay para garantir que React montou os listeners
+      setTimeout(() => {
+        logToFile('INFO', `Re-enviando status após page load: ${currentStatus.state}`);
+        if (mainWin && !mainWin.isDestroyed()) {
+          mainWin.webContents.send('update-status', currentStatus);
+        }
+      }, 2000);
+    }
   });
 
   // Verificar atualizações 5 segundos após iniciar
