@@ -50,11 +50,16 @@ function UpdateSection() {
   async function handleSaveToken() {
     setSavingToken(true);
     try {
-      await window.causaElectron?.setGhToken?.(ghToken.trim());
+      const result = await window.causaElectron?.setGhToken?.(ghToken.trim());
+      if (!result?.ok) {
+        toast('Token não foi salvo — método indisponível.', 'error');
+        return;
+      }
       toast('Token salvo. Verificando atualizações...', 'success');
       window.causaElectron?.checkForUpdate?.();
-    } catch {
-      toast('Erro ao salvar token.', 'error');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast(`Erro ao salvar token: ${msg}`, 'error');
     } finally {
       setSavingToken(false);
     }
