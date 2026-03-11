@@ -28,10 +28,19 @@ function UpdateSection() {
   }, [refreshStatus]);
 
   useEffect(() => {
-    window.causaElectron?.getGhToken().then((token) => {
-      setGhToken(token);
+    try {
+      const promise = window.causaElectron?.getGhToken?.();
+      if (promise && typeof promise.then === 'function') {
+        promise.then((token: string) => {
+          setGhToken(token ?? '');
+          setGhTokenLoaded(true);
+        }).catch(() => setGhTokenLoaded(true));
+      } else {
+        setGhTokenLoaded(true);
+      }
+    } catch {
       setGhTokenLoaded(true);
-    }).catch(() => setGhTokenLoaded(true));
+    }
   }, []);
 
   function handleCheck() {
@@ -41,9 +50,9 @@ function UpdateSection() {
   async function handleSaveToken() {
     setSavingToken(true);
     try {
-      await window.causaElectron?.setGhToken(ghToken.trim());
+      await window.causaElectron?.setGhToken?.(ghToken.trim());
       toast('Token salvo. Verificando atualizações...', 'success');
-      window.causaElectron?.checkForUpdate();
+      window.causaElectron?.checkForUpdate?.();
     } catch {
       toast('Erro ao salvar token.', 'error');
     } finally {
