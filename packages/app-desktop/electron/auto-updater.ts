@@ -386,8 +386,21 @@ async function checkAndAutoUpdate(): Promise<void> {
     return;
   }
 
-  // Atualização disponível — iniciar download automaticamente
-  logToFile('INFO', `Atualização ${remoteVersion} disponível. Iniciando download...`);
+  // Atualização disponível — verificar se já temos o instalador baixado
+  logToFile('INFO', `Atualização ${remoteVersion} disponível.`);
+
+  // Se já temos um instalador baixado para esta versão, não re-baixar
+  if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
+    logToFile('INFO', `Instalador já disponível em: ${downloadedInstallerPath}`);
+    sendStatus({
+      state: 'downloaded',
+      version: remoteVersion,
+      ...(release.body ? { releaseNotes: release.body } : {}),
+    });
+    return;
+  }
+
+  logToFile('INFO', 'Iniciando download...');
 
   if (isDev) {
     sendStatus({
@@ -441,23 +454,38 @@ async function downloadDirectFallback(release: ReleaseInfo, remoteVersion: strin
   }
 
   try {
-    const tempDir = path.join(app.getPath('temp'), 'causa-update');
+    const tempDir = getUpdateDir();
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
     const installerPath = path.join(tempDir, setupAsset.name);
 
+    // Verificar se o instalador já foi baixado anteriormente (mesma versão e arquivo válido)
+    const persisted = loadPersistedInstaller();
+    if (persisted && persisted.version === remoteVersion && persisted.installerPath === installerPath) {
+      logToFile('INFO', `Usando instalador já baixado: ${installerPath}`);
+      downloadedInstallerPath = installerPath;
+      sendStatus({
+        state: 'downloaded',
+        version: remoteVersion,
+        ...(release.body ? { releaseNotes: release.body } : {}),
+      });
+      return;
+    }
+
     await downloadAssetDirect(setupAsset, installerPath);
 
     logToFile('INFO', `Instalador baixado: ${installerPath}`);
+
+    // Guardar o caminho do instalador para usar no restart e persistir para próxima sessão
+    downloadedInstallerPath = installerPath;
+    persistInstallerPath(installerPath, remoteVersion);
+
     sendStatus({
       state: 'downloaded',
       version: remoteVersion,
       ...(release.body ? { releaseNotes: release.body } : {}),
     });
-
-    // Guardar o caminho do instalador para usar no restart
-    downloadedInstallerPath = installerPath;
   } catch (err) {
     logToFile('ERROR', 'Erro ao baixar instalador diretamente', {
       error: err instanceof Error ? err.message : String(err),
@@ -475,6 +503,60 @@ let downloadedInstallerPath: string | null = null;
 
 /** Guarda a release atual para o fallback poder usar quando electron-updater falha assincronamente */
 let pendingRelease: { release: ReleaseInfo; version: string } | null = null;
+
+/** Diretório padrão para downloads de atualização */
+function getUpdateDir(): string {
+  return path.join(app.getPath('temp'), 'causa-update');
+}
+
+/** Arquivo de metadados que persiste o caminho do instalador entre sessões */
+function getInstallerMetaPath(): string {
+  return path.join(getUpdateDir(), 'installer-meta.json');
+}
+
+/** Salva o caminho do instalador baixado em disco para sobreviver a reinícios */
+function persistInstallerPath(installerPath: string, version: string): void {
+  try {
+    const metaPath = getInstallerMetaPath();
+    fs.writeFileSync(metaPath, JSON.stringify({ installerPath, version }), 'utf-8');
+    logToFile('DEBUG', `Caminho do instalador persistido: ${installerPath}`);
+  } catch (err) {
+    logToFile('WARN', `Falha ao persistir caminho do instalador: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/** Carrega o caminho do instalador de uma sessão anterior, se existir e o arquivo for válido */
+function loadPersistedInstaller(): { installerPath: string; version: string } | null {
+  try {
+    const metaPath = getInstallerMetaPath();
+    if (!fs.existsSync(metaPath)) return null;
+    const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as { installerPath?: string; version?: string };
+    if (meta.installerPath && meta.version && fs.existsSync(meta.installerPath)) {
+      // Verificar se o arquivo tem tamanho razoável (> 10 MB para um instalador)
+      const stats = fs.statSync(meta.installerPath);
+      if (stats.size > 10 * 1024 * 1024) {
+        logToFile('INFO', `Instalador já baixado encontrado: ${meta.installerPath} (${(stats.size / 1024 / 1024).toFixed(1)} MB, v${meta.version})`);
+        return { installerPath: meta.installerPath, version: meta.version };
+      }
+      logToFile('WARN', `Instalador encontrado mas tamanho suspeito: ${stats.size} bytes`);
+    }
+  } catch (err) {
+    logToFile('WARN', `Falha ao carregar instalador persistido: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return null;
+}
+
+/** Remove os metadados e arquivo do instalador persistido */
+function clearPersistedInstaller(): void {
+  try {
+    const metaPath = getInstallerMetaPath();
+    if (fs.existsSync(metaPath)) {
+      fs.unlinkSync(metaPath);
+    }
+  } catch {
+    // Falha silenciosa
+  }
+}
 
 export function setupAutoUpdater(mainWindow: BrowserWindow) {
   mainWin = mainWindow;
@@ -534,6 +616,35 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     });
   }
 
+  // Carregar instalador persistido de sessão anterior
+  const persisted = loadPersistedInstaller();
+  if (persisted) {
+    const currentVersion = app.getVersion();
+    if (isNewerVersion(persisted.version, currentVersion)) {
+      downloadedInstallerPath = persisted.installerPath;
+      logToFile('INFO', `Instalador da sessão anterior carregado: v${persisted.version} em ${persisted.installerPath}`);
+    } else {
+      logToFile('INFO', 'Instalador persistido não é mais necessário (versão já atualizada), removendo...');
+      clearPersistedInstaller();
+    }
+  }
+
+  // Instalar automaticamente ao fechar o app se houver um instalador baixado via fallback
+  app.on('before-quit', () => {
+    if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
+      logToFile('INFO', `Instalando atualização ao fechar: ${downloadedInstallerPath}`);
+      try {
+        spawn(downloadedInstallerPath, ['/S', '--updated'], {
+          detached: true,
+          stdio: 'ignore',
+        }).unref();
+        clearPersistedInstaller();
+      } catch (err) {
+        logToFile('ERROR', `Falha ao executar instalador no before-quit: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  });
+
   // IPC: verificar atualização manualmente
   ipcMain.handle('update-check', async () => {
     try {
@@ -558,7 +669,11 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
       // Instalador baixado via download direto — executar NSIS silenciosamente
       logToFile('INFO', `Executando instalador: ${downloadedInstallerPath}`);
-      spawn(downloadedInstallerPath, ['/S', '--updated'], {
+      const installerToRun = downloadedInstallerPath;
+      // Limpar referência para evitar que before-quit execute novamente
+      downloadedInstallerPath = null;
+      clearPersistedInstaller();
+      spawn(installerToRun, ['/S', '--updated'], {
         detached: true,
         stdio: 'ignore',
       }).unref();
