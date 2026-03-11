@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Save, Moon, Sun, RefreshCw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, Unplug, Send, MessageCircle, Bell } from 'lucide-react';
+import { Settings, Save, Moon, Sun, RefreshCw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, Unplug, Send, MessageCircle, Bell, Download } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -68,7 +68,7 @@ function UpdateSection() {
       </h3>
       <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
         Versão atual: <span className="font-medium text-[var(--color-text)]">v{appVersion}</span>
-        <span className="ml-2 text-xs-causa">— Atualizações são aplicadas automaticamente ao iniciar o sistema.</span>
+        <span className="ml-2 text-xs-causa">— Verifique se há novas versões disponíveis.</span>
       </p>
 
       {/* Up to date */}
@@ -126,6 +126,79 @@ function UpdateSection() {
             <RefreshCw size={16} className="mr-1.5" />
             Tentar novamente
           </Button>
+        </div>
+      )}
+
+      {/* Available — nova versão encontrada */}
+      {status.state === 'available' && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/20">
+            <Download size={18} className="text-[var(--color-primary)] shrink-0" />
+            <div>
+              <p className="text-sm-causa font-medium text-[var(--color-text)]">
+                Nova versão disponível: <span className="text-[var(--color-primary)]">v{status.version}</span>
+              </p>
+              <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
+                Escolha como deseja atualizar:
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => window.causaElectron?.respondToUpdate('install-now')}>
+              <Download size={16} className="mr-1.5" />
+              Baixar e instalar agora
+            </Button>
+            <Button variant="ghost" onClick={() => window.causaElectron?.respondToUpdate('install-later')}>
+              <RefreshCw size={16} className="mr-1.5" />
+              Baixar em segundo plano
+            </Button>
+            <Button variant="ghost" onClick={() => window.causaElectron?.respondToUpdate('ignore')}>
+              Ignorar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Downloading */}
+      {status.state === 'downloading' && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm-causa text-[var(--color-primary)]">
+            <Loader2 size={18} className="animate-spin" />
+            <span>Baixando atualização{status.background ? ' em segundo plano' : ''}...</span>
+          </div>
+          <div className="h-2 rounded-full bg-causa-surface-alt overflow-hidden border border-[var(--color-border)]">
+            <div
+              className="h-full bg-[var(--color-primary)] rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${Math.min(100, status.percent ?? 0)}%` }}
+            />
+          </div>
+          <p className="text-xs-causa text-[var(--color-text-muted)]">
+            {status.percent != null ? `${status.percent.toFixed(0)}%` : 'Preparando...'}
+          </p>
+        </div>
+      )}
+
+      {/* Downloaded */}
+      {status.state === 'downloaded' && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-success/8 border border-causa-success/20">
+            <CheckCircle2 size={18} className="text-causa-success shrink-0" />
+            <div>
+              <p className="text-sm-causa font-medium text-causa-success">
+                Atualização v{status.version} pronta!
+              </p>
+              <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
+                {status.background
+                  ? 'Será instalada automaticamente ao fechar o programa.'
+                  : 'Reinicie para aplicar a atualização.'}
+              </p>
+            </div>
+          </div>
+          {!status.background && (
+            <Button onClick={() => window.causaElectron?.restartAndUpdate()}>
+              Reiniciar agora
+            </Button>
+          )}
         </div>
       )}
 
