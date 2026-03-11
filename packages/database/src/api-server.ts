@@ -64,6 +64,7 @@ interface AppConfig {
   moduleKeys?: string[];
   googleDrive?: GoogleDriveConfig;
   telegram?: TelegramBotConfig;
+  ghToken?: string;
 }
 
 /** Códigos de ativação de módulos opcionais */
@@ -1872,6 +1873,30 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       if (body.topologia) config.topologia = body.topologia;
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+      return json(res, { ok: true });
+    }
+
+    // --- GH Token (para auto-updater) ---
+    if (path === '/api/gh-token' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      try {
+        if (fs.existsSync(CONFIG_PATH)) {
+          const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+          return json(res, { token: config.ghToken ?? '' });
+        }
+      } catch { /* ignorar */ }
+      return json(res, { token: '' });
+    }
+
+    if (path === '/api/gh-token' && method === 'PUT') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const body = JSON.parse(await readBody(req)) as { token: string };
+      const config: AppConfig = fs.existsSync(CONFIG_PATH)
+        ? JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'))
+        : {} as AppConfig;
+      config.ghToken = body.token;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+      logger.info('API', 'GH_TOKEN salvo via API', { hasToken: !!body.token });
       return json(res, { ok: true });
     }
 

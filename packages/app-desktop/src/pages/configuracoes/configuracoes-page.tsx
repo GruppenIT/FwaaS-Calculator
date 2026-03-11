@@ -28,33 +28,22 @@ function UpdateSection() {
   }, [refreshStatus]);
 
   useEffect(() => {
-    try {
-      const promise = window.causaElectron?.getGhToken?.();
-      if (promise && typeof promise.then === 'function') {
-        promise.then((token: string) => {
-          setGhToken(token ?? '');
-          setGhTokenLoaded(true);
-        }).catch(() => setGhTokenLoaded(true));
-      } else {
+    api.getGhToken()
+      .then(({ token }) => {
+        setGhToken(token ?? '');
         setGhTokenLoaded(true);
-      }
-    } catch {
-      setGhTokenLoaded(true);
-    }
+      })
+      .catch(() => setGhTokenLoaded(true));
   }, []);
 
   function handleCheck() {
-    window.causaElectron?.checkForUpdate();
+    window.causaElectron?.checkForUpdate?.();
   }
 
   async function handleSaveToken() {
     setSavingToken(true);
     try {
-      const result = await window.causaElectron?.setGhToken?.(ghToken.trim());
-      if (!result?.ok) {
-        toast('Token não foi salvo — método indisponível.', 'error');
-        return;
-      }
+      await api.setGhToken(ghToken.trim());
       toast('Token salvo. Verificando atualizações...', 'success');
       window.causaElectron?.checkForUpdate?.();
     } catch (err) {
