@@ -1,9 +1,10 @@
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 
 export interface UpdateStatus {
   state: 'idle' | 'checking' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
@@ -14,6 +15,19 @@ export interface UpdateStatus {
   transferred?: number;
   total?: number;
   error?: string;
+}
+
+interface ReleaseAsset {
+  name: string;
+  url: string; // API URL (requires Accept: application/octet-stream)
+  browser_download_url: string;
+  size: number;
+}
+
+interface ReleaseInfo {
+  tag: string;
+  body: string;
+  assets: ReleaseAsset[];
 }
 
 const GITHUB_OWNER = 'GruppenIT';
@@ -85,11 +99,6 @@ function isNewerVersion(remote: string, local: string): boolean {
  * 1. Arquivo causa-config.json no diretório de dados (campo ghToken)
  * 2. Variável de ambiente GH_TOKEN
  * 3. Arquivo .gh-token na raiz do app (extraResources)
- *
- * NOTA: NÃO checa process.env.GH_TOKEN primeiro, pois ele pode ter
- * sido setado por nós mesmos numa leitura anterior (ficaria stale).
- * Sempre relê a fonte primária (config file) para pegar atualizações
- * feitas pelo usuário via UI.
  */
 function getGhToken(): string {
   // 1. Arquivo de config compartilhado (atualizado pela UI)
@@ -139,8 +148,7 @@ function getGhToken(): string {
 
 /**
  * Atualiza process.env.GH_TOKEN e autoUpdater.requestHeaders
- * com o token mais recente. Deve ser chamado antes de cada operação
- * do electron-updater.
+ * com o token mais recente.
  */
 function refreshToken(): string {
   const ghToken = getGhToken();
@@ -153,8 +161,8 @@ function refreshToken(): string {
   return ghToken;
 }
 
-/** Busca a última release do GitHub via API */
-function fetchLatestRelease(): Promise<{ tag: string; body: string } | null> {
+/** Busca a última release do GitHub via API (incluindo assets) */
+function fetchLatestRelease(): Promise<ReleaseInfo | null> {
   return new Promise((resolve) => {
     const ghToken = getGhToken();
     const headers: Record<string, string> = {
@@ -210,7 +218,7 @@ function fetchLatestRelease(): Promise<{ tag: string; body: string } | null> {
 
 function handleResponse(
   res: import('node:http').IncomingMessage,
-  resolve: (val: { tag: string; body: string } | null) => void,
+  resolve: (val: ReleaseInfo | null) => void,
 ) {
   let data = '';
   res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
@@ -228,10 +236,22 @@ function handleResponse(
       return;
     }
     try {
-      const json = JSON.parse(data) as { tag_name?: string; body?: string };
+      const json = JSON.parse(data) as {
+        tag_name?: string;
+        body?: string;
+        assets?: Array<{ name: string; url: string; browser_download_url: string; size: number }>;
+      };
       if (json.tag_name) {
-        logToFile('INFO', `Release encontrada: ${json.tag_name}`);
-        resolve({ tag: json.tag_name, body: json.body ?? '' });
+        const assets = (json.assets ?? []).map((a) => ({
+          name: a.name,
+          url: a.url,
+          browser_download_url: a.browser_download_url,
+          size: a.size,
+        }));
+        logToFile('INFO', `Release encontrada: ${json.tag_name}`, {
+          assets: assets.map((a) => a.name),
+        });
+        resolve({ tag: json.tag_name, body: json.body ?? '', assets });
       } else {
         logToFile('WARN', 'Resposta sem tag_name');
         resolve(null);
@@ -244,8 +264,97 @@ function handleResponse(
 }
 
 /**
+ * Baixa um asset da release do GitHub diretamente (sem electron-updater).
+ * Para repositórios privados, usa a API URL com Accept: application/octet-stream.
+ */
+function downloadAssetDirect(asset: ReleaseAsset, destPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ghToken = getGhToken();
+    const startTime = Date.now();
+    let transferred = 0;
+
+    // Para repos privados, usar a API URL com Accept: octet-stream
+    // Para repos públicos, browser_download_url funciona
+    const downloadUrl = new URL(ghToken ? asset.url : asset.browser_download_url);
+    const headers: Record<string, string> = {
+      'User-Agent': `CAUSA/${app.getVersion()}`,
+    };
+    if (ghToken) {
+      headers.Authorization = `token ${ghToken}`;
+      headers.Accept = 'application/octet-stream';
+    }
+
+    logToFile('INFO', `Baixando ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)} MB)...`);
+
+    function doRequest(url: URL) {
+      const req = https.get(
+        { hostname: url.hostname, path: url.pathname + url.search, headers: { ...headers } },
+        (res) => {
+          // GitHub API retorna 302 redirect para o download real
+          if (res.statusCode === 302 || res.statusCode === 301) {
+            const location = res.headers.location;
+            if (location) {
+              doRequest(new URL(location));
+            } else {
+              reject(new Error('Redirect sem Location header'));
+            }
+            return;
+          }
+
+          if (res.statusCode !== 200) {
+            reject(new Error(`HTTP ${res.statusCode} ao baixar ${asset.name}`));
+            return;
+          }
+
+          const totalSize = asset.size || parseInt(res.headers['content-length'] ?? '0', 10);
+          const file = fs.createWriteStream(destPath);
+
+          res.on('data', (chunk: Buffer) => {
+            transferred += chunk.length;
+            const percent = totalSize > 0 ? (transferred / totalSize) * 100 : 0;
+            const elapsed = (Date.now() - startTime) / 1000;
+            const bytesPerSecond = elapsed > 0 ? transferred / elapsed : 0;
+            sendStatus({
+              state: 'downloading',
+              percent,
+              bytesPerSecond,
+              transferred,
+              total: totalSize,
+            });
+          });
+
+          res.pipe(file);
+
+          file.on('finish', () => {
+            file.close();
+            logToFile('INFO', `Download concluído: ${asset.name} (${(transferred / 1024 / 1024).toFixed(1)} MB)`);
+            resolve();
+          });
+
+          file.on('error', (err) => {
+            fs.unlinkSync(destPath);
+            reject(err);
+          });
+        },
+      );
+
+      req.on('error', reject);
+      req.setTimeout(300000, () => { // 5 min timeout
+        req.destroy();
+        reject(new Error('Timeout ao baixar instalador (5min)'));
+      });
+    }
+
+    doRequest(downloadUrl);
+  });
+}
+
+/**
  * Verifica se há atualização e, se houver, inicia o download automaticamente.
  * Fluxo: checking → downloading (com progresso) → downloaded → restart
+ *
+ * Tenta primeiro via electron-updater (requer latest.yml na release).
+ * Se falhar, faz download direto do .exe via GitHub API.
  */
 async function checkAndAutoUpdate(): Promise<void> {
   sendStatus({ state: 'checking' });
@@ -256,7 +365,7 @@ async function checkAndAutoUpdate(): Promise<void> {
     if (!ghToken) {
       sendStatus({
         state: 'error',
-        error: 'Não foi possível verificar atualizações. Repositório privado requer GH_TOKEN (configure em causa-config.json ou variável de ambiente).',
+        error: 'Não foi possível verificar atualizações. Repositório privado requer GH_TOKEN (configure em Configurações > Atualizações).',
       });
     } else {
       sendStatus({
@@ -281,7 +390,6 @@ async function checkAndAutoUpdate(): Promise<void> {
   logToFile('INFO', `Atualização ${remoteVersion} disponível. Iniciando download...`);
 
   if (isDev) {
-    // Em dev, apenas notifica — não baixa
     sendStatus({
       state: 'downloaded',
       version: remoteVersion,
@@ -290,26 +398,76 @@ async function checkAndAutoUpdate(): Promise<void> {
     return;
   }
 
-  try {
-    // Atualizar token antes de chamar electron-updater (pode ter sido configurado via UI)
-    const token = refreshToken();
-    logToFile('INFO', `Iniciando download via electron-updater (token: ${token ? 'presente' : 'AUSENTE'})`);
+  // Verificar se latest.yml existe nos assets (indica que electron-updater pode funcionar)
+  const hasLatestYml = release.assets.some((a) => a.name === 'latest.yml');
 
-    // electron-updater: checa e baixa
-    await autoUpdater.checkForUpdates();
-    // O download começa automaticamente (autoDownload = true)
-    // Progresso e conclusão são tratados pelos event listeners abaixo
+  if (hasLatestYml) {
+    try {
+      const token = refreshToken();
+      logToFile('INFO', `Tentando download via electron-updater (token: ${token ? 'presente' : 'AUSENTE'})`);
+      await autoUpdater.checkForUpdates();
+      return; // Progresso e conclusão tratados pelos event listeners
+    } catch (err) {
+      logToFile('WARN', `electron-updater falhou, tentando download direto: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  } else {
+    logToFile('WARN', 'latest.yml não encontrado nos assets da release — usando download direto');
+  }
+
+  // Fallback: download direto do .exe
+  await downloadDirectFallback(release, remoteVersion);
+}
+
+/** Baixa o instalador diretamente dos assets da release do GitHub */
+async function downloadDirectFallback(release: ReleaseInfo, remoteVersion: string): Promise<void> {
+  const setupAsset = release.assets.find((a) =>
+    a.name.toLowerCase().endsWith('.exe') && a.name.toLowerCase().includes('setup'),
+  );
+
+  if (!setupAsset) {
+    logToFile('ERROR', 'Nenhum instalador .exe encontrado nos assets da release', {
+      assets: release.assets.map((a) => a.name),
+    });
+    sendStatus({
+      state: 'error',
+      version: remoteVersion,
+      error: 'Instalador não encontrado na release. Verifique se o CI publicou os artefatos.',
+    });
+    return;
+  }
+
+  try {
+    const tempDir = path.join(app.getPath('temp'), 'causa-update');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const installerPath = path.join(tempDir, setupAsset.name);
+
+    await downloadAssetDirect(setupAsset, installerPath);
+
+    logToFile('INFO', `Instalador baixado: ${installerPath}`);
+    sendStatus({
+      state: 'downloaded',
+      version: remoteVersion,
+      ...(release.body ? { releaseNotes: release.body } : {}),
+    });
+
+    // Guardar o caminho do instalador para usar no restart
+    downloadedInstallerPath = installerPath;
   } catch (err) {
-    logToFile('ERROR', 'Erro ao baixar atualização', {
+    logToFile('ERROR', 'Erro ao baixar instalador diretamente', {
       error: err instanceof Error ? err.message : String(err),
     });
     sendStatus({
       state: 'error',
       version: remoteVersion,
-      error: err instanceof Error ? err.message : String(err),
+      error: `Erro ao baixar atualização: ${err instanceof Error ? err.message : String(err)}`,
     });
   }
 }
+
+/** Caminho do instalador baixado via download direto (null = usar electron-updater) */
+let downloadedInstallerPath: string | null = null;
 
 export function setupAutoUpdater(mainWindow: BrowserWindow) {
   mainWin = mainWindow;
@@ -323,7 +481,6 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   // Configurar electron-updater
   if (!isDev) {
-    // Tentar carregar token agora (será recarregado antes de cada check)
     const ghToken = refreshToken();
     if (ghToken) {
       logToFile('INFO', 'GH_TOKEN configurado para electron-updater (env + headers)');
@@ -331,7 +488,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
       logToFile('WARN', 'GH_TOKEN não encontrado — configure via Configurações > Atualizações');
     }
     autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = false; // Nós controlamos quando instalar
+    autoUpdater.autoInstallOnAppQuit = false;
 
     autoUpdater.on('download-progress', (progress) => {
       sendStatus({
@@ -354,14 +511,11 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
     autoUpdater.on('error', (err) => {
       logToFile('ERROR', `Erro electron-updater: ${err.message}`);
-      sendStatus({
-        state: 'error',
-        error: err.message,
-      });
+      // Não emitir status de erro aqui — o checkAndAutoUpdate já trata o fallback
     });
   }
 
-  // IPC: verificar atualização manualmente (botão na tela de configurações)
+  // IPC: verificar atualização manualmente
   ipcMain.handle('update-check', async () => {
     try {
       await checkAndAutoUpdate();
@@ -379,9 +533,21 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
       logToFile('INFO', 'Dev mode — simulando restart');
       return;
     }
+
     sendStatus({ state: 'restarting' });
-    // quitAndInstall fecha o app e executa o instalador silenciosamente
-    setImmediate(() => autoUpdater.quitAndInstall(true, true));
+
+    if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
+      // Instalador baixado via download direto — executar NSIS silenciosamente
+      logToFile('INFO', `Executando instalador: ${downloadedInstallerPath}`);
+      spawn(downloadedInstallerPath, ['/S', '--updated'], {
+        detached: true,
+        stdio: 'ignore',
+      }).unref();
+      setImmediate(() => app.quit());
+    } else {
+      // Instalador baixado via electron-updater
+      setImmediate(() => autoUpdater.quitAndInstall(true, true));
+    }
   });
 
   // IPC: obter status atual
