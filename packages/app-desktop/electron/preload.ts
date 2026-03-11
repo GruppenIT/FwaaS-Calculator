@@ -7,9 +7,7 @@ contextBridge.exposeInMainWorld('causaElectron', {
 
   // Auto-updater
   checkForUpdate: () => ipcRenderer.invoke('update-check'),
-  downloadUpdate: () => ipcRenderer.invoke('update-download'),
-  installUpdate: () => ipcRenderer.invoke('update-install'),
-  openRelease: () => ipcRenderer.invoke('update-open-release'),
+  restartAndUpdate: () => ipcRenderer.invoke('update-restart'),
   getUpdateStatus: () => ipcRenderer.invoke('update-get-status'),
   onUpdateStatus: (callback: (status: unknown) => void) => {
     const handler = (_event: unknown, status: unknown) => callback(status);

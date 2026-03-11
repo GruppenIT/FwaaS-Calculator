@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Save, Moon, Sun, RefreshCw, Download, RotateCcw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, ExternalLink, Unplug, Send, MessageCircle, Bell } from 'lucide-react';
+import { Settings, Save, Moon, Sun, RefreshCw, CheckCircle2, AlertCircle, Loader2, Cloud, CloudOff, Unplug, Send, MessageCircle, Bell } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -8,12 +8,6 @@ import { useTheme } from '../../hooks/use-theme';
 import { usePermission } from '../../hooks/use-permission';
 import { useAuth } from '../../lib/auth-context';
 import * as api from '../../lib/api';
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function UpdateSection() {
   const [status, setStatus] = useState<UpdateStatus>({ state: 'idle' });
@@ -33,13 +27,9 @@ function UpdateSection() {
     window.causaElectron?.checkForUpdate();
   }
 
-  function handleDownload() {
-    window.causaElectron?.downloadUpdate();
-  }
-
-  function handleInstall() {
-    window.causaElectron?.installUpdate();
-  }
+  const isChecking = status.state === 'checking';
+  const isUpToDate = status.state === 'not-available';
+  const hasError = status.state === 'error';
 
   return (
     <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
@@ -48,28 +38,11 @@ function UpdateSection() {
       </h3>
       <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
         Versão atual: <span className="font-medium text-[var(--color-text)]">v{appVersion}</span>
+        <span className="ml-2 text-xs-causa">— Atualizações são aplicadas automaticamente ao iniciar o sistema.</span>
       </p>
 
-      {/* Estado: idle ou checking */}
-      {(status.state === 'idle' || status.state === 'checking') && (
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            onClick={handleCheck}
-            disabled={status.state === 'checking'}
-          >
-            {status.state === 'checking' ? (
-              <Loader2 size={16} className="animate-spin mr-1.5" />
-            ) : (
-              <RefreshCw size={16} className="mr-1.5" />
-            )}
-            {status.state === 'checking' ? 'Verificando...' : 'Verificar atualizações'}
-          </Button>
-        </div>
-      )}
-
-      {/* Estado: sem atualização */}
-      {status.state === 'not-available' && (
+      {/* Up to date */}
+      {isUpToDate && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm-causa text-causa-success">
             <CheckCircle2 size={18} />
@@ -85,88 +58,26 @@ function UpdateSection() {
         </div>
       )}
 
-      {/* Estado: atualização disponível */}
-      {status.state === 'available' && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/20">
-            <Download size={18} className="text-[var(--color-primary)] shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm-causa font-medium text-[var(--color-text)]">
-                Nova versão disponível: <span className="text-[var(--color-primary)]">v{status.version}</span>
-              </p>
-              <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
-                O banco de dados será atualizado automaticamente ao reiniciar.
-              </p>
-              {status.error && (
-                <p className="text-xs-causa text-causa-warning mt-1">{status.error}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={handleDownload}>
-              <Download size={16} className="mr-1.5" />
-              Baixar atualização
-            </Button>
-            {status.releaseUrl && (
-              <Button variant="ghost" onClick={() => window.causaElectron?.openRelease()}>
-                <ExternalLink size={16} className="mr-1.5" />
-                Ver no GitHub
-              </Button>
+      {/* Idle or checking */}
+      {(status.state === 'idle' || isChecking) && (
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            onClick={handleCheck}
+            disabled={isChecking}
+          >
+            {isChecking ? (
+              <Loader2 size={16} className="animate-spin mr-1.5" />
+            ) : (
+              <RefreshCw size={16} className="mr-1.5" />
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Estado: downloading */}
-      {status.state === 'downloading' && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Loader2 size={18} className="animate-spin text-[var(--color-primary)]" />
-            <div className="flex-1">
-              <p className="text-sm-causa text-[var(--color-text)]">
-                Baixando atualização...
-              </p>
-              {status.total != null && status.transferred != null && (
-                <p className="text-xs-causa text-[var(--color-text-muted)]">
-                  {formatBytes(status.transferred)} de {formatBytes(status.total)}
-                  {status.bytesPerSecond != null && ` — ${formatBytes(status.bytesPerSecond)}/s`}
-                </p>
-              )}
-            </div>
-          </div>
-          {/* Barra de progresso */}
-          <div className="h-2 rounded-full bg-causa-surface-alt overflow-hidden">
-            <div
-              className="h-full bg-[var(--color-primary)] rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, status.percent ?? 0)}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Estado: downloaded */}
-      {status.state === 'downloaded' && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-success/8 border border-causa-success/20">
-            <CheckCircle2 size={18} className="text-causa-success shrink-0" />
-            <div>
-              <p className="text-sm-causa font-medium text-[var(--color-text)]">
-                Atualização v{status.version} pronta para instalar
-              </p>
-              <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
-                O CAUSA será reiniciado para aplicar a atualização. As migrações de banco de dados serão executadas automaticamente.
-              </p>
-            </div>
-          </div>
-          <Button onClick={handleInstall}>
-            <RotateCcw size={16} className="mr-1.5" />
-            Reiniciar e atualizar
+            {isChecking ? 'Verificando...' : 'Verificar atualizações'}
           </Button>
         </div>
       )}
 
-      {/* Estado: erro */}
-      {status.state === 'error' && (
+      {/* Error */}
+      {hasError && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-causa-danger/8 border border-causa-danger/20">
             <AlertCircle size={18} className="text-causa-danger shrink-0" />

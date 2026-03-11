@@ -1,13 +1,12 @@
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import https from 'node:https';
 
 export interface UpdateStatus {
-  state: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  state: 'idle' | 'checking' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
   version?: string;
   releaseNotes?: string;
-  releaseUrl?: string;
   percent?: number;
   bytesPerSecond?: number;
   transferred?: number;
@@ -43,7 +42,7 @@ function isNewerVersion(remote: string, local: string): boolean {
 }
 
 /** Busca a última release do GitHub via API */
-function fetchLatestRelease(): Promise<{ tag: string; body: string; url: string } | null> {
+function fetchLatestRelease(): Promise<{ tag: string; body: string } | null> {
   return new Promise((resolve) => {
     const ghToken = process.env.GH_TOKEN ?? '';
     const headers: Record<string, string> = {
@@ -61,7 +60,6 @@ function fetchLatestRelease(): Promise<{ tag: string; body: string; url: string 
         headers,
       },
       (res) => {
-        // Follow redirects
         if (res.statusCode === 302 || res.statusCode === 301) {
           const location = res.headers.location;
           if (location) {
@@ -93,7 +91,7 @@ function fetchLatestRelease(): Promise<{ tag: string; body: string; url: string 
 
 function handleResponse(
   res: import('node:http').IncomingMessage,
-  resolve: (val: { tag: string; body: string; url: string } | null) => void,
+  resolve: (val: { tag: string; body: string } | null) => void,
 ) {
   let data = '';
   res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
@@ -104,13 +102,9 @@ function handleResponse(
       return;
     }
     try {
-      const json = JSON.parse(data) as { tag_name?: string; body?: string; html_url?: string };
+      const json = JSON.parse(data) as { tag_name?: string; body?: string };
       if (json.tag_name) {
-        resolve({
-          tag: json.tag_name,
-          body: json.body ?? '',
-          url: json.html_url ?? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
-        });
+        resolve({ tag: json.tag_name, body: json.body ?? '' });
       } else {
         resolve(null);
       }
@@ -120,13 +114,17 @@ function handleResponse(
   });
 }
 
-/** Verifica atualizações via GitHub API */
-async function checkViaGitHubAPI(): Promise<void> {
+/**
+ * Verifica se há atualização e, se houver, inicia o download automaticamente.
+ * Fluxo: checking → downloading (com progresso) → downloaded → restart
+ */
+async function checkAndAutoUpdate(): Promise<void> {
   sendStatus({ state: 'checking' });
 
   const release = await fetchLatestRelease();
   if (!release) {
-    sendStatus({ state: 'error', error: 'Não foi possível conectar ao GitHub. Verifique sua conexão.' });
+    // Falha silenciosa na verificação — não bloqueia o usuário
+    sendStatus({ state: 'idle' });
     return;
   }
 
@@ -135,29 +133,50 @@ async function checkViaGitHubAPI(): Promise<void> {
 
   console.log(`[CAUSA] Versão atual: ${currentVersion}, última release: ${remoteVersion}`);
 
-  if (isNewerVersion(remoteVersion, currentVersion)) {
+  if (!isNewerVersion(remoteVersion, currentVersion)) {
+    sendStatus({ state: 'not-available' });
+    return;
+  }
+
+  // Atualização disponível — iniciar download automaticamente
+  console.log(`[CAUSA] Atualização ${remoteVersion} disponível. Iniciando download...`);
+
+  if (isDev) {
+    // Em dev, apenas notifica — não baixa
     sendStatus({
-      state: 'available',
+      state: 'downloaded',
       version: remoteVersion,
       ...(release.body ? { releaseNotes: release.body } : {}),
-      releaseUrl: release.url,
     });
-  } else {
-    sendStatus({ state: 'not-available' });
+    return;
+  }
+
+  try {
+    // electron-updater: checa e baixa
+    await autoUpdater.checkForUpdates();
+    // O download começa automaticamente (autoDownload = true)
+    // Progresso e conclusão são tratados pelos event listeners abaixo
+  } catch (err) {
+    console.error('[CAUSA] Erro ao baixar atualização:', err);
+    sendStatus({
+      state: 'error',
+      version: remoteVersion,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
 export function setupAutoUpdater(mainWindow: BrowserWindow) {
   mainWin = mainWindow;
 
-  // Configurar electron-updater para download (apenas em produção)
+  // Configurar electron-updater
   if (!isDev) {
     const ghToken = process.env.GH_TOKEN ?? '';
     if (ghToken) {
       autoUpdater.requestHeaders = { Authorization: `token ${ghToken}` };
     }
-    autoUpdater.autoDownload = false;
-    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = false; // Nós controlamos quando instalar
 
     autoUpdater.on('download-progress', (progress) => {
       sendStatus({
@@ -170,80 +189,51 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     });
 
     autoUpdater.on('update-downloaded', (info) => {
-      sendStatus({ state: 'downloaded', version: info.version });
+      console.log(`[CAUSA] Atualização v${info.version} baixada e pronta.`);
+      sendStatus({
+        state: 'downloaded',
+        version: info.version,
+        ...(typeof info.releaseNotes === 'string' ? { releaseNotes: info.releaseNotes } : {}),
+      });
     });
 
     autoUpdater.on('error', (err) => {
       console.error('[CAUSA] Erro electron-updater:', err.message);
-      // Se falhar o download, mostra o link para baixar manualmente
-      if (currentStatus.releaseUrl && currentStatus.version) {
-        sendStatus({
-          state: 'available',
-          version: currentStatus.version,
-          releaseUrl: currentStatus.releaseUrl,
-          error: 'Falha no download automático. Use o link para baixar manualmente.',
-        });
-      } else {
-        sendStatus({ state: 'error', error: err.message });
-      }
+      sendStatus({
+        state: 'error',
+        error: err.message,
+      });
     });
   }
 
-  // IPC handlers — SEMPRE registrados (dev e prod)
+  // IPC: verificar atualização manualmente (botão na tela de configurações)
   ipcMain.handle('update-check', async () => {
     try {
-      await checkViaGitHubAPI();
+      await checkAndAutoUpdate();
     } catch (err) {
       sendStatus({ state: 'error', error: err instanceof Error ? err.message : String(err) });
     }
   });
 
-  ipcMain.handle('update-download', async () => {
+  // IPC: reiniciar e aplicar atualização
+  ipcMain.handle('update-restart', () => {
     if (isDev) {
-      // Em dev, abrir a página de releases no navegador
-      const url = currentStatus.releaseUrl
-        ?? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-      shell.openExternal(url);
+      console.log('[CAUSA] Dev mode — simulando restart');
       return;
     }
-
-    try {
-      await autoUpdater.checkForUpdates(); // electron-updater precisa checar antes de baixar
-      autoUpdater.downloadUpdate();
-    } catch (err) {
-      // Fallback: abrir página de download no navegador
-      console.error('[CAUSA] Falha ao baixar atualização:', err);
-      const url = currentStatus.releaseUrl
-        ?? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-      shell.openExternal(url);
-      sendStatus({
-        state: 'available',
-        ...(currentStatus.version ? { version: currentStatus.version } : {}),
-        releaseUrl: url,
-        error: 'Download automático falhou. Abrindo página de download...',
-      });
-    }
+    sendStatus({ state: 'restarting' });
+    // quitAndInstall fecha o app e executa o instalador silenciosamente
+    setImmediate(() => autoUpdater.quitAndInstall(true, true));
   });
 
-  ipcMain.handle('update-install', () => {
-    if (!isDev) {
-      autoUpdater.quitAndInstall();
-    }
-  });
-
+  // IPC: obter status atual
   ipcMain.handle('update-get-status', () => {
     return currentStatus;
   });
 
-  ipcMain.handle('update-open-release', () => {
-    const url = currentStatus.releaseUrl
-      ?? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-    shell.openExternal(url);
-  });
-
   // Verificar atualizações 5 segundos após iniciar
   setTimeout(() => {
-    checkViaGitHubAPI().catch((err) => {
+    checkAndAutoUpdate().catch((err) => {
       console.error('[CAUSA] Falha ao verificar atualizações no startup:', err);
     });
   }, 5000);
