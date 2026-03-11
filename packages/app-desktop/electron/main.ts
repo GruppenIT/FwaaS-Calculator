@@ -217,37 +217,58 @@ function getCausaConfigPath(): string {
 }
 
 function readCausaConfig(): Record<string, unknown> {
+  const p = getCausaConfigPath();
   try {
-    const p = getCausaConfigPath();
     if (fs.existsSync(p)) {
       return JSON.parse(fs.readFileSync(p, 'utf-8'));
     }
-  } catch { /* ignorar */ }
+  } catch (err) {
+    console.error(`[CAUSA] Erro ao ler ${p}:`, err);
+  }
   return {};
 }
 
 function writeCausaConfig(config: Record<string, unknown>): void {
-  const dir = getSharedDataDir();
+  const configPath = getCausaConfigPath();
+  const dir = path.dirname(configPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  fs.writeFileSync(getCausaConfigPath(), JSON.stringify(config, null, 2));
+  const data = JSON.stringify(config, null, 2);
+  fs.writeFileSync(configPath, data, 'utf-8');
+
+  // Verificar que a escrita funcionou
+  const written = fs.readFileSync(configPath, 'utf-8');
+  if (written !== data) {
+    throw new Error(`Verificação de escrita falhou para ${configPath}`);
+  }
+  console.log(`[CAUSA] causa-config.json salvo em: ${configPath} (${data.length} bytes)`);
 }
 
 ipcMain.handle('get-gh-token', () => {
+  const configPath = getCausaConfigPath();
   const config = readCausaConfig();
-  return (config.ghToken as string) ?? '';
+  const token = (config.ghToken as string) ?? '';
+  console.log(`[CAUSA] get-gh-token: path=${configPath}, hasToken=${!!token}`);
+  return token;
 });
 
 ipcMain.handle('set-gh-token', (_event, token: string) => {
-  const config = readCausaConfig();
-  config.ghToken = token;
-  writeCausaConfig(config);
-  // Atualizar env imediatamente para que electron-updater use na próxima verificação
-  if (token) {
-    process.env.GH_TOKEN = token;
+  console.log(`[CAUSA] set-gh-token: recebido token com ${token.length} caracteres`);
+  try {
+    const config = readCausaConfig();
+    config.ghToken = token;
+    writeCausaConfig(config);
+    // Atualizar env imediatamente para que electron-updater use na próxima verificação
+    if (token) {
+      process.env.GH_TOKEN = token;
+    }
+    console.log('[CAUSA] set-gh-token: token salvo com sucesso');
+    return { ok: true };
+  } catch (err) {
+    console.error('[CAUSA] set-gh-token: ERRO ao salvar token:', err);
+    throw err; // Propagar para o renderer ver o erro
   }
-  return { ok: true };
 });
 
 app.whenReady().then(async () => {
