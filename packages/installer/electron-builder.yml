@@ -28,6 +28,7 @@ publish:
   owner: GruppenIT
   repo: FwaaS-Calculator
   private: true
+  releaseType: release
 
 win:
   target:
