@@ -223,7 +223,7 @@ FunctionEnd
 !macroend
 
 ; ============================================================================
-; Registrar páginas customizadas
+; Registrar páginas customizadas e inicialização
 ; ============================================================================
 
 !macro customHeader
