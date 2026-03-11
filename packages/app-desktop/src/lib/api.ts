@@ -1139,7 +1139,12 @@ export function classificarDocumentoDrive(data: {
 }
 
 export function syncDriveFolders() {
-  return request<{ ok: boolean; total: number; created: number }>('/api/google-drive/sync-folders', {
+  return request<{
+    ok: boolean;
+    total: number;
+    created: number;
+    details?: Array<{ nome: string; folderName: string; ok: boolean; error?: string }>;
+  }>('/api/google-drive/sync-folders', {
     method: 'POST',
   });
 }

@@ -1716,11 +1716,22 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
 
       try {
+        // Limpar cache para garantir que as pastas sejam verificadas no Drive
+        driveService.clearFolderCache();
+
         const clienteService = getClienteService();
         const allClientes = await clienteService.listar();
         let created = 0;
+        const details: Array<{ nome: string; folderName: string; ok: boolean; error?: string }> = [];
+
+        logger.info('GoogleDrive', `sync-folders: processando ${allClientes.length} clientes (rootFolderId=${rootFolderId})`);
 
         for (const cliente of allClientes) {
+          const folderName = GoogleDriveService.buildClienteFolderName({
+            clienteTipo: cliente.tipo,
+            clienteNome: cliente.nome,
+            clienteCpfCnpj: cliente.cpfCnpj ?? undefined,
+          });
           try {
             await driveService.resolveCompartilhadoFolder({
               rootFolderId,
@@ -1729,14 +1740,18 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
               clienteCpfCnpj: cliente.cpfCnpj ?? undefined,
             });
             created++;
+            details.push({ nome: cliente.nome, folderName, ok: true });
           } catch (err) {
-            logger.error('GoogleDrive', `Erro ao criar pasta para cliente ${cliente.nome}`, {
-              error: err instanceof Error ? err.message : String(err),
+            const errMsg = err instanceof Error ? err.message : String(err);
+            logger.error('GoogleDrive', `Erro ao criar pasta para cliente ${cliente.nome} (${folderName})`, {
+              error: errMsg,
             });
+            details.push({ nome: cliente.nome, folderName, ok: false, error: errMsg });
           }
         }
 
-        return json(res, { ok: true, total: allClientes.length, created });
+        logger.info('GoogleDrive', `sync-folders: concluído — ${created}/${allClientes.length} processados`, { details });
+        return json(res, { ok: true, total: allClientes.length, created, details });
       } catch (err) {
         logger.error('GoogleDrive', 'Erro ao sincronizar pastas', {
           error: err instanceof Error ? err.message : String(err),
