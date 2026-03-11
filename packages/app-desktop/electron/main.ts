@@ -243,6 +243,10 @@ ipcMain.handle('set-gh-token', (_event, token: string) => {
   const config = readCausaConfig();
   config.ghToken = token;
   writeCausaConfig(config);
+  // Atualizar env imediatamente para que electron-updater use na próxima verificação
+  if (token) {
+    process.env.GH_TOKEN = token;
+  }
   return { ok: true };
 });
 

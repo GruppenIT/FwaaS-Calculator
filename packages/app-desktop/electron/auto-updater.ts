@@ -82,25 +82,38 @@ function isNewerVersion(remote: string, local: string): boolean {
 
 /**
  * Lê o GH_TOKEN de múltiplas fontes:
- * 1. Variável de ambiente GH_TOKEN
- * 2. Arquivo causa-config.json no diretório de dados (campo ghToken)
+ * 1. Arquivo causa-config.json no diretório de dados (campo ghToken)
+ * 2. Variável de ambiente GH_TOKEN
+ * 3. Arquivo .gh-token na raiz do app (extraResources)
+ *
+ * NOTA: NÃO checa process.env.GH_TOKEN primeiro, pois ele pode ter
+ * sido setado por nós mesmos numa leitura anterior (ficaria stale).
+ * Sempre relê a fonte primária (config file) para pegar atualizações
+ * feitas pelo usuário via UI.
  */
 function getGhToken(): string {
-  // 1. Variável de ambiente
-  if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-
-  // 2. Arquivo de config compartilhado
+  // 1. Arquivo de config compartilhado (atualizado pela UI)
   try {
     const dataDir = process.platform === 'win32'
       ? path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'CAUSA SISTEMAS', 'CAUSA')
       : app.getPath('userData');
     const configPath = path.join(dataDir, 'causa-config.json');
+    logToFile('DEBUG', `Procurando token em: ${configPath}`);
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      if (config.ghToken) return config.ghToken as string;
+      if (config.ghToken) {
+        logToFile('DEBUG', 'Token encontrado em causa-config.json');
+        return config.ghToken as string;
+      }
     }
-  } catch {
-    // Ignorar
+  } catch (err) {
+    logToFile('WARN', `Erro ao ler causa-config.json: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // 2. Variável de ambiente (set externamente, ex: CI)
+  if (process.env.GH_TOKEN) {
+    logToFile('DEBUG', 'Token encontrado em process.env.GH_TOKEN');
+    return process.env.GH_TOKEN;
   }
 
   // 3. Arquivo .gh-token na raiz do app (incluído via extraResources no build)
@@ -108,15 +121,36 @@ function getGhToken(): string {
     const resourcesPath = (app as { isPackaged?: boolean }).isPackaged
       ? path.join(process.resourcesPath, '.gh-token')
       : path.join(app.getAppPath(), '.gh-token');
+    logToFile('DEBUG', `Procurando token em: ${resourcesPath}`);
     if (fs.existsSync(resourcesPath)) {
       const token = fs.readFileSync(resourcesPath, 'utf-8').trim();
-      if (token) return token;
+      if (token) {
+        logToFile('DEBUG', 'Token encontrado em .gh-token');
+        return token;
+      }
     }
   } catch {
     // Ignorar
   }
 
+  logToFile('DEBUG', 'Nenhum token encontrado em nenhuma fonte');
   return '';
+}
+
+/**
+ * Atualiza process.env.GH_TOKEN e autoUpdater.requestHeaders
+ * com o token mais recente. Deve ser chamado antes de cada operação
+ * do electron-updater.
+ */
+function refreshToken(): string {
+  const ghToken = getGhToken();
+  if (ghToken) {
+    process.env.GH_TOKEN = ghToken;
+    if (!isDev) {
+      autoUpdater.requestHeaders = { Authorization: `token ${ghToken}` };
+    }
+  }
+  return ghToken;
 }
 
 /** Busca a última release do GitHub via API */
@@ -257,6 +291,10 @@ async function checkAndAutoUpdate(): Promise<void> {
   }
 
   try {
+    // Atualizar token antes de chamar electron-updater (pode ter sido configurado via UI)
+    const token = refreshToken();
+    logToFile('INFO', `Iniciando download via electron-updater (token: ${token ? 'presente' : 'AUSENTE'})`);
+
     // electron-updater: checa e baixa
     await autoUpdater.checkForUpdates();
     // O download começa automaticamente (autoDownload = true)
@@ -285,15 +323,12 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   // Configurar electron-updater
   if (!isDev) {
-    const ghToken = getGhToken();
+    // Tentar carregar token agora (será recarregado antes de cada check)
+    const ghToken = refreshToken();
     if (ghToken) {
-      // electron-updater lê process.env.GH_TOKEN internamente para autenticar
-      // downloads de repos privados (latest.yml, .exe, etc.)
-      process.env.GH_TOKEN = ghToken;
-      autoUpdater.requestHeaders = { Authorization: `token ${ghToken}` };
       logToFile('INFO', 'GH_TOKEN configurado para electron-updater (env + headers)');
     } else {
-      logToFile('WARN', 'GH_TOKEN não encontrado — electron-updater pode falhar em repos privados');
+      logToFile('WARN', 'GH_TOKEN não encontrado — configure via Configurações > Atualizações');
     }
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = false; // Nós controlamos quando instalar
