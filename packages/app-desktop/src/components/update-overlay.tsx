@@ -18,20 +18,34 @@ export function UpdateOverlay() {
   const [dismissed, setDismissed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  console.log('[UpdateOverlay] render, state:', status.state, 'dismissed:', dismissed);
+
   const refreshStatus = useCallback(() => {
-    window.causaElectron?.getUpdateStatus().then((s) => {
-      if (s) setStatus(s);
+    if (!window.causaElectron) {
+      console.warn('[UpdateOverlay] window.causaElectron não disponível');
+      return;
+    }
+    window.causaElectron.getUpdateStatus().then((s) => {
+      if (s) {
+        console.log('[UpdateOverlay] getUpdateStatus retornou:', s.state, s.version || '');
+        setStatus(s);
+      } else {
+        console.warn('[UpdateOverlay] getUpdateStatus retornou null/undefined');
+      }
     }).catch((err) => {
       console.warn('[UpdateOverlay] Erro ao obter status:', err);
     });
   }, []);
 
   useEffect(() => {
+    console.log('[UpdateOverlay] montado, causaElectron:', !!window.causaElectron);
+
     // Buscar status atual ao montar
     refreshStatus();
 
     // Escutar mudanças de status em tempo real
     const unsub = window.causaElectron?.onUpdateStatus((s) => {
+      console.log('[UpdateOverlay] onUpdateStatus evento:', s.state, s.version || '');
       setStatus(s);
       if (s.state === 'available') {
         setDismissed(false);
@@ -51,6 +65,7 @@ export function UpdateOverlay() {
   // Parar polling quando o overlay estiver visível (não precisa mais)
   useEffect(() => {
     if (status.state === 'available' || status.state === 'downloading' || status.state === 'downloaded') {
+      console.log('[UpdateOverlay] Parando polling — overlay visível');
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
