@@ -6,6 +6,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { useTheme } from '../../hooks/use-theme';
 import { usePermission } from '../../hooks/use-permission';
+import { useAuth } from '../../lib/auth-context';
 import * as api from '../../lib/api';
 
 function formatBytes(bytes: number): string {
@@ -181,6 +182,7 @@ function UpdateSection() {
 
 function GoogleDriveSection() {
   const { toast } = useToast();
+  const { refreshFeatures } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingFolder, setSavingFolder] = useState(false);
@@ -239,6 +241,7 @@ function GoogleDriveSection() {
       setDriveEmail(clientEmail);
       toast('Service Account configurada! Agora configure a pasta raiz.', 'success');
       loadConfig();
+      refreshFeatures();
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     } finally {
@@ -287,6 +290,7 @@ function GoogleDriveSection() {
       setDriveEmail(null);
       setRootFolderId('');
       toast('Google Drive desconectado.', 'success');
+      refreshFeatures();
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao desconectar.', 'error');
     } finally {

@@ -26,6 +26,7 @@ interface AuthContextValue extends AuthState {
   login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   setConfigured: () => void;
+  refreshFeatures: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -134,8 +135,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, configured: true }));
   }, []);
 
+  const refreshFeatures = useCallback(async () => {
+    try {
+      const features = await api.getFeatures();
+      setState((prev) => ({ ...prev, features }));
+    } catch {
+      // Silently ignore
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ ...state, login: loginFn, logout, setConfigured }}>
+    <AuthContext.Provider value={{ ...state, login: loginFn, logout, setConfigured, refreshFeatures }}>
       {children}
     </AuthContext.Provider>
   );
