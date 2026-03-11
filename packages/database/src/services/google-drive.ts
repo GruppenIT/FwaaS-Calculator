@@ -23,20 +23,21 @@ export interface DriveUploadResult {
 
 /**
  * Estrutura de pastas no Google Drive:
- * CAUSA/
+ * {rootFolder}/
  * ├── Clientes/
- * │   ├── {nomeCliente}/
- * │   │   ├── Processos/
- * │   │   │   ├── {numeroCnj}/
- * │   │   │   │   └── documentos...
+ * │   ├── {nomeCliente}-{CPF}/
+ * │   │   ├── Proc.-{numeroCnj}/
+ * │   │   │   └── documentos...
  * │   │   └── Geral/
  * │   │       └── documentos sem processo...
  * └── Sem Cliente/
  *     └── documentos avulsos...
  *
  * IMPORTANTE: Service Accounts não possuem cota de armazenamento própria.
- * Os arquivos DEVEM ser enviados para uma pasta compartilhada com a SA
- * (ou para um Shared Drive). O rootFolderId é obrigatório.
+ * É OBRIGATÓRIO usar domain-wide delegation com impersonateEmail para que
+ * os arquivos sejam criados como o usuário real (com cota).
+ * O administrador do Google Workspace deve delegar o escopo
+ * https://www.googleapis.com/auth/drive para o client_id da Service Account.
  */
 export class GoogleDriveService {
   private drive: drive_v3.Drive;
@@ -45,9 +46,9 @@ export class GoogleDriveService {
 
   /**
    * @param credentials JSON da Service Account
-   * @param impersonateEmail (Opcional) E-mail do usuário para impersonar via
-   *   domain-wide delegation. Necessário para contas Google Workspace.
-   *   Sem impersonação, a SA precisa de um Shared Drive.
+   * @param impersonateEmail E-mail do usuário para impersonar via
+   *   domain-wide delegation. Obrigatório — Service Accounts não possuem
+   *   cota de armazenamento própria.
    */
   constructor(credentials: ServiceAccountCredentials, impersonateEmail?: string) {
     // JWT(email, keyFile, key, scopes, subject)
@@ -126,12 +127,13 @@ export class GoogleDriveService {
 
   /**
    * Resolve o caminho de pasta para um documento baseado em cliente e processo.
-   * Usa rootFolderId diretamente como raiz (pasta compartilhada pelo usuário).
+   * Estrutura: Clientes/{Nome}-{CPF}/Proc.-{numeroCnj}/
    * Retorna o ID da pasta final.
    */
   async resolveFolderPath(opts: {
     rootFolderId: string;
     clienteNome?: string | undefined;
+    clienteCpfCnpj?: string | undefined;
     numeroCnj?: string | undefined;
   }): Promise<string> {
     const rootId = opts.rootFolderId;
@@ -141,14 +143,19 @@ export class GoogleDriveService {
     }
 
     const clientesId = await this.findOrCreateFolder('Clientes', rootId);
-    const clienteId = await this.findOrCreateFolder(opts.clienteNome, clientesId);
+
+    // Pasta do cliente: "Nome Completo-CPF" ou só "Nome Completo"
+    const clienteFolderName = opts.clienteCpfCnpj
+      ? `${opts.clienteNome}-${opts.clienteCpfCnpj}`
+      : opts.clienteNome;
+    const clienteFolderId = await this.findOrCreateFolder(clienteFolderName, clientesId);
 
     if (!opts.numeroCnj) {
-      return this.findOrCreateFolder('Geral', clienteId);
+      return this.findOrCreateFolder('Geral', clienteFolderId);
     }
 
-    const processosId = await this.findOrCreateFolder('Processos', clienteId);
-    return this.findOrCreateFolder(opts.numeroCnj, processosId);
+    // Pasta do processo: "Proc.-NUMEROCNJ"
+    return this.findOrCreateFolder(`Proc.-${opts.numeroCnj}`, clienteFolderId);
   }
 
   /** Faz upload de um arquivo para o Google Drive */

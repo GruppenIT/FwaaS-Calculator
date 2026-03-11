@@ -199,8 +199,10 @@ export function ClienteModal({ onClose, onSaved, editData }: Props) {
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!form.nome.trim()) e.nome = 'Obrigatório';
-    if (form.cpfCnpj) {
+    if (!form.nome.trim()) e.nome = 'Nome completo é obrigatório';
+    if (!form.cpfCnpj) {
+      e.cpfCnpj = tipo === 'PF' ? 'CPF é obrigatório' : 'CNPJ é obrigatório';
+    } else {
       const digits = form.cpfCnpj.replace(/\D/g, '');
       if (tipo === 'PF' && digits.length !== 11) e.cpfCnpj = 'CPF deve ter 11 dígitos';
       if (tipo === 'PJ' && digits.length !== 14) e.cpfCnpj = 'CNPJ deve ter 14 dígitos';
@@ -226,8 +228,8 @@ export function ClienteModal({ onClose, onSaved, editData }: Props) {
     return {
       tipo,
       nome: form.nome,
+      cpfCnpj: form.cpfCnpj,
       ...(form.nomeSocial ? { nomeSocial: form.nomeSocial } : {}),
-      ...(form.cpfCnpj ? { cpfCnpj: form.cpfCnpj } : {}),
       ...(form.rg ? { rg: form.rg } : {}),
       ...(form.rgOrgaoEmissor ? { rgOrgaoEmissor: form.rgOrgaoEmissor } : {}),
       ...(form.dataNascimento ? { dataNascimento: form.dataNascimento } : {}),
@@ -380,7 +382,7 @@ export function ClienteModal({ onClose, onSaved, editData }: Props) {
         <SectionTitle title={tipo === 'PF' ? 'Dados Pessoais' : 'Dados Empresariais'} />
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label={tipo === 'PF' ? 'Nome completo' : 'Razão social'}
+            label={tipo === 'PF' ? 'Nome completo *' : 'Razão social *'}
             value={form.nome}
             onChange={(e) => update('nome', e.target.value)}
             error={errors.nome}
@@ -395,7 +397,7 @@ export function ClienteModal({ onClose, onSaved, editData }: Props) {
 
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label={tipo === 'PF' ? 'CPF' : 'CNPJ'}
+            label={tipo === 'PF' ? 'CPF *' : 'CNPJ *'}
             placeholder={tipo === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
             value={form.cpfCnpj}
             onChange={(e) => handleDocChange(e.target.value)}

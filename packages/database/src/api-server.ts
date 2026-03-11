@@ -25,6 +25,7 @@ import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import { count, eq, sum, and, lt, gte, lte, sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import type { PermissionKey } from '@causa/shared';
+import { createClienteSchema, createProcessoSchema } from '@causa/shared';
 import { logger } from './logger.js';
 
 const __apiDirname = path.dirname(fileURLToPath(import.meta.url));
@@ -455,7 +456,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/clientes' && method === 'POST') {
       if (!(await requirePermission(res, user, 'clientes:criar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await getClienteService().criar(body, user.id);
+      const validation = createClienteSchema.safeParse(body);
+      if (!validation.success) {
+        const msg = validation.error.issues.map((i) => i.message).join('; ');
+        return error(res, msg, 400);
+      }
+      const id = await getClienteService().criar(validation.data, user.id);
       return json(res, { id }, 201);
     }
 
@@ -500,7 +506,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (path === '/api/processos' && method === 'POST') {
       if (!(await requirePermission(res, user, 'processos:criar'))) return;
       const body = JSON.parse(await readBody(req));
-      const id = await getProcessoService().criar(body);
+      const validation = createProcessoSchema.safeParse(body);
+      if (!validation.success) {
+        const msg = validation.error.issues.map((i) => i.message).join('; ');
+        return error(res, msg, 400);
+      }
+      const id = await getProcessoService().criar(validation.data);
       return json(res, { id }, 201);
     }
 
@@ -1238,6 +1249,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (body.serviceAccountJson !== undefined) config.googleDrive.serviceAccountJson = body.serviceAccountJson;
       if (body.rootFolderId !== undefined) config.googleDrive.rootFolderId = body.rootFolderId;
       if (body.impersonateEmail !== undefined) config.googleDrive.impersonateEmail = body.impersonateEmail || '';
+
+      // Validar: impersonateEmail é obrigatório para sincronização funcionar
+      if (body.rootFolderId && !config.googleDrive.impersonateEmail) {
+        return error(res, 'E-mail para impersonar é obrigatório. Service Accounts não possuem cota de armazenamento — é necessário usar delegação de domínio (domain-wide delegation) com um e-mail do Google Workspace.', 400);
+      }
+
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
       // Reinicializar o serviço
@@ -1298,6 +1315,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const folderId = await driveService.resolveFolderPath({
           rootFolderId,
           clienteNome: doc.clienteNome ?? undefined,
+          clienteCpfCnpj: (doc as Record<string, unknown>).clienteCpfCnpj as string | undefined,
           numeroCnj: doc.numeroCnj ?? undefined,
         });
 
@@ -1390,6 +1408,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           const folderId = await driveService.resolveFolderPath({
             rootFolderId: syncAllRootFolderId,
             clienteNome: docFull.clienteNome ?? undefined,
+            clienteCpfCnpj: (docFull as Record<string, unknown>).clienteCpfCnpj as string | undefined,
             numeroCnj: docFull.numeroCnj ?? undefined,
           });
 

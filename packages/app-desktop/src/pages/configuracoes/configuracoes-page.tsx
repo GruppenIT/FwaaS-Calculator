@@ -174,13 +174,17 @@ function GoogleDriveSection() {
   }
 
   async function handleSaveSettings() {
+    if (!impersonateEmail.trim()) {
+      toast('E-mail para impersonar é obrigatório. Service Accounts não possuem cota de armazenamento.', 'error');
+      return;
+    }
     if (!rootFolderId.trim()) {
       toast('Informe o ID da pasta raiz.', 'error');
       return;
     }
     setSavingSettings(true);
     try {
-      await api.updateGoogleDriveConfig({ rootFolderId, impersonateEmail: impersonateEmail.trim() || '' });
+      await api.updateGoogleDriveConfig({ rootFolderId, impersonateEmail: impersonateEmail.trim() });
       toast('Configurações salvas.', 'success');
       loadConfig();
     } catch (err) {
@@ -317,7 +321,19 @@ function GoogleDriveSection() {
                 ID da pasta onde os documentos serão organizados.
                 Copie da URL: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">drive.google.com/drive/folders/<strong>ID_AQUI</strong></code>
               </p>
+              <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+                Estrutura criada: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">Clientes/Nome-CPF/Proc.-NumeroCNJ/</code>
+              </p>
             </div>
+
+            {!impersonateEmail && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded bg-causa-danger/8 border border-causa-danger/20">
+                <AlertCircle size={14} className="text-causa-danger shrink-0" />
+                <p className="text-xs-causa text-causa-danger">
+                  E-mail para impersonar é obrigatório. Service Accounts não possuem cota de armazenamento própria — configure a delegação de domínio e informe o e-mail.
+                </p>
+              </div>
+            )}
 
             {!rootFolderId && (
               <div className="flex items-center gap-2 px-3 py-2 rounded bg-causa-warning/8 border border-causa-warning/20">

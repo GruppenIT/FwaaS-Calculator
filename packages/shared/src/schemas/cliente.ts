@@ -75,11 +75,10 @@ export const createClienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(300),
   nomeSocial: z.string().max(300).optional(),
   cpfCnpj: z
-    .string()
-    .optional()
+    .string({ error: 'CPF ou CNPJ é obrigatório' })
+    .min(1, 'CPF ou CNPJ é obrigatório')
     .refine(
       (val) => {
-        if (!val) return true;
         const digits = val.replace(/\D/g, '');
         if (digits.length === 11) return validarCpf(val);
         if (digits.length === 14) return validarCnpj(val);
