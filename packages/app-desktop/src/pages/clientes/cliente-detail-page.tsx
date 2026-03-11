@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye } from 'lucide-react';
+import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
 import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
+import { useFeatures } from '../../lib/auth-context';
 import type { ClienteData, EnderecoJson, DocumentoRow } from '../../lib/api';
 import * as api from '../../lib/api';
 
@@ -85,6 +86,7 @@ export function ClienteDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { can } = usePermission();
+  const { googleDrive: driveEnabled } = useFeatures();
 
   const [cliente, setCliente] = useState<ClienteData | null>(null);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
@@ -92,6 +94,7 @@ export function ClienteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState<ClienteEditData | null | undefined>(undefined);
   const [viewDocId, setViewDocId] = useState<string | null>(null);
+  const [syncingDocId, setSyncingDocId] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -135,6 +138,19 @@ export function ClienteDetailPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao baixar documento.', 'error');
+    }
+  }
+
+  async function handleSyncDoc(docId: string) {
+    setSyncingDocId(docId);
+    try {
+      await api.syncDocumentoDrive(docId);
+      toast('Documento sincronizado com o Drive.', 'success');
+      carregar();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao sincronizar.', 'error');
+    } finally {
+      setSyncingDocId(null);
     }
   }
 
@@ -429,6 +445,29 @@ export function ClienteDetailPage() {
                   <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
                     {new Date(d.createdAt).toLocaleDateString('pt-BR')}
                   </span>
+                  {driveEnabled && (
+                    d.driveFileId ? (
+                      <span
+                        className="p-1.5 text-causa-success"
+                        title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
+                      >
+                        <Cloud size={14} />
+                      </span>
+                    ) : syncingDocId === d.id ? (
+                      <span className="p-1.5 text-[var(--color-primary)]">
+                        <Loader2 size={14} className="animate-spin" />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSyncDoc(d.id)}
+                        className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                        title="Enviar ao Google Drive"
+                      >
+                        <CloudOff size={14} />
+                      </button>
+                    )
+                  )}
                   {isPreviewable(d.tipoMime) && (
                     <button
                       type="button"

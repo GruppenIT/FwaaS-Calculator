@@ -16,6 +16,9 @@ import {
   Tag,
   Download,
   Eye,
+  Cloud,
+  CloudOff,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
@@ -103,7 +106,7 @@ export function ProcessoDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { can } = usePermission();
-  const { financeiro: financeiroEnabled } = useFeatures();
+  const { financeiro: financeiroEnabled, googleDrive: driveEnabled } = useFeatures();
 
   const [processo, setProcesso] = useState<api.ProcessoDetail | null>(null);
   const [clienteNome, setClienteNome] = useState<string>('');
@@ -116,6 +119,7 @@ export function ProcessoDetailPage() {
   const [deleteMovId, setDeleteMovId] = useState<string | null>(null);
   const [deletingMov, setDeletingMov] = useState(false);
   const [viewDocId, setViewDocId] = useState<string | null>(null);
+  const [syncingDocId, setSyncingDocId] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -219,6 +223,19 @@ export function ProcessoDetailPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao baixar documento.', 'error');
+    }
+  }
+
+  async function handleSyncDoc(docId: string) {
+    setSyncingDocId(docId);
+    try {
+      await api.syncDocumentoDrive(docId);
+      toast('Documento sincronizado com o Drive.', 'success');
+      carregar();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao sincronizar.', 'error');
+    } finally {
+      setSyncingDocId(null);
     }
   }
 
@@ -521,6 +538,29 @@ export function ProcessoDetailPage() {
                   <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
                     {formatDate(d.createdAt)}
                   </span>
+                  {driveEnabled && (
+                    d.driveFileId ? (
+                      <span
+                        className="p-1.5 text-causa-success"
+                        title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
+                      >
+                        <Cloud size={14} />
+                      </span>
+                    ) : syncingDocId === d.id ? (
+                      <span className="p-1.5 text-[var(--color-primary)]">
+                        <Loader2 size={14} className="animate-spin" />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSyncDoc(d.id)}
+                        className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                        title="Enviar ao Google Drive"
+                      >
+                        <CloudOff size={14} />
+                      </button>
+                    )
+                  )}
                   {isPreviewable(d.tipoMime) && (
                     <button
                       type="button"

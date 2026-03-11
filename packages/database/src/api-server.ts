@@ -1285,6 +1285,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       const rootFolderId = config.googleDrive?.rootFolderId;
+      if (!rootFolderId) {
+        return error(res, 'Configure o ID da pasta raiz do Google Drive antes de sincronizar.', 400);
+      }
 
       try {
         // Resolver pasta de destino
@@ -1344,6 +1347,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         return error(res, 'Google Drive não conectado.', 400);
       }
 
+      const syncAllConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      if (!syncAllConfig.googleDrive?.rootFolderId) {
+        return error(res, 'Configure o ID da pasta raiz do Google Drive antes de sincronizar.', 400);
+      }
+      const syncAllRootFolderId = syncAllConfig.googleDrive.rootFolderId;
+
       const dbq = getDb();
       const s = getAppSchema();
 
@@ -1374,9 +1383,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           const docFull = await getDocumentoService().obterPorId(doc.id);
           if (!docFull) continue;
 
-          const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
           const folderId = await driveService.resolveFolderPath({
-            rootFolderId: config.googleDrive?.rootFolderId,
+            rootFolderId: syncAllRootFolderId,
             clienteNome: docFull.clienteNome ?? undefined,
             numeroCnj: docFull.numeroCnj ?? undefined,
           });
