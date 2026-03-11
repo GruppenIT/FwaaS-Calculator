@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('causaElectron', {
 
   // Auto-updater
   checkForUpdate: () => ipcRenderer.invoke('update-check'),
+  respondToUpdate: (choice: string) => ipcRenderer.invoke('update-respond', choice),
   restartAndUpdate: () => ipcRenderer.invoke('update-restart'),
   getUpdateStatus: () => ipcRenderer.invoke('update-get-status'),
   onUpdateStatus: (callback: (status: unknown) => void) => {

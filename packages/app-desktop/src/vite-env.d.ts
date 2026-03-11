@@ -12,8 +12,10 @@ declare module '*.png' {
 
 declare const __APP_VERSION__: string;
 
+type UpdateUserChoice = 'install-now' | 'install-later' | 'ignore';
+
 interface UpdateStatus {
-  state: 'idle' | 'checking' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
+  state: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
   version?: string;
   releaseNotes?: string;
   percent?: number;
@@ -21,6 +23,8 @@ interface UpdateStatus {
   transferred?: number;
   total?: number;
   error?: string;
+  /** Se true, o download está ocorrendo em segundo plano (sem overlay) */
+  background?: boolean;
 }
 
 interface CausaElectronAPI {
@@ -28,6 +32,7 @@ interface CausaElectronAPI {
   getApiStatus: () => Promise<{ started: boolean }>;
   getAppVersion: () => Promise<string>;
   checkForUpdate: () => Promise<void>;
+  respondToUpdate: (choice: UpdateUserChoice) => Promise<void>;
   restartAndUpdate: () => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
