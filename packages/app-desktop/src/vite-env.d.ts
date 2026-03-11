@@ -31,6 +31,8 @@ interface CausaElectronAPI {
   restartAndUpdate: () => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+  getGhToken: () => Promise<string>;
+  setGhToken: (token: string) => Promise<{ ok: boolean }>;
 }
 
 interface Window {

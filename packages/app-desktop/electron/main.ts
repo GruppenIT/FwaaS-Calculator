@@ -211,6 +211,41 @@ ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });
 
+// IPC: ler/salvar GH_TOKEN em causa-config.json
+function getCausaConfigPath(): string {
+  return path.join(getSharedDataDir(), 'causa-config.json');
+}
+
+function readCausaConfig(): Record<string, unknown> {
+  try {
+    const p = getCausaConfigPath();
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf-8'));
+    }
+  } catch { /* ignorar */ }
+  return {};
+}
+
+function writeCausaConfig(config: Record<string, unknown>): void {
+  const dir = getSharedDataDir();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(getCausaConfigPath(), JSON.stringify(config, null, 2));
+}
+
+ipcMain.handle('get-gh-token', () => {
+  const config = readCausaConfig();
+  return (config.ghToken as string) ?? '';
+});
+
+ipcMain.handle('set-gh-token', (_event, token: string) => {
+  const config = readCausaConfig();
+  config.ghToken = token;
+  writeCausaConfig(config);
+  return { ok: true };
+});
+
 app.whenReady().then(async () => {
   // Exibe splash enquanto carrega
   createSplashWindow();

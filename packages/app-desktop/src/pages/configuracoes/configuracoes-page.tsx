@@ -10,7 +10,11 @@ import { useAuth } from '../../lib/auth-context';
 import * as api from '../../lib/api';
 
 function UpdateSection() {
+  const { toast } = useToast();
   const [status, setStatus] = useState<UpdateStatus>({ state: 'idle' });
+  const [ghToken, setGhToken] = useState('');
+  const [ghTokenLoaded, setGhTokenLoaded] = useState(false);
+  const [savingToken, setSavingToken] = useState(false);
   const appVersion = __APP_VERSION__;
 
   const refreshStatus = useCallback(() => {
@@ -23,13 +27,36 @@ function UpdateSection() {
     return () => { unsub?.(); };
   }, [refreshStatus]);
 
+  useEffect(() => {
+    window.causaElectron?.getGhToken().then((token) => {
+      setGhToken(token);
+      setGhTokenLoaded(true);
+    }).catch(() => setGhTokenLoaded(true));
+  }, []);
+
   function handleCheck() {
     window.causaElectron?.checkForUpdate();
+  }
+
+  async function handleSaveToken() {
+    setSavingToken(true);
+    try {
+      await window.causaElectron?.setGhToken(ghToken.trim());
+      toast('Token salvo. Verificando atualizações...', 'success');
+      window.causaElectron?.checkForUpdate();
+    } catch {
+      toast('Erro ao salvar token.', 'error');
+    } finally {
+      setSavingToken(false);
+    }
   }
 
   const isChecking = status.state === 'checking';
   const isUpToDate = status.state === 'not-available';
   const hasError = status.state === 'error';
+
+  const inputClass =
+    'w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-sm-causa';
 
   return (
     <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
@@ -96,6 +123,31 @@ function UpdateSection() {
             <RefreshCw size={16} className="mr-1.5" />
             Tentar novamente
           </Button>
+        </div>
+      )}
+
+      {/* GH_TOKEN — necessário para repositório privado */}
+      {ghTokenLoaded && (
+        <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
+          <label className="block text-sm-causa font-medium text-[var(--color-text)] mb-1">
+            GitHub Token (repositório privado)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={ghToken}
+              onChange={(e) => setGhToken(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              className={inputClass}
+            />
+            <Button variant="ghost" onClick={handleSaveToken} disabled={savingToken}>
+              <Save size={14} className="mr-1" />
+              {savingToken ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+          <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+            Token de acesso pessoal do GitHub (classic) com permissão <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">repo</code>. Necessário para baixar atualizações de repositórios privados.
+          </p>
         </div>
       )}
     </div>
