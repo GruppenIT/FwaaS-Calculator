@@ -165,6 +165,13 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  // Permitir abrir DevTools com F12 (mesmo em produção, para diagnóstico)
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if (input.key === 'F12' && input.type === 'keyDown') {
+      mainWindow?.webContents.toggleDevTools();
+    }
+  });
+
   // Quando a janela principal estiver pronta, aguarda o splash antes de mostrar
   mainWindow.once('ready-to-show', () => {
     // Garante que o splash fique visível por no mínimo 3 segundos
@@ -274,6 +281,20 @@ ipcMain.handle('set-gh-token', (_event, token: string) => {
     console.error('[CAUSA] set-gh-token: ERRO ao salvar token:', err);
     throw err; // Propagar para o renderer ver o erro
   }
+});
+
+// IPC: log do renderer para o arquivo de log do main process
+ipcMain.on('renderer-log', (_event, level: string, message: string) => {
+  const line = `[${new Date().toISOString()}] [${level}] [Renderer] ${message}`;
+  console.log(line);
+  try {
+    const logDir = process.platform === 'win32'
+      ? path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'CAUSA SISTEMAS', 'CAUSA', 'logs')
+      : path.join(app.getPath('userData'), 'logs');
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+    const date = new Date().toISOString().slice(0, 10);
+    fs.appendFileSync(path.join(logDir, `causa-${date}.log`), line + '\n');
+  } catch { /* falha silenciosa */ }
 });
 
 app.whenReady().then(async () => {
