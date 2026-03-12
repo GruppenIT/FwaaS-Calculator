@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld('causaElectron', {
     return () => { ipcRenderer.removeListener('update-status', handler); };
   },
 
+  // Log do renderer → main process (para diagnóstico)
+  logToMain: (level: string, message: string) => ipcRenderer.send('renderer-log', level, message),
+
   // Config (causa-config.json)
   getGhToken: () => ipcRenderer.invoke('get-gh-token'),
   setGhToken: (token: string) => ipcRenderer.invoke('set-gh-token', token),
