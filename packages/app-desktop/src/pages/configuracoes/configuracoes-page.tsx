@@ -8,24 +8,15 @@ import { useTheme } from '../../hooks/use-theme';
 import { usePermission } from '../../hooks/use-permission';
 import { useAuth } from '../../lib/auth-context';
 import * as api from '../../lib/api';
+import { useUpdateStatus } from '../../hooks/use-update-status';
 
 function UpdateSection() {
   const { toast } = useToast();
-  const [status, setStatus] = useState<UpdateStatus>({ state: 'idle' });
+  const { status } = useUpdateStatus();
   const [ghToken, setGhToken] = useState('');
   const [ghTokenLoaded, setGhTokenLoaded] = useState(false);
   const [savingToken, setSavingToken] = useState(false);
   const appVersion = __APP_VERSION__;
-
-  const refreshStatus = useCallback(() => {
-    window.causaElectron?.getUpdateStatus().then(setStatus).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    refreshStatus();
-    const unsub = window.causaElectron?.onUpdateStatus((s) => setStatus(s));
-    return () => { unsub?.(); };
-  }, [refreshStatus]);
 
   useEffect(() => {
     api.getGhToken()

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
 import { Download, CheckCircle2, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { CausaLogo } from './ui/causa-logo';
+import { useUpdateStatus } from '../hooks/use-update-status';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -11,22 +11,11 @@ function formatBytes(bytes: number): string {
 
 /**
  * Overlay fullscreen que aparece durante download/instalação em primeiro plano.
- * A notificação de "nova versão disponível" agora fica na página de Configurações.
+ * A notificação de "nova versão disponível" fica na página de Configurações.
+ * O status vem do UpdateContext (sempre montado no App).
  */
 export function UpdateOverlay() {
-  const [status, setStatus] = useState<UpdateStatus>({ state: 'idle' });
-
-  const refreshStatus = useCallback(() => {
-    window.causaElectron?.getUpdateStatus().then((s) => {
-      if (s) setStatus(s);
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    refreshStatus();
-    const unsub = window.causaElectron?.onUpdateStatus((s) => setStatus(s));
-    return () => { unsub?.(); };
-  }, [refreshStatus]);
+  const { status } = useUpdateStatus();
 
   // Só mostra o overlay quando está baixando/baixado em primeiro plano, ou reiniciando
   const showOverlay =
