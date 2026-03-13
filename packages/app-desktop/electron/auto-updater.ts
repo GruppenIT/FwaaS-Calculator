@@ -354,6 +354,39 @@ function downloadAssetDirect(asset: ReleaseAsset, destPath: string): Promise<voi
   });
 }
 
+/**
+ * Lança o instalador NSIS com elevação de privilégio (UAC) via VBScript.
+ * Usa Shell.Application.ShellExecute com verbo "runas" — a forma mais
+ * confiável de solicitar elevação no Windows, funciona em qualquer contexto.
+ * O instalador roda com /S (silent) e --updated (aguarda app fechar).
+ */
+function launchInstallerElevated(installerPath: string): void {
+  // Escapar backslashes e aspas para VBScript
+  const escapedPath = installerPath.replace(/\\/g, '\\\\').replace(/"/g, '""');
+  const vbsContent = [
+    'Set objShell = CreateObject("Shell.Application")',
+    `objShell.ShellExecute "${escapedPath}", "/S --updated", "", "runas", 1`,
+  ].join('\r\n');
+
+  const vbsPath = path.join(app.getPath('temp'), 'causa-update-elevate.vbs');
+  fs.writeFileSync(vbsPath, vbsContent, 'utf-8');
+
+  logToFile('INFO', `Lançando instalador via VBScript: ${vbsPath}`);
+  logToFile('DEBUG', `VBScript conteúdo: ${vbsContent}`);
+
+  const child = spawn('wscript.exe', [vbsPath], {
+    detached: true,
+    stdio: 'ignore',
+  });
+
+  child.on('error', (err) => {
+    logToFile('ERROR', `Erro ao executar wscript: ${err.message}`);
+  });
+
+  child.unref();
+  logToFile('INFO', 'wscript.exe lançado para elevação do instalador');
+}
+
 /** Se true, o download atual é em segundo plano (não mostra overlay) */
 let backgroundMode = false;
 
@@ -672,14 +705,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     if (backgroundMode && downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
       logToFile('INFO', `Instalando atualização em segundo plano ao fechar: ${downloadedInstallerPath}`);
       try {
-        spawn('powershell.exe', [
-          '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
-          `Start-Process -FilePath '${downloadedInstallerPath.replace(/'/g, "''")}' -ArgumentList '/S','--updated' -Verb RunAs`,
-        ], {
-          detached: true,
-          stdio: 'ignore',
-          windowsHide: true,
-        }).unref();
+        launchInstallerElevated(downloadedInstallerPath);
         clearPersistedInstaller();
       } catch (err) {
         logToFile('ERROR', `Falha ao executar instalador no before-quit: ${err instanceof Error ? err.message : String(err)}`);
@@ -735,28 +761,14 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
       downloadedInstallerPath = null;
       clearPersistedInstaller();
 
-      // Primeiro fechar o app, depois executar o instalador com elevação.
-      // Usamos PowerShell Start-Process -Verb RunAs para pedir UAC, pois
-      // spawn() direto em Program Files falha silenciosamente sem admin.
-      app.once('will-quit', () => {
-        try {
-          logToFile('INFO', 'App fechando, lançando instalador com elevação...');
-          spawn('powershell.exe', [
-            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
-            `Start-Process -FilePath '${installerToRun.replace(/'/g, "''")}' -ArgumentList '/S','--updated' -Verb RunAs`,
-          ], {
-            detached: true,
-            stdio: 'ignore',
-            windowsHide: true,
-          }).unref();
-          logToFile('INFO', 'Instalador lançado com sucesso via PowerShell RunAs');
-        } catch (err) {
-          logToFile('ERROR', `Falha ao lançar instalador: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      });
+      // Lançar instalador com elevação via VBScript (ShellExecute runas).
+      // O --updated faz o NSIS aguardar o app fechar antes de instalar.
+      // Lançamos ANTES de quit para que o UAC dialog tenha contexto de janela.
+      launchInstallerElevated(installerToRun);
 
-      // Aguardar um pouco para garantir que o log foi escrito
-      setTimeout(() => app.quit(), 500);
+      // Dar tempo para o UAC dialog aparecer, depois fechar o app.
+      // O instalador aguarda (--updated) o app fechar para prosseguir.
+      setTimeout(() => app.quit(), 1500);
     } else {
       // Instalador baixado via electron-updater
       logToFile('INFO', 'Usando electron-updater quitAndInstall');
