@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "outDir": "electron",
     "rootDir": "electron",
     "declaration": false,
@@ -8,6 +10,5 @@
     "sourceMap": false,
     "lib": ["ES2022"]
   },
-  "include": ["electron/**/*.ts"],
-  "exclude": ["electron/preload.ts"]
+  "include": ["electron/preload.ts"]
 }
