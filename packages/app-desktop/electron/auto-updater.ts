@@ -365,7 +365,7 @@ function launchInstallerElevated(installerPath: string): void {
   const escapedPath = installerPath.replace(/\\/g, '\\\\').replace(/"/g, '""');
   const vbsContent = [
     'Set objShell = CreateObject("Shell.Application")',
-    `objShell.ShellExecute "${escapedPath}", "/S --updated", "", "runas", 1`,
+    `objShell.ShellExecute "${escapedPath}", "--updated", "", "runas", 1`,
   ].join('\r\n');
 
   const vbsPath = path.join(app.getPath('temp'), 'causa-update-elevate.vbs');
