@@ -462,37 +462,29 @@ async function startDownload(background: boolean): Promise<void> {
   const { release, version } = availableRelease;
   backgroundMode = background;
 
-  logToFile('INFO', `Iniciando download (modo: ${background ? 'segundo plano' : 'imediato'})...`);
+  logToFile('INFO', `Iniciando download...`);
+
+  // Feedback imediato — mostra barra de progresso enquanto prepara o download
+  sendStatus({
+    state: 'downloading',
+    percent: 0,
+    transferred: 0,
+    total: 0,
+    background: false,
+  });
 
   if (isDev) {
     sendStatus({
       state: 'downloaded',
       version,
-      background,
+      background: false,
       ...(release.body ? { releaseNotes: release.body } : {}),
     });
     return;
   }
 
-  // Verificar se latest.yml existe nos assets (indica que electron-updater pode funcionar)
-  const hasLatestYml = release.assets.some((a) => a.name === 'latest.yml');
-
-  if (hasLatestYml) {
-    try {
-      const token = refreshToken();
-      logToFile('INFO', `Tentando download via electron-updater (token: ${token ? 'presente' : 'AUSENTE'})`);
-      pendingRelease = { release, version };
-      await autoUpdater.checkForUpdates();
-      return;
-    } catch (err) {
-      pendingRelease = null;
-      logToFile('WARN', `electron-updater falhou, tentando download direto: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  } else {
-    logToFile('WARN', 'latest.yml não encontrado nos assets da release — usando download direto');
-  }
-
-  // Fallback: download direto do .exe
+  // Download direto do .exe dos assets do GitHub (mais rápido e confiável
+  // que electron-updater para repos privados).
   await downloadDirectFallback(release, version);
 }
 
@@ -734,7 +726,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
       return;
     }
     try {
-      await startDownload(choice === 'install-later');
+      await startDownload(false);
     } catch (err) {
       logToFile('ERROR', 'Erro ao iniciar download após escolha do usuário', {
         error: err instanceof Error ? err.message : String(err),

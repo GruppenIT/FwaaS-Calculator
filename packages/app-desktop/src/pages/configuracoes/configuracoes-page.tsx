@@ -130,21 +130,14 @@ function UpdateSection() {
                 Nova versão disponível: <span className="text-[var(--color-primary)]">v{status.version}</span>
               </p>
               <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
-                Escolha como deseja atualizar:
+                Clique para baixar e instalar a atualização.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => window.causaElectron?.respondToUpdate('install-now')}>
               <Download size={16} className="mr-1.5" />
-              Baixar e instalar agora
-            </Button>
-            <Button variant="ghost" onClick={() => window.causaElectron?.respondToUpdate('install-later')}>
-              <RefreshCw size={16} className="mr-1.5" />
-              Baixar em segundo plano
-            </Button>
-            <Button variant="ghost" onClick={() => window.causaElectron?.respondToUpdate('ignore')}>
-              Ignorar
+              Baixar e atualizar
             </Button>
           </div>
         </div>
@@ -155,7 +148,7 @@ function UpdateSection() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm-causa text-[var(--color-primary)]">
             <Loader2 size={18} className="animate-spin" />
-            <span>Baixando atualização{status.background ? ' em segundo plano' : ''}...</span>
+            <span>Baixando atualização...</span>
           </div>
           <div className="h-2 rounded-full bg-causa-surface-alt overflow-hidden border border-[var(--color-border)]">
             <div
@@ -179,17 +172,13 @@ function UpdateSection() {
                 Atualização v{status.version} pronta!
               </p>
               <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
-                {status.background
-                  ? 'Será instalada automaticamente ao fechar o programa.'
-                  : 'Reinicie para aplicar a atualização.'}
+                Reinicie para aplicar a atualização.
               </p>
             </div>
           </div>
-          {!status.background && (
-            <Button onClick={() => window.causaElectron?.restartAndUpdate()}>
-              Reiniciar agora
-            </Button>
-          )}
+          <Button onClick={() => window.causaElectron?.restartAndUpdate()}>
+            Reiniciar agora
+          </Button>
         </div>
       )}
 
