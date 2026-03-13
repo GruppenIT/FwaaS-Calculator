@@ -6,7 +6,7 @@ import {
   Calendar,
   DollarSign,
   Clock,
-  Plug,
+  Blocks,
   Settings,
   Shield,
   Moon,
@@ -116,9 +116,9 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'SISTEMA',
     items: [
       {
-        to: '/app/conectores',
-        icon: Plug,
-        label: 'Conectores',
+        to: '/app/integracoes',
+        icon: Blocks,
+        label: 'Integrações',
         permissions: ['conectores:executar'],
       },
       { to: '/app/usuarios', icon: Shield, label: 'Usuários', permissions: ['usuarios:gerenciar'] },

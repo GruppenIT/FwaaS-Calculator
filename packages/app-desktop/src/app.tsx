@@ -14,7 +14,7 @@ import { ClientesPage } from './pages/clientes/clientes-page';
 import { ClienteDetailPage } from './pages/clientes/cliente-detail-page';
 import { AgendaPage } from './pages/agenda/agenda-page';
 import { FinanceiroPage } from './pages/financeiro/financeiro-page';
-import { ConectoresPage } from './pages/conectores/conectores-page';
+import { IntegracoesPage } from './pages/integracoes/integracoes-page';
 import { UsuariosPage } from './pages/usuarios/usuarios-page';
 import { ConfiguracoesPage } from './pages/configuracoes/configuracoes-page';
 import { PrazosPage } from './pages/prazos/prazos-page';
@@ -113,10 +113,10 @@ function AppRoutes() {
           />
         )}
         <Route
-          path="conectores"
+          path="integracoes"
           element={
             <RequirePermission permissions={['conectores:executar']}>
-              <ConectoresPage />
+              <IntegracoesPage />
             </RequirePermission>
           }
         />
