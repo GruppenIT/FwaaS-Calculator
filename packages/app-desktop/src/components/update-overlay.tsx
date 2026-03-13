@@ -17,10 +17,10 @@ function formatBytes(bytes: number): string {
 export function UpdateOverlay() {
   const { status } = useUpdateStatus();
 
-  // Só mostra o overlay quando está baixando/baixado em primeiro plano, ou reiniciando
+  // Só mostra o overlay quando está baixando/baixado ou reiniciando
   const showOverlay =
-    (status.state === 'downloading' && !status.background) ||
-    (status.state === 'downloaded' && !status.background) ||
+    status.state === 'downloading' ||
+    status.state === 'downloaded' ||
     status.state === 'restarting';
 
   if (!showOverlay) return null;
@@ -42,7 +42,7 @@ export function UpdateOverlay() {
         </div>
 
         {/* Downloading */}
-        {status.state === 'downloading' && !status.background && (
+        {status.state === 'downloading' && (
           <div className="space-y-6">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -80,7 +80,7 @@ export function UpdateOverlay() {
         )}
 
         {/* Downloaded — pronto para reiniciar */}
-        {status.state === 'downloaded' && !status.background && (
+        {status.state === 'downloaded' && (
           <div className="space-y-6">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
