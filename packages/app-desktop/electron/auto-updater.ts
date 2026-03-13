@@ -672,9 +672,13 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     if (backgroundMode && downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
       logToFile('INFO', `Instalando atualização em segundo plano ao fechar: ${downloadedInstallerPath}`);
       try {
-        spawn(downloadedInstallerPath, ['/S', '--updated'], {
+        spawn('powershell.exe', [
+          '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+          `Start-Process -FilePath '${downloadedInstallerPath.replace(/'/g, "''")}' -ArgumentList '/S','--updated' -Verb RunAs`,
+        ], {
           detached: true,
           stdio: 'ignore',
+          windowsHide: true,
         }).unref();
         clearPersistedInstaller();
       } catch (err) {
@@ -723,19 +727,39 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     sendStatus({ state: 'restarting' });
 
     if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
-      // Instalador baixado via download direto — executar NSIS silenciosamente
-      logToFile('INFO', `Executando instalador: ${downloadedInstallerPath}`);
       const installerToRun = downloadedInstallerPath;
+      const stats = fs.statSync(installerToRun);
+      logToFile('INFO', `Executando instalador: ${installerToRun} (${(stats.size / 1024 / 1024).toFixed(1)} MB)`);
+
       // Limpar referência para evitar que before-quit execute novamente
       downloadedInstallerPath = null;
       clearPersistedInstaller();
-      spawn(installerToRun, ['/S', '--updated'], {
-        detached: true,
-        stdio: 'ignore',
-      }).unref();
-      setImmediate(() => app.quit());
+
+      // Primeiro fechar o app, depois executar o instalador com elevação.
+      // Usamos PowerShell Start-Process -Verb RunAs para pedir UAC, pois
+      // spawn() direto em Program Files falha silenciosamente sem admin.
+      app.once('will-quit', () => {
+        try {
+          logToFile('INFO', 'App fechando, lançando instalador com elevação...');
+          spawn('powershell.exe', [
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+            `Start-Process -FilePath '${installerToRun.replace(/'/g, "''")}' -ArgumentList '/S','--updated' -Verb RunAs`,
+          ], {
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: true,
+          }).unref();
+          logToFile('INFO', 'Instalador lançado com sucesso via PowerShell RunAs');
+        } catch (err) {
+          logToFile('ERROR', `Falha ao lançar instalador: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      });
+
+      // Aguardar um pouco para garantir que o log foi escrito
+      setTimeout(() => app.quit(), 500);
     } else {
       // Instalador baixado via electron-updater
+      logToFile('INFO', 'Usando electron-updater quitAndInstall');
       setImmediate(() => autoUpdater.quitAndInstall(true, true));
     }
   });
