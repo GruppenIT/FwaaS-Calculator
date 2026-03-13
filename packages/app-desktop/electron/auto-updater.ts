@@ -355,24 +355,199 @@ function downloadAssetDirect(asset: ReleaseAsset, destPath: string): Promise<voi
 }
 
 /**
- * Lança o instalador NSIS com elevação de privilégio (UAC) via VBScript.
- * Usa Shell.Application.ShellExecute com verbo "runas" — a forma mais
- * confiável de solicitar elevação no Windows, funciona em qualquer contexto.
- * O instalador roda com /S (silent) e --updated (aguarda app fechar).
+ * Gera o conteúdo HTA (HTML Application) que exibe uma janela de progresso
+ * durante a instalação silenciosa. O HTA roda como processo independente
+ * via mshta.exe, então sobrevive ao fechamento do Electron.
+ *
+ * Usa VBScript para:
+ * 1. Monitorar o processo do instalador (tasklist)
+ * 2. Detectar quando a instalação termina
+ * 3. Oferecer botão para abrir a nova versão
  */
-function launchInstallerElevated(installerPath: string): void {
-  // Escapar backslashes e aspas para VBScript
-  const escapedPath = installerPath.replace(/\\/g, '\\\\').replace(/"/g, '""');
+function buildUpdateHta(version: string, exePath: string): string {
+  const escapedExe = exePath.replace(/\\/g, '\\\\');
+  // HTA usa IE/Trident engine — IE=edge habilita IE11 (flexbox, border-radius, animations).
+  // VBScript: usa Chr() para caracteres acentuados, evitando problemas de encoding.
+  return `<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta charset="UTF-8">
+<title>CAUSA</title>
+<HTA:APPLICATION
+  ID="CausaUpdate"
+  APPLICATIONNAME="CAUSA Update"
+  BORDER="none"
+  BORDERSTYLE="none"
+  CAPTION="no"
+  SHOWINTASKBAR="yes"
+  SINGLEINSTANCE="yes"
+  SYSMENU="no"
+  WINDOWSTATE="normal"
+  SCROLL="no"
+  SELECTION="no"
+  CONTEXTMENU="no"
+/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 500px; height: 340px;
+    font-family: 'Segoe UI', sans-serif;
+    background: #0F1829; color: #fff;
+    overflow: hidden;
+    text-align: center;
+  }
+  .wrap {
+    position: absolute; top: 50%; left: 50%;
+    -ms-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    width: 400px;
+  }
+  .icon { font-size: 44px; margin-bottom: 14px; }
+  h1 { font-size: 19px; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: #8899aa; margin-bottom: 28px; }
+  .progress-track {
+    width: 300px; height: 4px; margin: 0 auto 12px auto;
+    background: #1a2744; border-radius: 4px;
+    overflow: hidden; position: relative;
+  }
+  .progress-bar {
+    height: 100%; border-radius: 4px;
+    background: #2563A8;
+    position: absolute; top: 0; left: -30%;
+    width: 30%;
+  }
+  .status { font-size: 12px; color: #667788; }
+  .btn {
+    display: none; margin-top: 24px;
+    padding: 10px 32px; border: none; border-radius: 6px;
+    background: #2563A8; color: #fff; font-size: 14px;
+    font-weight: 600; cursor: pointer; letter-spacing: 0.02em;
+  }
+  .btn:hover { background: #1d4f8a; }
+  .done-bar { left: 0 !important; width: 100% !important; background: #22c55e !important; }
+  #icon-done { display: none; color: #22c55e; }
+</style>
+<script language="VBScript">
+Dim pollTimer, animTimer, checkCount, barPos, barDir
+
+Sub Window_OnLoad()
+  window.resizeTo 500, 340
+  window.moveTo (screen.availWidth - 500) / 2, (screen.availHeight - 340) / 2
+  checkCount = 0
+  barPos = -30
+  barDir = 2
+  pollTimer = window.setInterval("CheckInstaller", 2000)
+  animTimer = window.setInterval("AnimateBar", 30)
+End Sub
+
+Sub AnimateBar()
+  barPos = barPos + barDir
+  If barPos > 100 Then
+    barPos = -30
+  End If
+  document.getElementById("bar").style.left = barPos & "%"
+End Sub
+
+Sub CheckInstaller()
+  On Error Resume Next
+  Dim objShell, exec, output
+  Set objShell = CreateObject("WScript.Shell")
+  Set exec = objShell.Exec("tasklist /FI ""IMAGENAME eq CAUSA-Setup*"" /NH")
+  output = exec.StdOut.ReadAll()
+  checkCount = checkCount + 1
+
+  If InStr(output, "CAUSA-Setup") = 0 And checkCount > 3 Then
+    window.clearInterval(pollTimer)
+    window.clearInterval(animTimer)
+    Call InstallDone()
+  End If
+
+  If checkCount > 150 Then
+    window.clearInterval(pollTimer)
+    window.clearInterval(animTimer)
+    Call InstallDone()
+  End If
+  On Error Goto 0
+End Sub
+
+Sub InstallDone()
+  document.getElementById("icon-installing").style.display = "none"
+  document.getElementById("icon-done").style.display = "inline"
+  document.getElementById("title").innerHTML = "Atualiza" & Chr(231) & Chr(227) & "o conclu" & Chr(237) & "da!"
+  document.getElementById("subtitle").innerHTML = "CAUSA v${version} instalado com sucesso."
+  document.getElementById("status-text").innerHTML = ""
+  document.getElementById("bar").className = "progress-bar done-bar"
+  document.getElementById("bar").style.left = "0"
+  document.getElementById("btn-open").style.display = "inline-block"
+End Sub
+
+Sub OpenCausa()
+  Dim objShell
+  Set objShell = CreateObject("WScript.Shell")
+  objShell.Run """${escapedExe}""", 1, False
+  Self.Close()
+End Sub
+</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="icon">
+    <span id="icon-installing">&#128229;</span>
+    <span id="icon-done">&#9989;</span>
+  </div>
+  <h1 id="title">Instalando atualiza&ccedil;&atilde;o...</h1>
+  <p class="subtitle" id="subtitle">CAUSA v${version} &mdash; N&atilde;o feche esta janela.</p>
+  <div class="progress-track">
+    <div class="progress-bar" id="bar"></div>
+  </div>
+  <p class="status" id="status-text">Isso pode levar alguns minutos.</p>
+  <button class="btn" id="btn-open" onclick="OpenCausa">Abrir CAUSA</button>
+</div>
+</body>
+</html>`;
+}
+
+/**
+ * Lança o instalador NSIS com elevação de privilégio (UAC) via VBScript
+ * e abre uma janela HTA de progresso que monitora a instalação.
+ *
+ * Fluxo:
+ * 1. Gera HTA de progresso em temp/
+ * 2. Lança mshta.exe (janela de progresso independente)
+ * 3. Lança instalador com /S --updated via VBScript (UAC)
+ * 4. Electron pode fechar — HTA continua monitorando
+ * 5. HTA detecta fim do instalador → mostra "Concluído" + botão "Abrir"
+ */
+function launchInstallerElevated(installerPath: string, version: string): void {
+  const tempDir = app.getPath('temp');
+
+  // 1. Gerar e lançar HTA de progresso
+  const exePath = app.getPath('exe');
+  const htaContent = buildUpdateHta(version, exePath);
+  const htaPath = path.join(tempDir, 'causa-update-progress.hta');
+  fs.writeFileSync(htaPath, htaContent, 'utf-8');
+
+  logToFile('INFO', `Lançando HTA de progresso: ${htaPath}`);
+  const htaChild = spawn('mshta.exe', [htaPath], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  htaChild.on('error', (err) => {
+    logToFile('ERROR', `Erro ao executar mshta: ${err.message}`);
+  });
+  htaChild.unref();
+
+  // 2. Lançar instalador com elevação via VBScript
+  const escapedInstallerPath = installerPath.replace(/\\/g, '\\\\').replace(/"/g, '""');
   const vbsContent = [
     'Set objShell = CreateObject("Shell.Application")',
-    `objShell.ShellExecute "${escapedPath}", "--updated", "", "runas", 1`,
+    `objShell.ShellExecute "${escapedInstallerPath}", "/S --updated", "", "runas", 1`,
   ].join('\r\n');
 
-  const vbsPath = path.join(app.getPath('temp'), 'causa-update-elevate.vbs');
+  const vbsPath = path.join(tempDir, 'causa-update-elevate.vbs');
   fs.writeFileSync(vbsPath, vbsContent, 'utf-8');
 
   logToFile('INFO', `Lançando instalador via VBScript: ${vbsPath}`);
-  logToFile('DEBUG', `VBScript conteúdo: ${vbsContent}`);
 
   const child = spawn('wscript.exe', [vbsPath], {
     detached: true,
@@ -384,7 +559,7 @@ function launchInstallerElevated(installerPath: string): void {
   });
 
   child.unref();
-  logToFile('INFO', 'wscript.exe lançado para elevação do instalador');
+  logToFile('INFO', 'Instalador e HTA de progresso lançados');
 }
 
 /** Se true, o download atual é em segundo plano (não mostra overlay) */
@@ -526,6 +701,7 @@ async function downloadDirectFallback(release: ReleaseInfo, remoteVersion: strin
     if (persisted && persisted.version === remoteVersion && persisted.installerPath === installerPath) {
       logToFile('INFO', `Usando instalador já baixado: ${installerPath}`);
       downloadedInstallerPath = installerPath;
+      downloadedVersion = remoteVersion;
       sendStatus({
         state: 'downloaded',
         version: remoteVersion,
@@ -541,6 +717,7 @@ async function downloadDirectFallback(release: ReleaseInfo, remoteVersion: strin
 
     // Guardar o caminho do instalador para usar no restart e persistir para próxima sessão
     downloadedInstallerPath = installerPath;
+    downloadedVersion = remoteVersion;
     persistInstallerPath(installerPath, remoteVersion);
 
     sendStatus({
@@ -563,6 +740,9 @@ async function downloadDirectFallback(release: ReleaseInfo, remoteVersion: strin
 
 /** Caminho do instalador baixado via download direto (null = usar electron-updater) */
 let downloadedInstallerPath: string | null = null;
+
+/** Versão do instalador baixado (para exibir no HTA de progresso) */
+let downloadedVersion: string | null = null;
 
 /** Guarda a release atual para o fallback poder usar quando electron-updater falha assincronamente */
 let pendingRelease: { release: ReleaseInfo; version: string } | null = null;
@@ -693,6 +873,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     const currentVersion = app.getVersion();
     if (isNewerVersion(persisted.version, currentVersion)) {
       downloadedInstallerPath = persisted.installerPath;
+      downloadedVersion = persisted.version;
       logToFile('INFO', `Instalador da sessão anterior carregado: v${persisted.version} em ${persisted.installerPath}`);
     } else {
       logToFile('INFO', 'Instalador persistido não é mais necessário (versão já atualizada), removendo...');
@@ -705,7 +886,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
     if (backgroundMode && downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
       logToFile('INFO', `Instalando atualização em segundo plano ao fechar: ${downloadedInstallerPath}`);
       try {
-        launchInstallerElevated(downloadedInstallerPath);
+        launchInstallerElevated(downloadedInstallerPath, downloadedVersion ?? 'nova');
         clearPersistedInstaller();
       } catch (err) {
         logToFile('ERROR', `Falha ao executar instalador no before-quit: ${err instanceof Error ? err.message : String(err)}`);
@@ -754,17 +935,19 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
     if (downloadedInstallerPath && fs.existsSync(downloadedInstallerPath)) {
       const installerToRun = downloadedInstallerPath;
+      const versionToInstall = downloadedVersion ?? 'nova';
       const stats = fs.statSync(installerToRun);
       logToFile('INFO', `Executando instalador: ${installerToRun} (${(stats.size / 1024 / 1024).toFixed(1)} MB)`);
 
       // Limpar referência para evitar que before-quit execute novamente
       downloadedInstallerPath = null;
+      downloadedVersion = null;
       clearPersistedInstaller();
 
       // Lançar instalador com elevação via VBScript (ShellExecute runas).
       // O --updated faz o NSIS aguardar o app fechar antes de instalar.
       // Lançamos ANTES de quit para que o UAC dialog tenha contexto de janela.
-      launchInstallerElevated(installerToRun);
+      launchInstallerElevated(installerToRun, versionToInstall);
 
       // Dar tempo para o UAC dialog aparecer, depois fechar o app.
       // O instalador aguarda (--updated) o app fechar para prosseguir.
