@@ -16,6 +16,7 @@ import {
   Network,
   Cloud,
   Info,
+  FolderOpen,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
@@ -52,6 +53,28 @@ function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDuration(startIso: string, endIso: string): string {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  if (ms < 1000) return '<1s';
+  const secs = Math.floor(ms / 1000);
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  const remSecs = secs % 60;
+  return remSecs > 0 ? `${mins}m${remSecs}s` : `${mins}m`;
+}
+
+function openFolder(folderPath: string) {
+  window.causaElectron?.shellOpenPath(folderPath);
 }
 
 const destTypeIcon: Record<string, typeof HardDrive> = {
@@ -450,58 +473,85 @@ export function BackupSection() {
         </button>
 
         {showHistory && (
-          <div className="mt-3 space-y-3 max-h-80 overflow-y-auto">
+          <div className="mt-3 max-h-80 overflow-y-auto">
             {sortedLogKeys.length === 0 ? (
               <p className="text-xs-causa text-[var(--color-text-muted)] italic px-2">
                 Nenhum backup realizado ainda.
               </p>
             ) : (
-              sortedLogKeys.map((key) => {
-                const group = logGroups[key] ?? [];
-                return (
-                  <div
-                    key={key}
-                    className="px-3 py-2 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]"
-                  >
-                    <div className="text-xs-causa font-medium text-[var(--color-text)] mb-1.5">
-                      {formatDateTime(key)}
-                    </div>
-                    {group.map((log) => {
+              <table className="w-full text-xs-causa">
+                <thead>
+                  <tr className="text-[var(--color-text-muted)] border-b border-[var(--color-border)]">
+                    <th className="text-left py-1.5 px-2 font-medium w-5" />
+                    <th className="text-left py-1.5 px-2 font-medium">Início</th>
+                    <th className="text-left py-1.5 px-2 font-medium">Duração</th>
+                    <th className="text-left py-1.5 px-2 font-medium">Destino</th>
+                    <th className="text-left py-1.5 px-2 font-medium">Tamanho</th>
+                    <th className="text-left py-1.5 px-2 font-medium w-5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedLogKeys.flatMap((key) => {
+                    const group = logGroups[key] ?? [];
+                    return group.map((log) => {
                       const statusIcon =
                         log.status === 'success' ? (
-                          <CheckCircle2 size={13} className="text-causa-success shrink-0" />
+                          <CheckCircle2 size={13} className="text-causa-success" />
                         ) : log.status === 'error' ? (
-                          <XCircle size={13} className="text-causa-danger shrink-0" />
+                          <XCircle size={13} className="text-causa-danger" />
                         ) : (
-                          <Loader2 size={13} className="text-[var(--color-primary)] animate-spin shrink-0" />
+                          <Loader2 size={13} className="text-[var(--color-primary)] animate-spin" />
                         );
                       const DestIcon = destTypeIcon[log.destination_type] || HardDrive;
+                      const duration =
+                        log.finished_at && log.started_at
+                          ? formatDuration(log.started_at, log.finished_at)
+                          : '...';
+                      const canOpenFolder =
+                        log.destination_path &&
+                        log.destination_type !== 'google_drive' &&
+                        log.status === 'success';
+
                       return (
-                        <div key={log.id} className="flex items-start gap-2 py-1">
-                          {statusIcon}
-                          <DestIcon size={13} className="text-[var(--color-text-muted)] shrink-0 mt-px" />
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs-causa text-[var(--color-text)]">
+                        <tr
+                          key={log.id}
+                          className="border-b border-[var(--color-border)]/50 hover:bg-causa-surface-alt/50"
+                          title={log.status === 'error' && log.error_message ? log.error_message : undefined}
+                        >
+                          <td className="py-1.5 px-2">{statusIcon}</td>
+                          <td className="py-1.5 px-2 text-[var(--color-text)] whitespace-nowrap">
+                            {formatDateTime(log.started_at)}
+                          </td>
+                          <td className="py-1.5 px-2 text-[var(--color-text-muted)] whitespace-nowrap">
+                            {duration}
+                          </td>
+                          <td className="py-1.5 px-2 text-[var(--color-text)]">
+                            <span className="inline-flex items-center gap-1.5">
+                              <DestIcon size={12} className="text-[var(--color-text-muted)] shrink-0" />
                               {destTypeLabel[log.destination_type] ?? log.destination_type}
                             </span>
-                            {log.file_name && (
-                              <span className="text-xs-causa text-[var(--color-text-muted)] ml-1.5">
-                                — {log.file_name}
-                                {log.file_size_bytes ? ` (${formatFileSize(log.file_size_bytes)})` : ''}
-                              </span>
+                          </td>
+                          <td className="py-1.5 px-2 text-[var(--color-text-muted)] whitespace-nowrap">
+                            {log.file_size_bytes ? formatFileSize(log.file_size_bytes) : '—'}
+                          </td>
+                          <td className="py-1.5 px-2">
+                            {canOpenFolder && (
+                              <button
+                                type="button"
+                                onClick={() => openFolder(log.destination_path!)}
+                                className="p-0.5 rounded hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+                                title="Abrir pasta do backup"
+                              >
+                                <FolderOpen size={13} />
+                              </button>
                             )}
-                            {log.status === 'error' && log.error_message && (
-                              <div className="text-xs-causa text-causa-danger mt-0.5">
-                                {log.error_message}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                          </td>
+                        </tr>
                       );
-                    })}
-                  </div>
-                );
-              })
+                    });
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         )}
@@ -540,9 +590,21 @@ export function BackupSection() {
                   causa.db.old
                 </code>
               </li>
-              <li>Copie o arquivo de backup desejado para esta pasta.</li>
               <li>
-                Renomeie o backup para{' '}
+                Descompacte o arquivo de backup (
+                <code className="px-1.5 py-0.5 rounded bg-[var(--color-border)]/50 text-xs-causa font-mono">
+                  .db.gz
+                </code>
+                ) usando 7-Zip, WinRAR ou similar.
+              </li>
+              <li>Copie o arquivo descompactado (
+                <code className="px-1.5 py-0.5 rounded bg-[var(--color-border)]/50 text-xs-causa font-mono">
+                  .db
+                </code>
+                ) para a pasta de dados.
+              </li>
+              <li>
+                Renomeie o arquivo para{' '}
                 <code className="px-1.5 py-0.5 rounded bg-[var(--color-border)]/50 text-xs-causa font-mono">
                   causa.db
                 </code>

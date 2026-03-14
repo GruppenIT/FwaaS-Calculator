@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld('causaElectron', {
     return () => { ipcRenderer.removeListener('update-status', handler); };
   },
 
+  // Shell: abrir pasta no explorador de arquivos
+  shellOpenPath: (folderPath: string) => ipcRenderer.invoke('shell-open-path', folderPath),
+
   // Log do renderer → main process (para diagnóstico)
   logToMain: (level: string, message: string) => ipcRenderer.send('renderer-log', level, message),
 

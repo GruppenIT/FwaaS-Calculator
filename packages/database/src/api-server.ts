@@ -25,6 +25,7 @@ import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import { count, eq, sum, and, lt, gte, lte, sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 import type { PermissionKey } from '@causa/shared';
 import { createClienteSchema, createProcessoSchema } from '@causa/shared';
 import { logger } from './logger.js';
@@ -216,7 +217,7 @@ async function executeBackup(): Promise<void> {
 
   const now = new Date();
   const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 16).replace('T', '_');
-  const fileName = `causa_backup_${timestamp}.db`;
+  const fileName = `causa_backup_${timestamp}.db.gz`;
   const dbPath = config.dbPath || DB_PATH;
   const runId = now.toISOString();
 
@@ -267,7 +268,24 @@ async function executeBackup(): Promise<void> {
     return;
   }
 
-  const fileSize = fs.statSync(tmpPath).size;
+  // Compress the snapshot with gzip
+  const gzPath = tmpPath + '.gz';
+  try {
+    const raw = fs.readFileSync(tmpPath);
+    const compressed = zlib.gzipSync(raw, { level: 6 });
+    fs.writeFileSync(gzPath, compressed);
+    fs.unlinkSync(tmpPath); // remove uncompressed temp
+  } catch (err) {
+    logger.error('Backup', 'Erro ao compactar backup', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+    try { fs.unlinkSync(gzPath); } catch { /* ignore */ }
+    backupStatus = { running: false, completedDestinations: 0, totalDestinations: 0, results: [] };
+    return;
+  }
+
+  const fileSize = fs.statSync(gzPath).size;
 
   // Process each destination
   for (let i = 0; i < enabledDests.length; i++) {
@@ -290,7 +308,7 @@ async function executeBackup(): Promise<void> {
           fs.mkdirSync(destDir, { recursive: true });
         }
         const destFile = path.join(destDir, fileName);
-        fs.copyFileSync(tmpPath, destFile);
+        fs.copyFileSync(gzPath, destFile);
         logger.info('Backup', `Backup copiado para: ${destFile}`);
         insertBackupLog({
           ...logBase,
@@ -309,10 +327,10 @@ async function executeBackup(): Promise<void> {
         }
         // Create Backups folder directly under root (root is already CAUSA)
         const backupsFolderId = await driveService.findOrCreateFolder('Backups', rootFolderId);
-        const content = fs.readFileSync(tmpPath);
+        const content = fs.readFileSync(gzPath);
         await driveService.uploadFile({
           name: fileName,
-          mimeType: 'application/x-sqlite3',
+          mimeType: 'application/gzip',
           content,
           folderId: backupsFolderId,
         });
@@ -346,7 +364,7 @@ async function executeBackup(): Promise<void> {
 
   // Cleanup temp file
   try {
-    fs.unlinkSync(tmpPath);
+    fs.unlinkSync(gzPath);
   } catch { /* ignore */ }
 
   // Cleanup old backups from local/network destinations
@@ -388,7 +406,7 @@ function cleanupOldBackups(destinations: BackupDestination[], retentionDays: num
     if (dest.type === 'google_drive' || !dest.path) continue;
     try {
       if (!fs.existsSync(dest.path)) continue;
-      const files = fs.readdirSync(dest.path).filter((f) => f.startsWith('causa_backup_') && f.endsWith('.db'));
+      const files = fs.readdirSync(dest.path).filter((f) => f.startsWith('causa_backup_') && (f.endsWith('.db') || f.endsWith('.db.gz')));
       for (const file of files) {
         // Parse date from filename: causa_backup_YYYY-MM-DD_HHmm.db
         const match = file.match(/causa_backup_(\d{4}-\d{2}-\d{2})/);

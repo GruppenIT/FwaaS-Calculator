@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
@@ -281,6 +281,11 @@ ipcMain.handle('set-gh-token', (_event, token: string) => {
     console.error('[CAUSA] set-gh-token: ERRO ao salvar token:', err);
     throw err; // Propagar para o renderer ver o erro
   }
+});
+
+// IPC: abrir pasta no explorador de arquivos
+ipcMain.handle('shell-open-path', async (_event, folderPath: string) => {
+  await shell.openPath(folderPath);
 });
 
 // IPC: log do renderer para o arquivo de log do main process
