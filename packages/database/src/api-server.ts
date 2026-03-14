@@ -307,9 +307,8 @@ async function executeBackup(): Promise<void> {
         if (!rootFolderId) {
           throw new Error('Google Drive: rootFolderId não configurado.');
         }
-        // Navigate/create CAUSA/Backups folder
-        const causaFolderId = await driveService.findOrCreateFolder('CAUSA', rootFolderId);
-        const backupsFolderId = await driveService.findOrCreateFolder('Backups', causaFolderId);
+        // Create Backups folder directly under root (root is already CAUSA)
+        const backupsFolderId = await driveService.findOrCreateFolder('Backups', rootFolderId);
         const content = fs.readFileSync(tmpPath);
         await driveService.uploadFile({
           name: fileName,
