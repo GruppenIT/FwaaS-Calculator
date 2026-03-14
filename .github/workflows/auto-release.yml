@@ -18,6 +18,9 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Fetch all tags
+        run: git fetch --tags --force
+
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
@@ -32,7 +35,11 @@ jobs:
 
       - name: Calculate next version and tag
         run: |
-          # Get the latest version tag (e.g. v1.4.3)
+          # List all version tags for debugging
+          echo "All version tags:"
+          git tag --list 'v*' --sort=-version:refname | head -n5
+
+          # Get the latest version tag (e.g. v1.4.4)
           LATEST_TAG=$(git tag --list 'v*' --sort=-version:refname | head -n1)
 
           if [ -z "$LATEST_TAG" ]; then
@@ -44,6 +51,8 @@ jobs:
             MAJOR=$(echo "$VERSION" | cut -d. -f1)
             MINOR=$(echo "$VERSION" | cut -d. -f2)
             PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+            echo "Current: major=$MAJOR minor=$MINOR patch=$PATCH"
 
             # Increment: after x.y.10 → x.(y+1).0
             if [ "$PATCH" -ge 10 ]; then
