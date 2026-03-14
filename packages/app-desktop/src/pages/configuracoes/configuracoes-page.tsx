@@ -1,5 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Settings, Save, Moon, Sun, RefreshCw, CheckCircle2, AlertCircle, Loader2, Download } from 'lucide-react';
+import {
+  Settings,
+  Save,
+  Moon,
+  Sun,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Download,
+  ChevronDown,
+  ChevronRight,
+  Database,
+  Palette,
+  Network,
+  ShieldCheck,
+} from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -10,8 +26,63 @@ import * as api from '../../lib/api';
 import { useUpdateStatus } from '../../hooks/use-update-status';
 import { BackupSection } from './backup-section';
 
-function UpdateSection() {
-  const { toast } = useToast();
+/* ------------------------------------------------------------------ */
+/*  Collapsible Section (mesma abordagem do Integrações)               */
+/* ------------------------------------------------------------------ */
+
+function SettingsSection({
+  title,
+  description,
+  icon: Icon,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  description?: string;
+  icon: typeof Settings;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+
+  return (
+    <div className="border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-surface)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left cursor-pointer hover:bg-causa-bg transition-causa"
+      >
+        {open ? (
+          <ChevronDown size={16} className="text-[var(--color-text-muted)] shrink-0" />
+        ) : (
+          <ChevronRight size={16} className="text-[var(--color-text-muted)] shrink-0" />
+        )}
+        <Icon size={20} className="text-[var(--color-text-muted)]" />
+        <div className="flex-1 min-w-0">
+          <span className="text-base-causa font-semibold text-[var(--color-text)]">
+            {title}
+          </span>
+          {description && !open && (
+            <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+              — {description}
+            </span>
+          )}
+        </div>
+      </button>
+      {open && (
+        <div className="px-5 pb-5 pt-1 border-t border-[var(--color-border)]">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Update Section Content                                             */
+/* ------------------------------------------------------------------ */
+
+function UpdateContent() {
   const { status } = useUpdateStatus();
   const appVersion = __APP_VERSION__;
 
@@ -24,13 +95,9 @@ function UpdateSection() {
   const hasError = status.state === 'error';
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-      <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">
-        Atualizações
-      </h3>
-      <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
+    <div className="space-y-4">
+      <p className="text-sm-causa text-[var(--color-text-muted)]">
         Versão atual: <span className="font-medium text-[var(--color-text)]">v{appVersion}</span>
-        <span className="ml-2 text-xs-causa">— Verifique se há novas versões disponíveis.</span>
       </p>
 
       {/* Up to date */}
@@ -91,7 +158,7 @@ function UpdateSection() {
         </div>
       )}
 
-      {/* Available — nova versão encontrada */}
+      {/* Available */}
       {status.state === 'available' && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/20">
@@ -156,6 +223,10 @@ function UpdateSection() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Main Page                                                          */
+/* ------------------------------------------------------------------ */
+
 export function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme();
   const { can } = usePermission();
@@ -193,15 +264,14 @@ export function ConfiguracoesPage() {
     return (
       <div>
         <PageHeader title="Configurações" description="Preferências do sistema" />
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}
-              className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6"
+              className="border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-surface)] overflow-hidden px-5 py-4"
             >
               <Skeleton className="h-4 w-24 mb-2" />
-              <Skeleton className="h-3.5 w-48 mb-4" />
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-3.5 w-48" />
             </div>
           ))}
         </div>
@@ -213,13 +283,22 @@ export function ConfiguracoesPage() {
     <div>
       <PageHeader title="Configurações" description="Preferências do sistema" />
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {/* Atualizações */}
-        <UpdateSection />
+        <SettingsSection
+          title="Atualizações"
+          description="Verifique novas versões"
+          icon={Download}
+        >
+          <UpdateContent />
+        </SettingsSection>
 
-        {/* Tema */}
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">Aparência</h3>
+        {/* Aparência */}
+        <SettingsSection
+          title="Aparência"
+          description="Tema visual do sistema"
+          icon={Palette}
+        >
           <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
             Escolha o tema visual do sistema.
           </p>
@@ -227,7 +306,7 @@ export function ConfiguracoesPage() {
             {[
               { value: 'light' as const, label: 'Claro', icon: Sun },
               { value: 'dark' as const, label: 'Escuro', icon: Moon },
-            ].map(({ value, label, icon: Icon }) => (
+            ].map(({ value, label, icon: ThemeIcon }) => (
               <button
                 key={value}
                 type="button"
@@ -238,19 +317,20 @@ export function ConfiguracoesPage() {
                     : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-causa-surface-alt'
                 }`}
               >
-                <Icon size={16} />
+                <ThemeIcon size={16} />
                 {label}
               </button>
             ))}
           </div>
-        </div>
+        </SettingsSection>
 
         {/* Topologia — somente admin */}
         {canManageLicenca && (
-          <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-            <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">
-              Topologia
-            </h3>
+          <SettingsSection
+            title="Topologia"
+            description="Modo de operação do sistema"
+            icon={Network}
+          >
             <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
               Modo de operação do sistema.
             </p>
@@ -286,33 +366,29 @@ export function ConfiguracoesPage() {
                 </button>
               ))}
             </div>
-          </div>
+          </SettingsSection>
         )}
 
         {/* Certificado A1 */}
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">
-            Certificado Digital A1
-          </h3>
-          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
-            Certificado para autenticação nos portais judiciais (PJe, e-SAJ).
-          </p>
+        <SettingsSection
+          title="Certificado Digital A1"
+          description="Autenticação nos portais judiciais"
+          icon={ShieldCheck}
+        >
           <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
             <Settings size={18} className="text-[var(--color-text-muted)]" />
             <p className="text-sm-causa text-[var(--color-text-muted)]">
               Configuração de certificado estará disponível com os conectores PJe/e-SAJ.
             </p>
           </div>
-        </div>
+        </SettingsSection>
 
         {/* Banco de dados */}
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-          <h3 className="text-base-causa font-semibold text-[var(--color-text)] mb-1">
-            Banco de dados
-          </h3>
-          <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
-            Informações sobre o armazenamento.
-          </p>
+        <SettingsSection
+          title="Banco de dados"
+          description="Informações sobre o armazenamento"
+          icon={Database}
+        >
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center px-4 py-2 rounded-[var(--radius-md)] bg-causa-surface-alt">
               <span className="text-sm-causa text-[var(--color-text-muted)]">Motor</span>
@@ -327,10 +403,18 @@ export function ConfiguracoesPage() {
               </span>
             </div>
           </div>
-        </div>
+        </SettingsSection>
 
         {/* Backup */}
-        {canManageLicenca && <BackupSection />}
+        {canManageLicenca && (
+          <SettingsSection
+            title="Backup do Banco de Dados"
+            description="Backups automáticos do banco SQLite"
+            icon={Database}
+          >
+            <BackupSection />
+          </SettingsSection>
+        )}
 
         {/* Ações — somente admin */}
         {canManageLicenca && (

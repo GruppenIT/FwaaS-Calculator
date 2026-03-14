@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Database,
   Save,
   Play,
   RefreshCw,
@@ -208,33 +207,25 @@ export function BackupSection() {
 
   if (loading) {
     return (
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6">
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 w-48 bg-causa-surface-alt rounded" />
-          <div className="h-3 w-64 bg-causa-surface-alt rounded" />
-          <div className="h-24 bg-causa-surface-alt rounded" />
-        </div>
+      <div className="animate-pulse space-y-3">
+        <div className="h-4 w-48 bg-causa-surface-alt rounded" />
+        <div className="h-3 w-64 bg-causa-surface-alt rounded" />
+        <div className="h-24 bg-causa-surface-alt rounded" />
       </div>
     );
   }
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6 space-y-5">
-      {/* Header + Toggle */}
+    <div className="space-y-5">
+      {/* Enable toggle */}
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-base-causa font-semibold text-[var(--color-text)] flex items-center gap-2">
-            <Database size={18} />
-            Backup do Banco de Dados
-          </h3>
-          <p className="text-sm-causa text-[var(--color-text-muted)] mt-0.5">
-            Proteja seus dados com backups automáticos do banco SQLite.
-          </p>
-        </div>
+        <p className="text-sm-causa text-[var(--color-text-muted)]">
+          Proteja seus dados com backups automáticos do banco SQLite.
+        </p>
         <button
           type="button"
           onClick={() => updateConfig({ enabled: !config.enabled })}
-          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
             config.enabled
               ? 'bg-[var(--color-primary)]'
               : 'bg-[var(--color-border)]'
@@ -446,7 +437,7 @@ export function BackupSection() {
       )}
 
       {/* History */}
-      <div className="border-t border-[var(--color-border)] pt-4">
+      <div>
         <button
           type="button"
           onClick={() => {
@@ -558,7 +549,7 @@ export function BackupSection() {
       </div>
 
       {/* Restore instructions */}
-      <div className="border-t border-[var(--color-border)] pt-4">
+      <div>
         <button
           type="button"
           onClick={() => setShowRestore(!showRestore)}
