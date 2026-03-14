@@ -271,7 +271,8 @@ async function executeBackup(): Promise<void> {
 
   // Process each destination
   for (let i = 0; i < enabledDests.length; i++) {
-    const dest = enabledDests[i];
+    const dest = enabledDests[i]!;
+    const resultEntry = backupStatus.results[i]!;
     const logId = crypto.randomUUID();
     const logBase = {
       id: logId,
@@ -284,7 +285,7 @@ async function executeBackup(): Promise<void> {
 
     try {
       if (dest.type === 'local' || dest.type === 'network') {
-        const destDir = dest.path!;
+        const destDir = dest.path ?? '';
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true });
         }
@@ -326,7 +327,7 @@ async function executeBackup(): Promise<void> {
         });
       }
 
-      backupStatus.results[i].status = 'success';
+      resultEntry.status = 'success';
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       logger.error('Backup', `Erro ao copiar para destino ${dest.type}`, { error: errMsg });
@@ -337,8 +338,8 @@ async function executeBackup(): Promise<void> {
         status: 'error',
         error_message: errMsg,
       });
-      backupStatus.results[i].status = 'error';
-      backupStatus.results[i].error = errMsg;
+      resultEntry.status = 'error';
+      resultEntry.error = errMsg;
     }
 
     backupStatus.completedDestinations = i + 1;
@@ -392,7 +393,7 @@ function cleanupOldBackups(destinations: BackupDestination[], retentionDays: num
       for (const file of files) {
         // Parse date from filename: causa_backup_YYYY-MM-DD_HHmm.db
         const match = file.match(/causa_backup_(\d{4}-\d{2}-\d{2})/);
-        if (match) {
+        if (match?.[1]) {
           const fileDate = new Date(match[1]);
           if (fileDate < cutoff) {
             fs.unlinkSync(path.join(dest.path, file));

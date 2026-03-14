@@ -123,12 +123,12 @@ export function BackupSection() {
   }
 
   function addDestination(type: BackupDestination['type']) {
-    const newDest: BackupDestination = {
+    const newDest = {
       id: generateId(),
       type,
-      path: type === 'google_drive' ? undefined : '',
       enabled: true,
-    };
+      ...(type !== 'google_drive' ? { path: '' } : {}),
+    } as BackupDestination;
     updateConfig({ destinations: [...config.destinations, newDest] });
   }
 
@@ -457,7 +457,7 @@ export function BackupSection() {
               </p>
             ) : (
               sortedLogKeys.map((key) => {
-                const group = logGroups[key];
+                const group = logGroups[key] ?? [];
                 return (
                   <div
                     key={key}
