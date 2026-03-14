@@ -8,6 +8,7 @@ import { useTheme } from '../../hooks/use-theme';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import { useUpdateStatus } from '../../hooks/use-update-status';
+import { BackupSection } from './backup-section';
 
 function UpdateSection() {
   const { toast } = useToast();
@@ -327,6 +328,9 @@ export function ConfiguracoesPage() {
             </div>
           </div>
         </div>
+
+        {/* Backup */}
+        {canManageLicenca && <BackupSection />}
 
         {/* Ações — somente admin */}
         {canManageLicenca && (

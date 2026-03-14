@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './sidebar';
 import { GlobalSearch } from './global-search';
 import { UpdateBanner } from '../update-banner';
+import { BackupIndicator } from '../ui/backup-indicator';
 
 export function AppLayout() {
   return (
@@ -17,6 +18,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <BackupIndicator />
     </div>
   );
 }
