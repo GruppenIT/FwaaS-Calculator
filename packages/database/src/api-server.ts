@@ -24,6 +24,7 @@ import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import { count, eq, sum, and, lt, gte, lte, sql } from 'drizzle-orm';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import type { PermissionKey } from '@causa/shared';
 import { createClienteSchema, createProcessoSchema } from '@causa/shared';
 import { logger } from './logger.js';
@@ -56,6 +57,55 @@ interface TelegramBotConfig {
   alertDays?: number[];
 }
 
+interface BackupDestination {
+  id: string;
+  type: 'local' | 'network' | 'google_drive';
+  path?: string;
+  enabled: boolean;
+}
+
+interface BackupSchedule {
+  trigger: 'on_open' | 'first_open_day' | 'daily' | 'weekly';
+  delayMinutes?: number;
+  dailyTime?: string;
+  weeklyDay?: number;
+  weeklyTime?: string;
+}
+
+interface BackupConfig {
+  enabled: boolean;
+  schedule: BackupSchedule;
+  destinations: BackupDestination[];
+  retentionDays: number;
+}
+
+interface BackupLogRow {
+  id: string;
+  started_at: string;
+  finished_at: string | null;
+  destination_id: string;
+  destination_type: string;
+  destination_path: string | null;
+  status: 'running' | 'success' | 'error';
+  error_message: string | null;
+  file_size_bytes: number | null;
+  file_name: string | null;
+}
+
+interface BackupStatus {
+  running: boolean;
+  startedAt?: string;
+  fileName?: string;
+  completedDestinations: number;
+  totalDestinations: number;
+  results: Array<{
+    destinationId: string;
+    destinationType: string;
+    status: 'running' | 'success' | 'error';
+    error?: string;
+  }>;
+}
+
 interface AppConfig {
   jwtSecret: string;
   topologia: 'solo' | 'escritorio';
@@ -64,6 +114,7 @@ interface AppConfig {
   moduleKeys?: string[];
   googleDrive?: GoogleDriveConfig;
   telegram?: TelegramBotConfig;
+  backup?: BackupConfig;
 }
 
 /** Códigos de ativação de módulos opcionais */
@@ -136,6 +187,278 @@ function initDriveFromConfig(gdConfig: GoogleDriveConfig): void {
   }
 }
 let telegramAlertInterval: ReturnType<typeof setInterval> | null = null;
+
+// === Backup state ===
+let backupStatus: BackupStatus = {
+  running: false,
+  completedDestinations: 0,
+  totalDestinations: 0,
+  results: [],
+};
+let backupSchedulerInterval: ReturnType<typeof setInterval> | null = null;
+let lastBackupDate: string | null = null; // "YYYY-MM-DD" to avoid duplicate daily/weekly runs
+let appOpenBackupDone = false; // for on_open trigger (once per session)
+
+/** Execute backup of the database file to all enabled destinations */
+async function executeBackup(): Promise<void> {
+  if (backupStatus.running) {
+    logger.warn('Backup', 'Backup já em andamento, ignorando execução duplicada');
+    return;
+  }
+
+  const configRaw = fs.readFileSync(CONFIG_PATH, 'utf-8');
+  const config: AppConfig = JSON.parse(configRaw);
+  const backupConfig = config.backup;
+  if (!backupConfig?.enabled || backupConfig.destinations.length === 0) return;
+
+  const enabledDests = backupConfig.destinations.filter((d) => d.enabled);
+  if (enabledDests.length === 0) return;
+
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 16).replace('T', '_');
+  const fileName = `causa_backup_${timestamp}.db`;
+  const dbPath = config.dbPath || DB_PATH;
+  const runId = now.toISOString();
+
+  backupStatus = {
+    running: true,
+    startedAt: runId,
+    fileName,
+    completedDestinations: 0,
+    totalDestinations: enabledDests.length,
+    results: enabledDests.map((d) => ({
+      destinationId: d.id,
+      destinationType: d.type,
+      status: 'running' as const,
+    })),
+  };
+
+  logger.info('Backup', `Iniciando backup: ${fileName}`, { destinations: enabledDests.length });
+
+  // Create temp copy of database (safe snapshot)
+  const tmpPath = path.join(path.dirname(dbPath), `.backup_tmp_${Date.now()}.db`);
+  try {
+    // Use SQLite backup API via VACUUM INTO for a consistent snapshot
+    if (db && config.topologia === 'solo') {
+      (db as SqliteDatabase).run(sql.raw(`VACUUM INTO '${tmpPath.replace(/'/g, "''")}'`));
+    } else {
+      fs.copyFileSync(dbPath, tmpPath);
+    }
+  } catch (err) {
+    logger.error('Backup', 'Erro ao criar snapshot do banco', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    // Mark all destinations as error
+    for (const dest of enabledDests) {
+      insertBackupLog({
+        id: crypto.randomUUID(),
+        started_at: runId,
+        finished_at: new Date().toISOString(),
+        destination_id: dest.id,
+        destination_type: dest.type,
+        destination_path: dest.type === 'google_drive' ? 'CAUSA/Backups' : (dest.path ?? null),
+        status: 'error',
+        error_message: `Erro ao criar snapshot: ${err instanceof Error ? err.message : String(err)}`,
+        file_size_bytes: null,
+        file_name: fileName,
+      });
+    }
+    backupStatus = { running: false, completedDestinations: 0, totalDestinations: 0, results: [] };
+    return;
+  }
+
+  const fileSize = fs.statSync(tmpPath).size;
+
+  // Process each destination
+  for (let i = 0; i < enabledDests.length; i++) {
+    const dest = enabledDests[i];
+    const logId = crypto.randomUUID();
+    const logBase = {
+      id: logId,
+      started_at: runId,
+      destination_id: dest.id,
+      destination_type: dest.type,
+      file_name: fileName,
+      file_size_bytes: fileSize,
+    };
+
+    try {
+      if (dest.type === 'local' || dest.type === 'network') {
+        const destDir = dest.path!;
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true });
+        }
+        const destFile = path.join(destDir, fileName);
+        fs.copyFileSync(tmpPath, destFile);
+        logger.info('Backup', `Backup copiado para: ${destFile}`);
+        insertBackupLog({
+          ...logBase,
+          finished_at: new Date().toISOString(),
+          destination_path: destDir,
+          status: 'success',
+          error_message: null,
+        });
+      } else if (dest.type === 'google_drive') {
+        if (!driveService) {
+          throw new Error('Google Drive não está integrado. Configure em Integrações.');
+        }
+        const rootFolderId = config.googleDrive?.rootFolderId;
+        if (!rootFolderId) {
+          throw new Error('Google Drive: rootFolderId não configurado.');
+        }
+        // Navigate/create CAUSA/Backups folder
+        const causaFolderId = await driveService.findOrCreateFolder('CAUSA', rootFolderId);
+        const backupsFolderId = await driveService.findOrCreateFolder('Backups', causaFolderId);
+        const content = fs.readFileSync(tmpPath);
+        await driveService.uploadFile({
+          name: fileName,
+          mimeType: 'application/x-sqlite3',
+          content,
+          folderId: backupsFolderId,
+        });
+        logger.info('Backup', 'Backup enviado para Google Drive: CAUSA/Backups');
+        insertBackupLog({
+          ...logBase,
+          finished_at: new Date().toISOString(),
+          destination_path: 'CAUSA/Backups',
+          status: 'success',
+          error_message: null,
+        });
+      }
+
+      backupStatus.results[i].status = 'success';
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error('Backup', `Erro ao copiar para destino ${dest.type}`, { error: errMsg });
+      insertBackupLog({
+        ...logBase,
+        finished_at: new Date().toISOString(),
+        destination_path: dest.type === 'google_drive' ? 'CAUSA/Backups' : (dest.path ?? null),
+        status: 'error',
+        error_message: errMsg,
+      });
+      backupStatus.results[i].status = 'error';
+      backupStatus.results[i].error = errMsg;
+    }
+
+    backupStatus.completedDestinations = i + 1;
+  }
+
+  // Cleanup temp file
+  try {
+    fs.unlinkSync(tmpPath);
+  } catch { /* ignore */ }
+
+  // Cleanup old backups from local/network destinations
+  cleanupOldBackups(enabledDests, backupConfig.retentionDays || 30);
+
+  lastBackupDate = now.toISOString().slice(0, 10);
+  logger.info('Backup', 'Backup concluído', {
+    results: backupStatus.results.map((r) => `${r.destinationType}: ${r.status}`),
+  });
+
+  // Keep status for a few seconds so frontend can poll it, then reset
+  setTimeout(() => {
+    backupStatus = { running: false, completedDestinations: 0, totalDestinations: 0, results: [] };
+  }, 10000);
+}
+
+/** Insert a backup log row using raw SQL (works with both SQLite topologies) */
+function insertBackupLog(row: BackupLogRow): void {
+  try {
+    if (db) {
+      (db as SqliteDatabase).run(
+        sql`INSERT INTO backup_logs (id, started_at, finished_at, destination_id, destination_type, destination_path, status, error_message, file_size_bytes, file_name)
+            VALUES (${row.id}, ${row.started_at}, ${row.finished_at}, ${row.destination_id}, ${row.destination_type}, ${row.destination_path}, ${row.status}, ${row.error_message}, ${row.file_size_bytes}, ${row.file_name})`,
+      );
+    }
+  } catch (err) {
+    logger.error('Backup', 'Erro ao inserir log de backup', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/** Remove backups older than retentionDays from local/network destinations */
+function cleanupOldBackups(destinations: BackupDestination[], retentionDays: number): void {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - retentionDays);
+
+  for (const dest of destinations) {
+    if (dest.type === 'google_drive' || !dest.path) continue;
+    try {
+      if (!fs.existsSync(dest.path)) continue;
+      const files = fs.readdirSync(dest.path).filter((f) => f.startsWith('causa_backup_') && f.endsWith('.db'));
+      for (const file of files) {
+        // Parse date from filename: causa_backup_YYYY-MM-DD_HHmm.db
+        const match = file.match(/causa_backup_(\d{4}-\d{2}-\d{2})/);
+        if (match) {
+          const fileDate = new Date(match[1]);
+          if (fileDate < cutoff) {
+            fs.unlinkSync(path.join(dest.path, file));
+            logger.info('Backup', `Backup antigo removido: ${file}`);
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn('Backup', `Erro ao limpar backups antigos em ${dest.path}`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // Also cleanup old log rows from the database
+  try {
+    if (db) {
+      const cutoffIso = cutoff.toISOString();
+      (db as SqliteDatabase).run(
+        sql`DELETE FROM backup_logs WHERE started_at < ${cutoffIso}`,
+      );
+    }
+  } catch { /* ignore */ }
+}
+
+/** Start the backup scheduler that checks every minute if it's time to run */
+function startBackupScheduler(): void {
+  if (backupSchedulerInterval) clearInterval(backupSchedulerInterval);
+
+  backupSchedulerInterval = setInterval(() => {
+    try {
+      if (!fs.existsSync(CONFIG_PATH)) return;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const bc = config.backup;
+      if (!bc?.enabled) return;
+
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      if (bc.schedule.trigger === 'daily') {
+        const targetTime = bc.schedule.dailyTime || '08:00';
+        if (currentTime === targetTime && lastBackupDate !== todayStr) {
+          executeBackup().catch((err) => {
+            logger.error('Backup', 'Erro no backup agendado', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+        }
+      } else if (bc.schedule.trigger === 'weekly') {
+        const targetDay = bc.schedule.weeklyDay ?? 1; // Monday default
+        const targetTime = bc.schedule.weeklyTime || '08:00';
+        if (now.getDay() === targetDay && currentTime === targetTime && lastBackupDate !== todayStr) {
+          executeBackup().catch((err) => {
+            logger.error('Backup', 'Erro no backup agendado', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+        }
+      }
+      // on_open and first_open_day are triggered by the frontend calling POST /api/backup/notify-open
+    } catch { /* ignore scheduler errors */ }
+  }, 60_000); // Check every minute
+
+  logger.info('Backup', 'Agendador de backup iniciado');
+}
 
 function ensureService<T>(service: T | null, name: string): T {
   if (!service) {
@@ -287,6 +610,27 @@ function loadApp(): boolean {
     } catch (fallbackErr) {
       logger.error('API', 'Erro no fallback de colunas', {
         error: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr),
+      });
+    }
+
+    // Garantir tabela backup_logs
+    try {
+      const sqliteDb = database as SqliteDatabase;
+      sqliteDb.run(sql`CREATE TABLE IF NOT EXISTS backup_logs (
+        id TEXT PRIMARY KEY NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        destination_id TEXT NOT NULL,
+        destination_type TEXT NOT NULL,
+        destination_path TEXT,
+        status TEXT DEFAULT 'running' NOT NULL,
+        error_message TEXT,
+        file_size_bytes INTEGER,
+        file_name TEXT
+      )`);
+    } catch (backupTableErr) {
+      logger.error('API', 'Erro ao criar tabela backup_logs', {
+        error: backupTableErr instanceof Error ? backupTableErr.message : String(backupTableErr),
       });
     }
   }
@@ -1856,6 +2200,107 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return json(res, { ok: true });
     }
 
+    // --- Backup ---
+    if (path === '/api/backup/config' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      const driveConnected = !!driveService;
+      return json(res, {
+        config: config.backup ?? {
+          enabled: false,
+          schedule: { trigger: 'first_open_day', delayMinutes: 5 },
+          destinations: [],
+          retentionDays: 30,
+        },
+        driveConnected,
+      });
+    }
+
+    if (path === '/api/backup/config' && method === 'PUT') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      const body = JSON.parse(await readBody(req)) as BackupConfig;
+      const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+      config.backup = body;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+      // Restart scheduler
+      startBackupScheduler();
+      return json(res, { ok: true });
+    }
+
+    if (path === '/api/backup/run' && method === 'POST') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      if (backupStatus.running) {
+        return error(res, 'Backup já em andamento.', 409);
+      }
+      // Run async — don't await
+      executeBackup().catch((err) => {
+        logger.error('Backup', 'Erro no backup manual', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+      return json(res, { ok: true, message: 'Backup iniciado.' });
+    }
+
+    if (path === '/api/backup/status' && method === 'GET') {
+      return json(res, backupStatus);
+    }
+
+    if (path === '/api/backup/logs' && method === 'GET') {
+      if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
+      try {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        const cutoffIso = cutoff.toISOString();
+        const rows = (db as SqliteDatabase).all<BackupLogRow>(
+          sql`SELECT * FROM backup_logs WHERE started_at >= ${cutoffIso} ORDER BY started_at DESC LIMIT 200`,
+        );
+        return json(res, rows);
+      } catch (err) {
+        return json(res, []);
+      }
+    }
+
+    if (path === '/api/backup/notify-open' && method === 'POST') {
+      // Called by frontend on app open to trigger on_open / first_open_day backups
+      try {
+        const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+        const bc = config.backup;
+        if (!bc?.enabled) return json(res, { ok: true, triggered: false });
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let shouldRun = false;
+
+        if (bc.schedule.trigger === 'on_open' && !appOpenBackupDone) {
+          appOpenBackupDone = true;
+          const delay = (bc.schedule.delayMinutes ?? 0) * 60_000;
+          if (delay > 0) {
+            setTimeout(() => {
+              executeBackup().catch(() => {});
+            }, delay);
+            return json(res, { ok: true, triggered: true, delayed: true });
+          }
+          shouldRun = true;
+        } else if (bc.schedule.trigger === 'first_open_day' && lastBackupDate !== todayStr) {
+          const delay = (bc.schedule.delayMinutes ?? 0) * 60_000;
+          if (delay > 0) {
+            setTimeout(() => {
+              executeBackup().catch(() => {});
+            }, delay);
+            return json(res, { ok: true, triggered: true, delayed: true });
+          }
+          shouldRun = true;
+        }
+
+        if (shouldRun) {
+          executeBackup().catch(() => {});
+          return json(res, { ok: true, triggered: true });
+        }
+        return json(res, { ok: true, triggered: false });
+      } catch {
+        return json(res, { ok: true, triggered: false });
+      }
+    }
+
     // --- Configurações ---
     if (path === '/api/configuracoes' && method === 'GET') {
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
@@ -2353,6 +2798,9 @@ export async function startServer(options: StartServerOptions = {}): Promise<htt
       // Non-critical
     }
   }
+
+  // Iniciar agendador de backup
+  startBackupScheduler();
 
   return new Promise((resolve) => {
     const server = http.createServer(handleRequest);

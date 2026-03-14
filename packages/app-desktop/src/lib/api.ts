@@ -992,6 +992,87 @@ export function getGhToken() {
   return request<{ token: string }>('/api/gh-token');
 }
 
+// === Backup ===
+export interface BackupDestination {
+  id: string;
+  type: 'local' | 'network' | 'google_drive';
+  path?: string;
+  enabled: boolean;
+}
+
+export interface BackupSchedule {
+  trigger: 'on_open' | 'first_open_day' | 'daily' | 'weekly';
+  delayMinutes?: number;
+  dailyTime?: string;
+  weeklyDay?: number;
+  weeklyTime?: string;
+}
+
+export interface BackupConfig {
+  enabled: boolean;
+  schedule: BackupSchedule;
+  destinations: BackupDestination[];
+  retentionDays: number;
+}
+
+export interface BackupLogRow {
+  id: string;
+  started_at: string;
+  finished_at: string | null;
+  destination_id: string;
+  destination_type: string;
+  destination_path: string | null;
+  status: 'running' | 'success' | 'error';
+  error_message: string | null;
+  file_size_bytes: number | null;
+  file_name: string | null;
+}
+
+export interface BackupStatus {
+  running: boolean;
+  startedAt?: string;
+  fileName?: string;
+  completedDestinations: number;
+  totalDestinations: number;
+  results: Array<{
+    destinationId: string;
+    destinationType: string;
+    status: 'running' | 'success' | 'error';
+    error?: string;
+  }>;
+}
+
+export function getBackupConfig() {
+  return request<{ config: BackupConfig; driveConnected: boolean }>('/api/backup/config');
+}
+
+export function updateBackupConfig(data: BackupConfig) {
+  return request<{ ok: boolean }>('/api/backup/config', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function runBackup() {
+  return request<{ ok: boolean; message: string }>('/api/backup/run', {
+    method: 'POST',
+  });
+}
+
+export function getBackupStatus() {
+  return request<BackupStatus>('/api/backup/status');
+}
+
+export function getBackupLogs() {
+  return request<BackupLogRow[]>('/api/backup/logs');
+}
+
+export function notifyBackupOpen() {
+  return request<{ ok: boolean; triggered: boolean; delayed?: boolean }>('/api/backup/notify-open', {
+    method: 'POST',
+  });
+}
+
 export function setGhToken(token: string) {
   return request<{ ok: boolean }>('/api/gh-token', {
     method: 'PUT',

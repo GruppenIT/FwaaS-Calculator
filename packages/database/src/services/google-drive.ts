@@ -162,7 +162,7 @@ export class GoogleDriveService {
   }
 
   /** Busca ou cria uma pasta pelo nome dentro de um parent */
-  private async findOrCreateFolder(name: string, parentId: string): Promise<string> {
+  async findOrCreateFolder(name: string, parentId: string): Promise<string> {
     const cacheKey = `${parentId}/${name}`;
     const cached = this.folderCache.get(cacheKey);
     if (cached) {
