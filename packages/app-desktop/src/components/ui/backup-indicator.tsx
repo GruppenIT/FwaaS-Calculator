@@ -9,8 +9,8 @@ export function BackupIndicator() {
   const [state, setState] = useState<IndicatorState>('idle');
   const [label, setLabel] = useState('');
   const [visible, setVisible] = useState(false);
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>();
-  const pollTimer = useRef<ReturnType<typeof setInterval>>();
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     // Notify backend about app open (triggers on_open / first_open_day schedule)
@@ -31,7 +31,7 @@ export function BackupIndicator() {
           setVisible(true);
           if (hideTimer.current) {
             clearTimeout(hideTimer.current);
-            hideTimer.current = undefined;
+            hideTimer.current = null;
           }
         } else if (status.results.length > 0 && visible) {
           // Backup just finished — show result briefly
@@ -54,7 +54,7 @@ export function BackupIndicator() {
             hideTimer.current = setTimeout(() => {
               setVisible(false);
               setState('idle');
-              hideTimer.current = undefined;
+              hideTimer.current = null;
             }, errors > 0 ? 5000 : 3000);
           }
         } else if (!status.running && state !== 'idle' && !hideTimer.current) {
