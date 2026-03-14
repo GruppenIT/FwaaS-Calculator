@@ -1,0 +1,68 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - "claude/fix-auto-update-install-wIFg3"
+
+permissions:
+  contents: write
+
+jobs:
+  merge-and-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge into main
+        run: |
+          git fetch origin main
+          git checkout main
+          git merge origin/claude/fix-auto-update-install-wIFg3 --no-edit
+          git push origin main
+
+      - name: Calculate next version and tag
+        run: |
+          # Get the latest version tag (e.g. v1.4.3)
+          LATEST_TAG=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            NEXT_VERSION="v1.0.0"
+          else
+            # Strip 'v' prefix
+            VERSION="${LATEST_TAG#v}"
+
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+            # Increment: after x.y.10 → x.(y+1).0
+            if [ "$PATCH" -ge 10 ]; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              # After x.10.0 → (x+1).0.0
+              if [ "$MINOR" -gt 10 ]; then
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+              fi
+            else
+              PATCH=$((PATCH + 1))
+            fi
+
+            NEXT_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          echo "Latest tag: ${LATEST_TAG:-none}"
+          echo "Next version: $NEXT_VERSION"
+
+          git tag "$NEXT_VERSION" main
+          git push origin "$NEXT_VERSION"

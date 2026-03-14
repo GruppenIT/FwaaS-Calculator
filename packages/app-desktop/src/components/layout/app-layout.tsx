@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './sidebar';
 import { GlobalSearch } from './global-search';
+import { UpdateBanner } from '../update-banner';
 
 export function AppLayout() {
   return (
@@ -11,6 +12,7 @@ export function AppLayout() {
         <header className="shrink-0 h-14 px-6 flex items-center border-b border-[var(--color-border)] bg-[var(--color-surface)]">
           <GlobalSearch />
         </header>
+        <UpdateBanner />
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
