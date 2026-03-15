@@ -13,7 +13,7 @@ A revisao parte de uma base funcional — tokens, 13 componentes UI, dark mode e
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Design System Foundation** - Tokens corrigidos, fontes self-hosted e todos os componentes primitivos redesenhados (completed 2026-03-15)
-- [ ] **Phase 2: Layout Shell** - Sidebar, AppLayout e banner de prazo critico consistentes em todas as paginas
+- [x] **Phase 2: Layout Shell** - Sidebar, AppLayout e banner de prazo critico consistentes em todas as paginas (completed 2026-03-15)
 - [ ] **Phase 3: Core Feature Screens** - Dashboard e listagens redesenhados com hierarquia de urgencia e dados reais
 - [ ] **Phase 4: Detail Pages, Auth e Polish** - Paginas de detalhe, login, splash e micro-animacoes finalizados
 
@@ -47,7 +47,7 @@ Plans:
   1. A sidebar exibe itens agrupados por secao com labels Inter 11px/600 em caixa alta, item ativo com fundo azul 8%, hover com fundo off-white — e a ordem dos itens de navegacao permanece identica a antes
   2. Todas as 20 paginas exibem page headers com titulo Inter 22px/700 e botoes de acao alinhados conforme o guia, sem nenhuma pagina usando o header antigo
   3. Quando existe um prazo com tier "fatal" (0-1 dia), um banner vermelho sticky aparece no topo da area de conteudo em todas as paginas, nao-dispensavel pelo usuario
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 02-01-PLAN.md — Sidebar user info footer + token audit, PageHeader breadcrumb prop + detail page migration
@@ -84,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Design System Foundation | 6/6 | Complete   | 2026-03-15 |
-| 2. Layout Shell | 0/2 | Not started | - |
+| 2. Layout Shell | 2/2 | Complete   | 2026-03-15 |
 | 3. Core Feature Screens | 0/TBD | Not started | - |
 | 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
