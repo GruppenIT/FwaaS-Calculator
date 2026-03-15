@@ -22,7 +22,7 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 - [ ] **DS-11**: Novo componente Badge para status pills (Ativo, Suspenso, Arquivado, Encerrado) com cores do sistema
 - [ ] **DS-12**: Novo componente StatusDot para indicadores visuais de estado em listas
 - [ ] **DS-13**: Novo componente Card com sombra, border e suporte a dark mode elevation
-- [ ] **DS-14**: Novo componente DataTable reutilizavel com sort, hover row, click row, zebrado e suporte 1366x768
+- [x] **DS-14**: Novo componente DataTable reutilizavel com sort, hover row, click row, zebrado e suporte 1366x768
 - [ ] **DS-15**: Novo componente Select acessivel via Radix Select com estilo conforme tokens
 - [ ] **DS-16**: Novo componente Checkbox acessivel com estilo conforme tokens
 - [ ] **DS-17**: Novo componente Textarea com estilo consistente aos Inputs
@@ -121,7 +121,7 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DS-11 | Phase 1 | Pending |
 | DS-12 | Phase 1 | Pending |
 | DS-13 | Phase 1 | Pending |
-| DS-14 | Phase 1 | Pending |
+| DS-14 | Phase 1 | Complete |
 | DS-15 | Phase 1 | Pending |
 | DS-16 | Phase 1 | Pending |
 | DS-17 | Phase 1 | Pending |

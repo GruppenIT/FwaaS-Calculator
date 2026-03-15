@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-03-15T20:50:40.786Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-03-15T20:51:05.947Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 6
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01 P01 | 4 | 3 tasks | 5 files |
 | Phase 01 P03 | 2min | 2 tasks | 3 files |
+| Phase 01 P05 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Font families kept as literals in @theme inline (no var() indirection) since they never change between themes
 - [Phase 01]: Toast styleMap uses var() directly for all 4 variants — eliminates causa-* Tailwind aliasing layer for explicit, consistent token usage
 - [Phase 01]: Skeleton animation must use CSS class (not inline style) for prefers-reduced-motion override to work correctly via !important
+- [Phase 01]: DataTable is fully controlled for sort — no internal useState, parent manages sort state and sorted data
+- [Phase 01]: SortIcon prop typed as SortState | undefined (not optional ?) to satisfy exactOptionalPropertyTypes tsconfig
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T20:50:40.784Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-03-15T20:51:05.945Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None
