@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-03-15T20:52:02.034Z"
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-03-15T20:54:48.669Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P05 | 5 | 1 tasks | 1 files |
 | Phase 01 P04 | 15 | 2 tasks | 6 files |
 | Phase 01 P02 | 3 | 2 tasks | 3 files |
+| Phase 01 P06 | 5 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Dialog.Portal forceMount required for AnimatePresence exit animations in Radix Dialog
 - [Phase 01]: ease: 'easeOut' as const needed for motion/react Easing type in strict TypeScript mode
 - [Phase 01]: Button compact prop kept as deprecated alias for size=sm for backward compatibility
+- [Phase 01]: App-specific components excluded from barrel (backup-indicator, causa-logo) — not design system primitives
+- [Phase 01]: export type used for ButtonProps, BadgeStatus, Column<T> for isolatedModules compatibility
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T20:52:02.032Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-03-15T20:54:48.666Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None

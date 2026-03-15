@@ -12,7 +12,7 @@ A revisao parte de uma base funcional — tokens, 13 componentes UI, dark mode e
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Design System Foundation** - Tokens corrigidos, fontes self-hosted e todos os componentes primitivos redesenhados
+- [x] **Phase 1: Design System Foundation** - Tokens corrigidos, fontes self-hosted e todos os componentes primitivos redesenhados (completed 2026-03-15)
 - [ ] **Phase 2: Layout Shell** - Sidebar, AppLayout e banner de prazo critico consistentes em todas as paginas
 - [ ] **Phase 3: Core Feature Screens** - Dashboard e listagens redesenhados com hierarquia de urgencia e dados reais
 - [ ] **Phase 4: Detail Pages, Auth e Polish** - Paginas de detalhe, login, splash e micro-animacoes finalizados
@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Button, Input, Modal, Toast, ConfirmDialog, Skeleton, EmptyState e PageHeader renderizam identicos ao guia de identidade visual em light e dark — incluindo hover states, focus rings e estados de erro
   4. Os novos componentes Badge, StatusDot, Card, DataTable, Select, Checkbox e Textarea existem e sao importaveis via barrel export em `components/ui/index.ts`
   5. Nenhum arquivo de componente contem hex hardcoded (`#`) nem classes `causa-danger` fora dos contextos permitidos (prazo fatal, erro critico, falha de conector) — verificavel via ESLint
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 - [ ] 01-01-PLAN.md — Tokens, fonts, ESLint hex rule, reduced-motion
@@ -79,7 +79,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Design System Foundation | 5/6 | In Progress|  |
+| 1. Design System Foundation | 6/6 | Complete   | 2026-03-15 |
 | 2. Layout Shell | 0/TBD | Not started | - |
 | 3. Core Feature Screens | 0/TBD | Not started | - |
 | 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
