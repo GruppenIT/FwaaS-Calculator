@@ -623,6 +623,32 @@ export function excluirPrazo(id: string) {
   });
 }
 
+export interface FatalDeadlineSummary {
+  today: number;
+  tomorrow: number;
+}
+
+export async function getFatalDeadlineSummary(): Promise<FatalDeadlineSummary> {
+  const prazos = await listarPrazos({ status: 'pendente' });
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const amanha = new Date(hoje);
+  amanha.setDate(amanha.getDate() + 1);
+
+  let today = 0;
+  let tomorrow = 0;
+  for (const p of prazos) {
+    if (p.suspenso) continue;
+    const d = new Date(p.dataFatal);
+    d.setHours(0, 0, 0, 0);
+    const diffMs = d.getTime() - hoje.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) today++;
+    else if (diffDays === 1) tomorrow++;
+  }
+  return { today, tomorrow };
+}
+
 // === Tarefas ===
 export interface TarefaRow {
   id: string;
