@@ -47,7 +47,11 @@ Plans:
   1. A sidebar exibe itens agrupados por secao com labels Inter 11px/600 em caixa alta, item ativo com fundo azul 8%, hover com fundo off-white — e a ordem dos itens de navegacao permanece identica a antes
   2. Todas as 20 paginas exibem page headers com titulo Inter 22px/700 e botoes de acao alinhados conforme o guia, sem nenhuma pagina usando o header antigo
   3. Quando existe um prazo com tier "fatal" (0-1 dia), um banner vermelho sticky aparece no topo da area de conteudo em todas as paginas, nao-dispensavel pelo usuario
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Sidebar user info footer + token audit, PageHeader breadcrumb prop + detail page migration
+- [ ] 02-02-PLAN.md — DeadlineBanner component + polling hook + API function + AppLayout integration
 
 ### Phase 3: Core Feature Screens
 **Goal**: Dashboard e listagens (processos, clientes, prazos) redesenhados com o sistema de urgencia de 4 tiers, countdowns relativos e graficos tematizados — as paginas de maior frequencia de uso entregam a promessa visual do produto
@@ -80,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Design System Foundation | 6/6 | Complete   | 2026-03-15 |
-| 2. Layout Shell | 0/TBD | Not started | - |
+| 2. Layout Shell | 0/2 | Not started | - |
 | 3. Core Feature Screens | 0/TBD | Not started | - |
 | 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
