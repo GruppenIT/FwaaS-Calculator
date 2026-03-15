@@ -141,13 +141,13 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DET-01 | Phase 4 | Pending |
 | DET-02 | Phase 4 | Pending |
 | DET-03 | Phase 4 | Pending |
-| AUTH-01 | Phase 5 | Pending |
-| AUTH-02 | Phase 5 | Pending |
-| ANIM-01 | Phase 5 | Pending |
-| ANIM-02 | Phase 5 | Pending |
-| ANIM-03 | Phase 5 | Pending |
-| A11Y-01 | Phase 5 | Pending |
-| A11Y-02 | Phase 5 | Pending |
+| AUTH-01 | Phase 4 | Pending |
+| AUTH-02 | Phase 4 | Pending |
+| ANIM-01 | Phase 4 | Pending |
+| ANIM-02 | Phase 4 | Pending |
+| ANIM-03 | Phase 4 | Pending |
+| A11Y-01 | Phase 4 | Pending |
+| A11Y-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 40 total
@@ -156,4 +156,4 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 after initial definition*
+*Last updated: 2026-03-15 after roadmap creation — AUTH/ANIM/A11Y corrected from Phase 5 to Phase 4*
