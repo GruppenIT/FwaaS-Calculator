@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
-  ArrowLeft,
   Clock,
   FileText,
   DollarSign,
@@ -20,6 +19,7 @@ import {
   CloudOff,
   Loader2,
 } from 'lucide-react';
+import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
@@ -105,7 +105,6 @@ function diasRestantes(dataFatal: string): number {
 
 export function ProcessoDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { can } = usePermission();
   const { financeiro: financeiroEnabled, googleDrive: driveEnabled } = useFeatures();
@@ -270,50 +269,47 @@ export function ProcessoDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => navigate('/app/processos')}
-          className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]"
+      <PageHeader
+        title={processo.numeroCnj}
+        breadcrumb={[
+          { label: 'Processos', to: '/app/processos' },
+          { label: processo.numeroCnj },
+        ]}
+        action={
+          can('processos:editar') ? (
+            <Button variant="secondary" onClick={handleEdit}>
+              <Pencil size={14} />
+              Editar
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {/* Status badges */}
+      <div className="flex items-center gap-3 -mt-4 flex-wrap">
+        <span
+          className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${STATUS_STYLES[processo.status] ?? ''}`}
         >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-xl-causa text-[var(--color-text)] font-semibold font-[var(--font-mono)]">
-            {processo.numeroCnj}
-          </h1>
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <span
-              className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${STATUS_STYLES[processo.status] ?? ''}`}
-            >
-              {processo.status}
-            </span>
-            <span className="text-sm-causa text-[var(--color-text-muted)]">
-              {AREA_LABELS[processo.area] ?? processo.area} &middot; {processo.fase} &middot;{' '}
-              {processo.tribunalSigla}
-            </span>
-            {processo.prioridade !== 'normal' && (
-              <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-causa-danger/10 text-causa-danger">
-                {PRIORIDADE_LABELS[processo.prioridade] ?? processo.prioridade}
-              </span>
-            )}
-            {processo.segredoJustica && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-causa-warning/10 text-causa-warning">
-                <Shield size={10} /> Segredo
-              </span>
-            )}
-            {processo.justicaGratuita && (
-              <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-                Justiça Gratuita
-              </span>
-            )}
-          </div>
-        </div>
-        {can('processos:editar') && (
-          <Button variant="secondary" onClick={handleEdit}>
-            <Pencil size={14} />
-            Editar
-          </Button>
+          {processo.status}
+        </span>
+        <span className="text-sm-causa text-[var(--color-text-muted)]">
+          {AREA_LABELS[processo.area] ?? processo.area} &middot; {processo.fase} &middot;{' '}
+          {processo.tribunalSigla}
+        </span>
+        {processo.prioridade !== 'normal' && (
+          <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-causa-danger/10 text-causa-danger">
+            {PRIORIDADE_LABELS[processo.prioridade] ?? processo.prioridade}
+          </span>
+        )}
+        {processo.segredoJustica && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-causa-warning/10 text-causa-warning">
+            <Shield size={10} /> Segredo
+          </span>
+        )}
+        {processo.justicaGratuita && (
+          <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            Justiça Gratuita
+          </span>
         )}
       </div>
 

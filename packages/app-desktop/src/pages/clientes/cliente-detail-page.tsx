@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2, Plus, Scale } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2, Plus, Scale } from 'lucide-react';
+import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { ClienteModal } from './cliente-modal';
@@ -85,7 +86,6 @@ function formatEndereco(end: EnderecoJson | null): string | null {
 
 export function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { can } = usePermission();
   const { googleDrive: driveEnabled } = useFeatures();
@@ -199,33 +199,32 @@ export function ClienteDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => navigate('/app/clientes')}
-          className="p-1.5 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt transition-causa cursor-pointer text-[var(--color-text-muted)]"
+      <PageHeader
+        title={cliente.nome}
+        breadcrumb={[
+          { label: 'Clientes', to: '/app/clientes' },
+          { label: cliente.nome },
+        ]}
+        action={
+          can('clientes:editar') ? (
+            <Button variant="secondary" onClick={handleEdit}>
+              <Pencil size={14} />
+              Editar
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {/* Client type and status badges */}
+      <div className="flex items-center gap-2 -mt-4">
+        <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
+          {cliente.tipo === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+        </span>
+        <span
+          className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${CLIENTE_STATUS_STYLES[cliente.statusCliente] ?? ''}`}
         >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-xl-causa text-[var(--color-text)] font-semibold">{cliente.nome}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
-              {cliente.tipo === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-            </span>
-            <span
-              className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${CLIENTE_STATUS_STYLES[cliente.statusCliente] ?? ''}`}
-            >
-              {cliente.statusCliente}
-            </span>
-          </div>
-        </div>
-        {can('clientes:editar') && (
-          <Button variant="secondary" onClick={handleEdit}>
-            <Pencil size={14} />
-            Editar
-          </Button>
-        )}
+          {cliente.statusCliente}
+        </span>
       </div>
 
       {/* Dados Pessoais */}
