@@ -31,12 +31,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             focus-causa transition-causa
             placeholder:text-[var(--color-text-muted)]/60
             resize-y min-h-[80px]
-            ${error ? 'border-causa-danger' : 'border-[var(--color-border)]'}
+            ${error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}
             ${className}
           `}
           {...props}
         />
-        {error && <span className="text-xs-causa text-causa-danger">{error}</span>}
+        {error && <span className="text-xs-causa text-[var(--color-danger)]">{error}</span>}
       </div>
     );
   },

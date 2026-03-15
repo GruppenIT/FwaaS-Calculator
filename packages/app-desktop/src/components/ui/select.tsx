@@ -55,7 +55,7 @@ export const Select = ({
             focus-causa transition-causa
             disabled:opacity-50 disabled:pointer-events-none
             cursor-pointer
-            ${error ? 'border-causa-danger' : 'border-[var(--color-border)]'}
+            ${error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}
           `}
         >
           <RadixSelect.Value placeholder={placeholder} />
@@ -100,7 +100,7 @@ export const Select = ({
           </RadixSelect.Content>
         </RadixSelect.Portal>
       </RadixSelect.Root>
-      {error && <span className="text-xs-causa text-causa-danger">{error}</span>}
+      {error && <span className="text-xs-causa text-[var(--color-danger)]">{error}</span>}
     </div>
   );
 };
