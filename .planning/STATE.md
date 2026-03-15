@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-15T20:17:22.469Z"
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-03-15T20:47:14.255Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 6
+  completed_plans: 1
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01 P01 | 4 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,8 @@ Recent decisions affecting current work:
 - [Init]: Escopo completo (todas as 20 telas) — interface parcialmente atualizada gera inconsistencia visual pior que antes
 - [Init]: Guia de identidade visual como lei — nao renegociar decisoes de design
 - [Init]: Dark mode com qualidade igual ao light — advogados trabalham muitas horas
+- [Phase 01]: @theme inline required for var() opacity modifiers in Tailwind CSS 4 — hardcoded hex must only live in :root/.dark
+- [Phase 01]: Font families kept as literals in @theme inline (no var() indirection) since they never change between themes
 
 ### Pending Todos
 
@@ -75,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T20:17:22.466Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-design-system-foundation/01-CONTEXT.md
+Last session: 2026-03-15T20:47:14.252Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None

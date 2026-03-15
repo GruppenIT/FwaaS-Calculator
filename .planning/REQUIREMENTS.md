@@ -9,8 +9,8 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Design System
 
-- [ ] **DS-01**: Token system CSS completo com variaveis semanticas para cores, tipografia, espacamento, sombras e radius — corrigindo split @theme vs CSS vars
-- [ ] **DS-02**: Dark mode com 3 niveis de superficie distintos (background #0F0F1A / cards #1A1A2E / modais #22223A) e tokens semanticos dedicados
+- [x] **DS-01**: Token system CSS completo com variaveis semanticas para cores, tipografia, espacamento, sombras e radius — corrigindo split @theme vs CSS vars
+- [x] **DS-02**: Dark mode com 3 niveis de superficie distintos (background #0F0F1A / cards #1A1A2E / modais #22223A) e tokens semanticos dedicados
 - [ ] **DS-03**: Componente Button refatorado conforme guia (Primary, Secondary, Danger, Ghost) com alturas 32/36/40px e hover states
 - [ ] **DS-04**: Componente Input refatorado com estados de foco (border #2563A8 + shadow), erro (border #DC2626), e label posicionado conforme guia
 - [ ] **DS-05**: Componente Modal refatorado com overlay rgba(0,0,0,0.4), largura 480-600px, border-radius 8px e suporte a AnimatePresence
@@ -26,8 +26,8 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 - [ ] **DS-15**: Novo componente Select acessivel via Radix Select com estilo conforme tokens
 - [ ] **DS-16**: Novo componente Checkbox acessivel com estilo conforme tokens
 - [ ] **DS-17**: Novo componente Textarea com estilo consistente aos Inputs
-- [ ] **DS-18**: Fontes Inter, Lora e JetBrains Mono self-hosted via Fontsource no bundle Electron (sem CDN)
-- [ ] **DS-19**: Todas as animacoes respeitam prefers-reduced-motion (WCAG AA)
+- [x] **DS-18**: Fontes Inter, Lora e JetBrains Mono self-hosted via Fontsource no bundle Electron (sem CDN)
+- [x] **DS-19**: Todas as animacoes respeitam prefers-reduced-motion (WCAG AA)
 
 ### Layout
 
@@ -108,8 +108,8 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DS-01 | Phase 1 | Pending |
-| DS-02 | Phase 1 | Pending |
+| DS-01 | Phase 1 | Complete |
+| DS-02 | Phase 1 | Complete |
 | DS-03 | Phase 1 | Pending |
 | DS-04 | Phase 1 | Pending |
 | DS-05 | Phase 1 | Pending |
@@ -125,8 +125,8 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DS-15 | Phase 1 | Pending |
 | DS-16 | Phase 1 | Pending |
 | DS-17 | Phase 1 | Pending |
-| DS-18 | Phase 1 | Pending |
-| DS-19 | Phase 1 | Pending |
+| DS-18 | Phase 1 | Complete |
+| DS-19 | Phase 1 | Complete |
 | LY-01 | Phase 2 | Pending |
 | LY-02 | Phase 2 | Pending |
 | LY-03 | Phase 2 | Pending |
