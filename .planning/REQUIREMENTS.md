@@ -11,11 +11,11 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 - [x] **DS-01**: Token system CSS completo com variaveis semanticas para cores, tipografia, espacamento, sombras e radius — corrigindo split @theme vs CSS vars
 - [x] **DS-02**: Dark mode com 3 niveis de superficie distintos (background #0F0F1A / cards #1A1A2E / modais #22223A) e tokens semanticos dedicados
-- [ ] **DS-03**: Componente Button refatorado conforme guia (Primary, Secondary, Danger, Ghost) com alturas 32/36/40px e hover states
-- [ ] **DS-04**: Componente Input refatorado com estados de foco (border #2563A8 + shadow), erro (border #DC2626), e label posicionado conforme guia
-- [ ] **DS-05**: Componente Modal refatorado com overlay rgba(0,0,0,0.4), largura 480-600px, border-radius 8px e suporte a AnimatePresence
+- [x] **DS-03**: Componente Button refatorado conforme guia (Primary, Secondary, Danger, Ghost) com alturas 32/36/40px e hover states
+- [x] **DS-04**: Componente Input refatorado com estados de foco (border #2563A8 + shadow), erro (border #DC2626), e label posicionado conforme guia
+- [x] **DS-05**: Componente Modal refatorado com overlay rgba(0,0,0,0.4), largura 480-600px, border-radius 8px e suporte a AnimatePresence
 - [x] **DS-06**: Componente Toast refatorado com variantes corretas (sucesso=verde-agua, erro=vermelho reservado, aviso=ambar, info=azul)
-- [ ] **DS-07**: Componente ConfirmDialog refatorado usando Radix Dialog com focus trap e ARIA roles
+- [x] **DS-07**: Componente ConfirmDialog refatorado usando Radix Dialog com focus trap e ARIA roles
 - [x] **DS-08**: Componente Skeleton refatorado com animacao pulse alinhada aos tokens de cor
 - [x] **DS-09**: Componente EmptyState refatorado com mensagens contextuais juridicas e icone Lucide
 - [x] **DS-10**: Componente PageHeader refatorado com tipografia Inter 22px/700 e layout consistente (titulo + acoes)
@@ -110,11 +110,11 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 |-------------|-------|--------|
 | DS-01 | Phase 1 | Complete |
 | DS-02 | Phase 1 | Complete |
-| DS-03 | Phase 1 | Pending |
-| DS-04 | Phase 1 | Pending |
-| DS-05 | Phase 1 | Pending |
+| DS-03 | Phase 1 | Complete |
+| DS-04 | Phase 1 | Complete |
+| DS-05 | Phase 1 | Complete |
 | DS-06 | Phase 1 | Complete |
-| DS-07 | Phase 1 | Pending |
+| DS-07 | Phase 1 | Complete |
 | DS-08 | Phase 1 | Complete |
 | DS-09 | Phase 1 | Complete |
 | DS-10 | Phase 1 | Complete |
