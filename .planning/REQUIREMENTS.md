@@ -19,13 +19,13 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 - [x] **DS-08**: Componente Skeleton refatorado com animacao pulse alinhada aos tokens de cor
 - [x] **DS-09**: Componente EmptyState refatorado com mensagens contextuais juridicas e icone Lucide
 - [x] **DS-10**: Componente PageHeader refatorado com tipografia Inter 22px/700 e layout consistente (titulo + acoes)
-- [ ] **DS-11**: Novo componente Badge para status pills (Ativo, Suspenso, Arquivado, Encerrado) com cores do sistema
-- [ ] **DS-12**: Novo componente StatusDot para indicadores visuais de estado em listas
-- [ ] **DS-13**: Novo componente Card com sombra, border e suporte a dark mode elevation
+- [x] **DS-11**: Novo componente Badge para status pills (Ativo, Suspenso, Arquivado, Encerrado) com cores do sistema
+- [x] **DS-12**: Novo componente StatusDot para indicadores visuais de estado em listas
+- [x] **DS-13**: Novo componente Card com sombra, border e suporte a dark mode elevation
 - [x] **DS-14**: Novo componente DataTable reutilizavel com sort, hover row, click row, zebrado e suporte 1366x768
-- [ ] **DS-15**: Novo componente Select acessivel via Radix Select com estilo conforme tokens
-- [ ] **DS-16**: Novo componente Checkbox acessivel com estilo conforme tokens
-- [ ] **DS-17**: Novo componente Textarea com estilo consistente aos Inputs
+- [x] **DS-15**: Novo componente Select acessivel via Radix Select com estilo conforme tokens
+- [x] **DS-16**: Novo componente Checkbox acessivel com estilo conforme tokens
+- [x] **DS-17**: Novo componente Textarea com estilo consistente aos Inputs
 - [x] **DS-18**: Fontes Inter, Lora e JetBrains Mono self-hosted via Fontsource no bundle Electron (sem CDN)
 - [x] **DS-19**: Todas as animacoes respeitam prefers-reduced-motion (WCAG AA)
 
@@ -118,13 +118,13 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DS-08 | Phase 1 | Complete |
 | DS-09 | Phase 1 | Complete |
 | DS-10 | Phase 1 | Complete |
-| DS-11 | Phase 1 | Pending |
-| DS-12 | Phase 1 | Pending |
-| DS-13 | Phase 1 | Pending |
+| DS-11 | Phase 1 | Complete |
+| DS-12 | Phase 1 | Complete |
+| DS-13 | Phase 1 | Complete |
 | DS-14 | Phase 1 | Complete |
-| DS-15 | Phase 1 | Pending |
-| DS-16 | Phase 1 | Pending |
-| DS-17 | Phase 1 | Pending |
+| DS-15 | Phase 1 | Complete |
+| DS-16 | Phase 1 | Complete |
+| DS-17 | Phase 1 | Complete |
 | DS-18 | Phase 1 | Complete |
 | DS-19 | Phase 1 | Complete |
 | LY-01 | Phase 2 | Pending |

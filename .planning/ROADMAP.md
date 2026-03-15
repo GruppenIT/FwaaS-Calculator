@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Button, Input, Modal, Toast, ConfirmDialog, Skeleton, EmptyState e PageHeader renderizam identicos ao guia de identidade visual em light e dark — incluindo hover states, focus rings e estados de erro
   4. Os novos componentes Badge, StatusDot, Card, DataTable, Select, Checkbox e Textarea existem e sao importaveis via barrel export em `components/ui/index.ts`
   5. Nenhum arquivo de componente contem hex hardcoded (`#`) nem classes `causa-danger` fora dos contextos permitidos (prazo fatal, erro critico, falha de conector) — verificavel via ESLint
-**Plans:** 3/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 - [ ] 01-01-PLAN.md — Tokens, fonts, ESLint hex rule, reduced-motion
@@ -79,7 +79,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Design System Foundation | 3/6 | In Progress|  |
+| 1. Design System Foundation | 5/6 | In Progress|  |
 | 2. Layout Shell | 0/TBD | Not started | - |
 | 3. Core Feature Screens | 0/TBD | Not started | - |
 | 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
