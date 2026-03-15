@@ -14,11 +14,11 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 - [ ] **DS-03**: Componente Button refatorado conforme guia (Primary, Secondary, Danger, Ghost) com alturas 32/36/40px e hover states
 - [ ] **DS-04**: Componente Input refatorado com estados de foco (border #2563A8 + shadow), erro (border #DC2626), e label posicionado conforme guia
 - [ ] **DS-05**: Componente Modal refatorado com overlay rgba(0,0,0,0.4), largura 480-600px, border-radius 8px e suporte a AnimatePresence
-- [ ] **DS-06**: Componente Toast refatorado com variantes corretas (sucesso=verde-agua, erro=vermelho reservado, aviso=ambar, info=azul)
+- [x] **DS-06**: Componente Toast refatorado com variantes corretas (sucesso=verde-agua, erro=vermelho reservado, aviso=ambar, info=azul)
 - [ ] **DS-07**: Componente ConfirmDialog refatorado usando Radix Dialog com focus trap e ARIA roles
-- [ ] **DS-08**: Componente Skeleton refatorado com animacao pulse alinhada aos tokens de cor
-- [ ] **DS-09**: Componente EmptyState refatorado com mensagens contextuais juridicas e icone Lucide
-- [ ] **DS-10**: Componente PageHeader refatorado com tipografia Inter 22px/700 e layout consistente (titulo + acoes)
+- [x] **DS-08**: Componente Skeleton refatorado com animacao pulse alinhada aos tokens de cor
+- [x] **DS-09**: Componente EmptyState refatorado com mensagens contextuais juridicas e icone Lucide
+- [x] **DS-10**: Componente PageHeader refatorado com tipografia Inter 22px/700 e layout consistente (titulo + acoes)
 - [ ] **DS-11**: Novo componente Badge para status pills (Ativo, Suspenso, Arquivado, Encerrado) com cores do sistema
 - [ ] **DS-12**: Novo componente StatusDot para indicadores visuais de estado em listas
 - [ ] **DS-13**: Novo componente Card com sombra, border e suporte a dark mode elevation
@@ -113,11 +113,11 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DS-03 | Phase 1 | Pending |
 | DS-04 | Phase 1 | Pending |
 | DS-05 | Phase 1 | Pending |
-| DS-06 | Phase 1 | Pending |
+| DS-06 | Phase 1 | Complete |
 | DS-07 | Phase 1 | Pending |
-| DS-08 | Phase 1 | Pending |
-| DS-09 | Phase 1 | Pending |
-| DS-10 | Phase 1 | Pending |
+| DS-08 | Phase 1 | Complete |
+| DS-09 | Phase 1 | Complete |
+| DS-10 | Phase 1 | Complete |
 | DS-11 | Phase 1 | Pending |
 | DS-12 | Phase 1 | Pending |
 | DS-13 | Phase 1 | Pending |
