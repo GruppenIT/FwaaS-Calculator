@@ -22,18 +22,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
+          aria-invalid={error ? true : undefined}
           className={`
             h-9 px-3 rounded-[var(--radius-md)]
             bg-[var(--color-surface)] text-[var(--color-text)]
             border text-base-causa
             focus-causa transition-causa
             placeholder:text-[var(--color-text-muted)]/60
-            ${error ? 'border-causa-danger' : 'border-[var(--color-border)]'}
+            ${error ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}
             ${className}
           `}
           {...props}
         />
-        {error && <span className="text-xs-causa text-causa-danger">{error}</span>}
+        {error && <span className="text-xs-causa text-[var(--color-danger)]">{error}</span>}
       </div>
     );
   },
