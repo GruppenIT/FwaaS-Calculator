@@ -31,8 +31,8 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Layout
 
-- [ ] **LY-01**: Sidebar redesenhada com agrupamento por secoes, labels Inter 11px/600 em caixa alta, item ativo com fundo azul 8%, hover com fundo off-white
-- [ ] **LY-02**: Page headers consistentes em todas as 20 paginas com titulo Inter 22px/700, botoes de acao e breadcrumb quando aplicavel
+- [x] **LY-01**: Sidebar redesenhada com agrupamento por secoes, labels Inter 11px/600 em caixa alta, item ativo com fundo azul 8%, hover com fundo off-white
+- [x] **LY-02**: Page headers consistentes em todas as 20 paginas com titulo Inter 22px/700, botoes de acao e breadcrumb quando aplicavel
 - [x] **LY-03**: Banner sticky de prazo critico no topo da area de conteudo quando existe prazo fatal (0-1 dia) — nao-dispensavel, cor vermelho reservado
 
 ### Dashboard
@@ -127,8 +127,8 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DS-17 | Phase 1 | Complete |
 | DS-18 | Phase 1 | Complete |
 | DS-19 | Phase 1 | Complete |
-| LY-01 | Phase 2 | Pending |
-| LY-02 | Phase 2 | Pending |
+| LY-01 | Phase 2 | Complete |
+| LY-02 | Phase 2 | Complete |
 | LY-03 | Phase 2 | Complete |
 | DASH-01 | Phase 3 | Pending |
 | DASH-02 | Phase 3 | Pending |
