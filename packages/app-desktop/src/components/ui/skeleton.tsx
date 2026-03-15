@@ -5,8 +5,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`bg-causa-surface-alt rounded-[var(--radius-md)] ${className}`}
-      style={{ animation: 'skeletonPulse 1.5s ease-in-out infinite' }}
+      className={`bg-[var(--color-surface-alt)] rounded-[var(--radius-md)] animate-[skeletonPulse_1.5s_ease-in-out_infinite] ${className}`}
     />
   );
 }
