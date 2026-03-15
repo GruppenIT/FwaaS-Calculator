@@ -29,7 +29,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Button, Input, Modal, Toast, ConfirmDialog, Skeleton, EmptyState e PageHeader renderizam identicos ao guia de identidade visual em light e dark — incluindo hover states, focus rings e estados de erro
   4. Os novos componentes Badge, StatusDot, Card, DataTable, Select, Checkbox e Textarea existem e sao importaveis via barrel export em `components/ui/index.ts`
   5. Nenhum arquivo de componente contem hex hardcoded (`#`) nem classes `causa-danger` fora dos contextos permitidos (prazo fatal, erro critico, falha de conector) — verificavel via ESLint
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Tokens, fonts, ESLint hex rule, reduced-motion
+- [ ] 01-02-PLAN.md — Refactor Button, Input, Modal (Radix), ConfirmDialog
+- [ ] 01-03-PLAN.md — Audit Toast, Skeleton, EmptyState, PageHeader
+- [ ] 01-04-PLAN.md — New components: Badge, StatusDot, Card, Select, Checkbox, Textarea
+- [ ] 01-05-PLAN.md — New component: DataTable (sort, row click, zebra, responsive)
+- [ ] 01-06-PLAN.md — Barrel export index.ts and full phase verification
 
 ### Phase 2: Layout Shell
 **Goal**: Sidebar redesenhada e AppLayout com banner de prazo critico estao corretos em todas as 20 paginas antes de qualquer redesign de pagina individual
@@ -71,7 +79,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Design System Foundation | 0/TBD | Not started | - |
+| 1. Design System Foundation | 0/6 | Planned | - |
 | 2. Layout Shell | 0/TBD | Not started | - |
 | 3. Core Feature Screens | 0/TBD | Not started | - |
 | 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
