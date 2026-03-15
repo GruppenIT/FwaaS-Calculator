@@ -127,9 +127,31 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+function getInitials(email: string): string {
+  const local = email.split('@')[0] ?? '';
+  const parts = local.split(/[._-]/);
+  const first = parts[0] ?? '';
+  const second = parts[1] ?? '';
+  if (parts.length >= 2 && first.length > 0 && second.length > 0) {
+    return ((first[0] ?? '') + (second[0] ?? '')).toUpperCase();
+  }
+  return local.slice(0, 2).toUpperCase();
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  administrador: 'Administrador',
+  advogado: 'Advogado',
+  estagiario: 'Estagiario',
+  secretaria: 'Secretaria',
+};
+
+function formatRole(role: string): string {
+  return ROLE_LABELS[role] ?? role.charAt(0).toUpperCase() + role.slice(1);
+}
+
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { canAny } = usePermission();
   const features = useFeatures();
 
@@ -163,7 +185,7 @@ export function Sidebar() {
                       `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
                         isActive
                           ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
-                          : 'text-[var(--color-text)] hover:bg-causa-bg'
+                          : 'text-[var(--color-text)] hover:bg-causa-surface-alt'
                       }`
                     }
                   >
@@ -176,12 +198,31 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* User Info */}
+      {user && (
+        <div className="px-3 pt-3 pb-2 border-t border-[var(--color-border)]">
+          <div className="flex items-center gap-2.5 px-2">
+            <div className="w-7 h-7 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-[11px] font-semibold shrink-0">
+              {getInitials(user.email)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-[var(--color-text)] truncate leading-tight">
+                {user.email}
+              </p>
+              <p className="text-[11px] text-[var(--color-text-muted)] leading-tight">
+                {formatRole(user.role)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-[var(--color-border)] flex items-center gap-1">
+      <div className="px-3 pb-3 pt-1 flex items-center gap-1">
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer flex-1"
+          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa cursor-pointer flex-1"
         >
           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           {theme === 'light' ? 'Escuro' : 'Claro'}
@@ -189,7 +230,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={logout}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
+          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
           title="Sair"
         >
           <LogOut size={16} />
