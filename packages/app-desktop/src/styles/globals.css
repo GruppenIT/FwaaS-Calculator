@@ -3,30 +3,45 @@
 /*
  * CAUSA — Tokens de Identidade Visual
  * Fonte: CAUSA_identidade_visual.md (Seção 8)
+ *
+ * Estrutura:
+ * 1. @theme inline — mapeia utility classes Tailwind para var() CSS custom properties
+ * 2. :root — valores hex reais para modo claro (single source of truth)
+ * 3. .dark — valores hex reais para modo escuro (single source of truth)
+ *
+ * Regra: hex APENAS em :root e .dark. @theme referencia var() para que opacity
+ * modifiers funcionem corretamente (ex: bg-causa-primary/8).
  */
 
-@theme {
+@theme inline {
   /* Cores primárias */
-  --color-causa-primary: #2563a8;
-  --color-causa-primary-hover: #1d4e8f;
-  --color-causa-primary-light: oklch(from #2563a8 l c h / 0.08);
-  --color-causa-bg: #f7f6f3;
-  --color-causa-surface: #ffffff;
-  --color-causa-surface-alt: #f3f4f6;
+  --color-causa-primary: var(--color-primary);
+  --color-causa-primary-hover: var(--color-primary-hover);
+  --color-causa-primary-light: var(--color-primary-light);
+  --color-causa-bg: var(--color-bg);
+  --color-causa-surface: var(--color-surface);
+  --color-causa-surface-elevated: var(--color-surface-elevated);
+  --color-causa-surface-alt: var(--color-surface-alt);
 
   /* Cores de estado */
-  --color-causa-success: #2a9d8f;
-  --color-causa-warning: #e9a800;
-  --color-causa-danger: #dc2626;
+  --color-causa-success: var(--color-success);
+  --color-causa-warning: var(--color-warning);
+  --color-causa-danger: var(--color-danger);
+
+  /* Tiers de urgência */
+  --color-causa-tier-info: var(--color-tier-info);
+  --color-causa-tier-warning: var(--color-tier-warning);
+  --color-causa-tier-urgent: var(--color-tier-urgent);
+  --color-causa-tier-fatal: var(--color-tier-fatal);
 
   /* Texto */
-  --color-causa-text: #1e1e2e;
-  --color-causa-text-muted: #6b7280;
+  --color-causa-text: var(--color-text);
+  --color-causa-text-muted: var(--color-text-muted);
 
   /* Bordas */
-  --color-causa-border: #e5e7eb;
+  --color-causa-border: var(--color-border);
 
-  /* Tipografia */
+  /* Tipografia — valores literais (não mudam entre temas) */
   --font-ui: 'Inter', system-ui, sans-serif;
   --font-brand: 'Lora', Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
@@ -45,29 +60,61 @@
 }
 
 /*
- * Variáveis CSS customizadas (modo claro e escuro)
- * Usadas diretamente em componentes via var()
+ * Variáveis CSS customizadas — modo claro
+ * Single source of truth para todos os valores hex em modo claro.
  */
 :root {
   --color-bg: #f7f6f3;
   --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-surface-alt: #f3f4f6;
   --color-text: #1e1e2e;
   --color-text-muted: #6b7280;
   --color-border: #e5e7eb;
   --color-primary: #2563a8;
   --color-primary-hover: #1d4e8f;
+  --color-primary-light: oklch(from #2563a8 l c h / 0.08);
+
+  /* Estado */
+  --color-success: #2a9d8f;
+  --color-warning: #e9a800;
+  --color-danger: #dc2626;
+
+  /* Tiers de urgência */
+  --color-tier-info: #2563a8;
+  --color-tier-warning: #e9a800;
+  --color-tier-urgent: #e9a800;
+  --color-tier-fatal: #dc2626;
 
   color-scheme: light;
 }
 
+/*
+ * Variáveis CSS customizadas — modo escuro
+ * Três níveis de elevação: bg < surface < surface-elevated.
+ */
 .dark {
   --color-bg: #0f0f1a;
   --color-surface: #1a1a2e;
+  --color-surface-elevated: #22223a;
+  --color-surface-alt: #252540;
   --color-text: #e8e8f0;
   --color-text-muted: #9ca3af;
   --color-border: #2d2d42;
   --color-primary: #3b82f6;
   --color-primary-hover: #2563a8;
+  --color-primary-light: oklch(from #3b82f6 l c h / 0.08);
+
+  /* Estado */
+  --color-success: #2a9d8f;
+  --color-warning: #e9a800;
+  --color-danger: #dc2626;
+
+  /* Tiers de urgência — azul mais claro para contraste no escuro */
+  --color-tier-info: #3b82f6;
+  --color-tier-warning: #e9a800;
+  --color-tier-urgent: #e9a800;
+  --color-tier-fatal: #dc2626;
 
   color-scheme: dark;
 }
@@ -175,5 +222,16 @@ body {
   }
   50% {
     opacity: 0.8;
+  }
+}
+
+/*
+ * Acessibilidade — respeita preferência do sistema por movimento reduzido (DS-19)
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
