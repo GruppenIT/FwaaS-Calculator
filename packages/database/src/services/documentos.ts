@@ -39,16 +39,15 @@ export class DocumentoService {
   private extractText(conteudo: string | undefined, tipoMime: string): string | null {
     if (!conteudo) return null;
     // Extrair texto de formatos baseados em texto
-    if (
-      tipoMime === 'text/plain' ||
-      tipoMime === 'text/csv' ||
-      tipoMime === 'text/html'
-    ) {
+    if (tipoMime === 'text/plain' || tipoMime === 'text/csv' || tipoMime === 'text/html') {
       try {
         const text = Buffer.from(conteudo, 'base64').toString('utf-8');
         // Para HTML, remover tags
         if (tipoMime === 'text/html') {
-          return text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          return text
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
         }
         return text;
       } catch {

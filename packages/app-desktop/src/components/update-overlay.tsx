@@ -72,7 +72,9 @@ export function UpdateOverlay() {
                 </span>
                 <span>
                   {status.percent != null ? `${status.percent.toFixed(0)}%` : ''}
-                  {status.bytesPerSecond != null ? ` — ${formatBytes(status.bytesPerSecond)}/s` : ''}
+                  {status.bytesPerSecond != null
+                    ? ` — ${formatBytes(status.bytesPerSecond)}/s`
+                    : ''}
                 </span>
               </div>
             </div>
@@ -91,12 +93,13 @@ export function UpdateOverlay() {
               </div>
               {status.version && (
                 <p className="text-sm-causa text-[var(--color-text-muted)] mb-1">
-                  Nova versão: <span className="font-medium text-[var(--color-primary)]">v{status.version}</span>
+                  Nova versão:{' '}
+                  <span className="font-medium text-[var(--color-primary)]">v{status.version}</span>
                 </p>
               )}
               <p className="text-sm-causa text-[var(--color-text-muted)]">
-                O programa será reiniciado para aplicar a atualização.
-                As migrações de banco de dados serão aplicadas automaticamente.
+                O programa será reiniciado para aplicar a atualização. As migrações de banco de
+                dados serão aplicadas automaticamente.
               </p>
             </div>
 
@@ -112,9 +115,7 @@ export function UpdateOverlay() {
         {status.state === 'restarting' && (
           <div className="text-center space-y-4">
             <Loader2 size={32} className="animate-spin text-[var(--color-primary)] mx-auto" />
-            <p className="text-sm-causa text-[var(--color-text-muted)]">
-              Reiniciando...
-            </p>
+            <p className="text-sm-causa text-[var(--color-text-muted)]">Reiniciando...</p>
           </div>
         )}
 

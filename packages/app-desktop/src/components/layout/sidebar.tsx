@@ -177,21 +177,21 @@ export function Sidebar() {
                 {section.title}
               </div>
               {visibleItems.map(({ to, icon: Icon, label }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    end={to === '/app'}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
-                        isActive
-                          ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
-                          : 'text-[var(--color-text)] hover:bg-causa-surface-alt'
-                      }`
-                    }
-                  >
-                    <Icon size={18} />
-                    {label}
-                  </NavLink>
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/app'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
+                      isActive
+                        ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+                        : 'text-[var(--color-text)] hover:bg-causa-surface-alt'
+                    }`
+                  }
+                >
+                  <Icon size={18} />
+                  {label}
+                </NavLink>
               ))}
             </div>
           );

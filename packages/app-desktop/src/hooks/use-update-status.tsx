@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 
 interface UpdateContextValue {
   status: UpdateStatus;
@@ -25,10 +33,15 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const statusRef = useRef(status);
 
   const refreshStatus = useCallback(() => {
-    window.causaElectron?.getUpdateStatus()
+    window.causaElectron
+      ?.getUpdateStatus()
       .then((s) => {
         if (s && s.state) {
-          if (s.state !== statusRef.current.state || s.version !== statusRef.current.version || s.percent !== statusRef.current.percent) {
+          if (
+            s.state !== statusRef.current.state ||
+            s.version !== statusRef.current.version ||
+            s.percent !== statusRef.current.percent
+          ) {
             log('INFO', `Status via poll: ${s.state} ${s.version ?? ''}`);
             statusRef.current = s;
             setStatus(s);
@@ -68,9 +81,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   }, [refreshStatus]);
 
   return (
-    <UpdateContext.Provider value={{ status, refreshStatus }}>
-      {children}
-    </UpdateContext.Provider>
+    <UpdateContext.Provider value={{ status, refreshStatus }}>{children}</UpdateContext.Provider>
   );
 }
 

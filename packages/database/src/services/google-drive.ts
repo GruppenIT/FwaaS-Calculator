@@ -96,7 +96,10 @@ export class GoogleDriveService {
    * @param credentials JSON da Service Account
    * @param impersonateEmail E-mail do usuário para impersonar (obrigatório para SA)
    */
-  static fromServiceAccount(credentials: ServiceAccountCredentials, impersonateEmail?: string): GoogleDriveService {
+  static fromServiceAccount(
+    credentials: ServiceAccountCredentials,
+    impersonateEmail?: string,
+  ): GoogleDriveService {
     const auth = new google.auth.JWT(
       credentials.client_email,
       undefined,
@@ -132,7 +135,9 @@ export class GoogleDriveService {
     const oauth2 = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
     const { tokens } = await oauth2.getToken(code);
     if (!tokens.access_token || !tokens.refresh_token) {
-      throw new Error('Falha ao obter tokens. Certifique-se de que o consent screen está configurado corretamente.');
+      throw new Error(
+        'Falha ao obter tokens. Certifique-se de que o consent screen está configurado corretamente.',
+      );
     }
     return {
       access_token: tokens.access_token,
@@ -142,7 +147,11 @@ export class GoogleDriveService {
   }
 
   /** Verifica se está conectado e funcionando */
-  async testConnection(): Promise<{ ok: boolean; email?: string | undefined; error?: string | undefined }> {
+  async testConnection(): Promise<{
+    ok: boolean;
+    email?: string | undefined;
+    error?: string | undefined;
+  }> {
     try {
       const about = await this.drive.about.get({ fields: 'user' });
       const email = about.data.user?.emailAddress ?? this.userEmail;
@@ -166,7 +175,10 @@ export class GoogleDriveService {
     const cacheKey = `${parentId}/${name}`;
     const cached = this.folderCache.get(cacheKey);
     if (cached) {
-      logger.info('GoogleDrive', `findOrCreateFolder: cache hit para "${name}" (parent=${parentId}) → ${cached}`);
+      logger.info(
+        'GoogleDrive',
+        `findOrCreateFolder: cache hit para "${name}" (parent=${parentId}) → ${cached}`,
+      );
       return cached;
     }
 
@@ -280,12 +292,18 @@ export class GoogleDriveService {
       clienteNome: opts.clienteNome,
       clienteCpfCnpj: opts.clienteCpfCnpj,
     });
-    logger.info('GoogleDrive', `resolveCompartilhadoFolder: cliente="${opts.clienteNome}" → pasta="${clienteFolderName}" (root=${opts.rootFolderId})`);
+    logger.info(
+      'GoogleDrive',
+      `resolveCompartilhadoFolder: cliente="${opts.clienteNome}" → pasta="${clienteFolderName}" (root=${opts.rootFolderId})`,
+    );
 
     const clientesId = await this.findOrCreateFolder('Clientes', opts.rootFolderId);
     const clienteFolderId = await this.findOrCreateFolder(clienteFolderName, clientesId);
     const compartilhadoId = await this.findOrCreateFolder('Compartilhado', clienteFolderId);
-    logger.info('GoogleDrive', `resolveCompartilhadoFolder: Compartilhado criado/encontrado → ${compartilhadoId}`);
+    logger.info(
+      'GoogleDrive',
+      `resolveCompartilhadoFolder: Compartilhado criado/encontrado → ${compartilhadoId}`,
+    );
     return compartilhadoId;
   }
 
@@ -298,11 +316,15 @@ export class GoogleDriveService {
       supportsAllDrives: true,
     };
     if (oldParentId) params.removeParents = oldParentId;
-    await this.drive.files.update(params as unknown as Parameters<typeof this.drive.files.update>[0]);
+    await this.drive.files.update(
+      params as unknown as Parameters<typeof this.drive.files.update>[0],
+    );
   }
 
   /** Lista arquivos dentro de uma pasta */
-  async listFiles(folderId: string): Promise<Array<{ id: string; name: string; mimeType: string; webViewLink: string }>> {
+  async listFiles(
+    folderId: string,
+  ): Promise<Array<{ id: string; name: string; mimeType: string; webViewLink: string }>> {
     const res = await this.drive.files.list({
       q: `'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
       fields: 'files(id,name,mimeType,webViewLink)',
@@ -319,7 +341,11 @@ export class GoogleDriveService {
   }
 
   /** Lista subpastas "Compartilhado" de todos os clientes */
-  async listCompartilhadoFolders(rootFolderId: string): Promise<Array<{ clienteFolderId: string; clienteFolderName: string; compartilhadoId: string }>> {
+  async listCompartilhadoFolders(
+    rootFolderId: string,
+  ): Promise<
+    Array<{ clienteFolderId: string; clienteFolderName: string; compartilhadoId: string }>
+  > {
     const clientesId = await this.findOrCreateFolder('Clientes', rootFolderId);
 
     // Listar pastas de clientes
@@ -331,7 +357,11 @@ export class GoogleDriveService {
       supportsAllDrives: true,
     });
 
-    const result: Array<{ clienteFolderId: string; clienteFolderName: string; compartilhadoId: string }> = [];
+    const result: Array<{
+      clienteFolderId: string;
+      clienteFolderName: string;
+      compartilhadoId: string;
+    }> = [];
 
     for (const folder of clienteRes.data.files ?? []) {
       if (!folder.id || !folder.name) continue;
@@ -399,11 +429,14 @@ export class GoogleDriveService {
   }
 
   /** Atualiza o conteúdo de um arquivo existente */
-  async updateFile(fileId: string, opts: {
-    name?: string;
-    mimeType: string;
-    content: Buffer;
-  }): Promise<void> {
+  async updateFile(
+    fileId: string,
+    opts: {
+      name?: string;
+      mimeType: string;
+      content: Buffer;
+    },
+  ): Promise<void> {
     await this.drive.files.update({
       fileId,
       requestBody: opts.name ? { name: opts.name } : {},

@@ -1,7 +1,13 @@
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDatabase, type CausaDatabase, type SqliteDatabase, type PgDatabase, type DatabaseQueryBuilder } from './client.js';
+import {
+  createDatabase,
+  type CausaDatabase,
+  type SqliteDatabase,
+  type PgDatabase,
+  type DatabaseQueryBuilder,
+} from './client.js';
 import { getSchema, type CausaSchema } from './schema-provider.js';
 import { AuthService } from './services/auth.js';
 import { RbacService, type AuthenticatedUser } from './services/rbac.js';
@@ -163,7 +169,12 @@ function initDriveFromConfig(gdConfig: GoogleDriveConfig): void {
   driveService = null;
   const mode = gdConfig.authMode ?? (gdConfig.serviceAccountJson ? 'service_account' : 'oauth');
 
-  if (mode === 'oauth' && gdConfig.oauthClientId && gdConfig.oauthClientSecret && gdConfig.oauthTokens) {
+  if (
+    mode === 'oauth' &&
+    gdConfig.oauthClientId &&
+    gdConfig.oauthClientSecret &&
+    gdConfig.oauthTokens
+  ) {
     try {
       driveService = GoogleDriveService.fromOAuth(
         gdConfig.oauthClientId,
@@ -279,8 +290,16 @@ async function executeBackup(): Promise<void> {
     logger.error('Backup', 'Erro ao compactar backup', {
       error: err instanceof Error ? err.message : String(err),
     });
-    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
-    try { fs.unlinkSync(gzPath); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      /* ignore */
+    }
+    try {
+      fs.unlinkSync(gzPath);
+    } catch {
+      /* ignore */
+    }
     backupStatus = { running: false, completedDestinations: 0, totalDestinations: 0, results: [] };
     return;
   }
@@ -366,7 +385,9 @@ async function executeBackup(): Promise<void> {
   // Cleanup temp file
   try {
     fs.unlinkSync(gzPath);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // Cleanup old backups from local/network destinations
   cleanupOldBackups(enabledDests, backupConfig.retentionDays || 30);
@@ -407,7 +428,11 @@ function cleanupOldBackups(destinations: BackupDestination[], retentionDays: num
     if (dest.type === 'google_drive' || !dest.path) continue;
     try {
       if (!fs.existsSync(dest.path)) continue;
-      const files = fs.readdirSync(dest.path).filter((f) => f.startsWith('causa_backup_') && (f.endsWith('.db') || f.endsWith('.db.gz')));
+      const files = fs
+        .readdirSync(dest.path)
+        .filter(
+          (f) => f.startsWith('causa_backup_') && (f.endsWith('.db') || f.endsWith('.db.gz')),
+        );
       for (const file of files) {
         // Parse date from filename: causa_backup_YYYY-MM-DD_HHmm.db
         const match = file.match(/causa_backup_(\d{4}-\d{2}-\d{2})/);
@@ -430,11 +455,11 @@ function cleanupOldBackups(destinations: BackupDestination[], retentionDays: num
   try {
     if (db) {
       const cutoffIso = cutoff.toISOString();
-      (db as SqliteDatabase).run(
-        sql`DELETE FROM backup_logs WHERE started_at < ${cutoffIso}`,
-      );
+      (db as SqliteDatabase).run(sql`DELETE FROM backup_logs WHERE started_at < ${cutoffIso}`);
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Start the backup scheduler that checks every minute if it's time to run */
@@ -464,7 +489,11 @@ function startBackupScheduler(): void {
       } else if (bc.schedule.trigger === 'weekly') {
         const targetDay = bc.schedule.weeklyDay ?? 1; // Monday default
         const targetTime = bc.schedule.weeklyTime || '08:00';
-        if (now.getDay() === targetDay && currentTime === targetTime && lastBackupDate !== todayStr) {
+        if (
+          now.getDay() === targetDay &&
+          currentTime === targetTime &&
+          lastBackupDate !== todayStr
+        ) {
           executeBackup().catch((err) => {
             logger.error('Backup', 'Erro no backup agendado', {
               error: err instanceof Error ? err.message : String(err),
@@ -473,7 +502,9 @@ function startBackupScheduler(): void {
         }
       }
       // on_open and first_open_day are triggered by the frontend calling POST /api/backup/notify-open
-    } catch { /* ignore scheduler errors */ }
+    } catch {
+      /* ignore scheduler errors */
+    }
   }, 60_000); // Check every minute
 
   logger.info('Backup', 'Agendador de backup iniciado');
@@ -598,7 +629,9 @@ function loadApp(): boolean {
     } else {
       logger.info('API', 'Aplicando migrations PostgreSQL pendentes...');
       // PG migrate é async mas loadApp é sync — tratado no startServer
-      pendingPgMigration = migratePg(database as PgDatabase, { migrationsFolder: MIGRATIONS_PG_DIR });
+      pendingPgMigration = migratePg(database as PgDatabase, {
+        migrationsFolder: MIGRATIONS_PG_DIR,
+      });
     }
     logger.info('API', 'Migrations aplicadas com sucesso');
   } catch (err) {
@@ -851,7 +884,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const code = url.searchParams.get('code');
       if (!code) {
         res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<html><body><h2>Erro: codigo de autorizacao nao recebido.</h2><p>Feche esta janela e tente novamente.</p></body></html>');
+        res.end(
+          '<html><body><h2>Erro: codigo de autorizacao nao recebido.</h2><p>Feche esta janela e tente novamente.</p></body></html>',
+        );
         return;
       }
       try {
@@ -864,7 +899,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           return;
         }
         const redirectUri = `http://localhost:${DEFAULT_PORT}/api/google-drive/oauth/callback`;
-        const tokens = await GoogleDriveService.exchangeCode(clientId, clientSecret, code, redirectUri);
+        const tokens = await GoogleDriveService.exchangeCode(
+          clientId,
+          clientSecret,
+          code,
+          redirectUri,
+        );
 
         if (!config.googleDrive) config.googleDrive = { serviceAccountJson: '' };
         config.googleDrive.authMode = 'oauth';
@@ -874,14 +914,18 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         initDriveFromConfig(config.googleDrive);
 
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2 style="color:#22c55e">Google Drive conectado com sucesso!</h2><p>Pode fechar esta janela e voltar ao CAUSA.</p><script>setTimeout(()=>window.close(),3000)</script></body></html>');
+        res.end(
+          '<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2 style="color:#22c55e">Google Drive conectado com sucesso!</h2><p>Pode fechar esta janela e voltar ao CAUSA.</p><script>setTimeout(()=>window.close(),3000)</script></body></html>',
+        );
         return;
       } catch (err) {
         logger.error('GoogleDrive', 'Erro no OAuth callback', {
           error: err instanceof Error ? err.message : String(err),
         });
         res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<html><body><h2>Erro ao conectar</h2><p>${err instanceof Error ? err.message : 'Erro desconhecido'}</p></body></html>`);
+        res.end(
+          `<html><body><h2>Erro ao conectar</h2><p>${err instanceof Error ? err.message : 'Erro desconhecido'}</p></body></html>`,
+        );
         return;
       }
     }
@@ -918,18 +962,22 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           const cConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
           const rootId = cConfig.googleDrive?.rootFolderId;
           if (rootId) {
-            driveService.resolveCompartilhadoFolder({
-              rootFolderId: rootId,
-              clienteNome: validation.data.nome,
-              clienteTipo: validation.data.tipo,
-              clienteCpfCnpj: validation.data.cpfCnpj ?? undefined,
-            }).catch((err) => {
-              logger.error('GoogleDrive', 'Erro ao criar pasta Compartilhado para novo cliente', {
-                error: err instanceof Error ? err.message : String(err),
+            driveService
+              .resolveCompartilhadoFolder({
+                rootFolderId: rootId,
+                clienteNome: validation.data.nome,
+                clienteTipo: validation.data.tipo,
+                clienteCpfCnpj: validation.data.cpfCnpj ?? undefined,
+              })
+              .catch((err) => {
+                logger.error('GoogleDrive', 'Erro ao criar pasta Compartilhado para novo cliente', {
+                  error: err instanceof Error ? err.message : String(err),
+                });
               });
-            });
           }
-        } catch { /* ignore config read error */ }
+        } catch {
+          /* ignore config read error */
+        }
       }
 
       return json(res, { id }, 201);
@@ -1042,7 +1090,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (body.geraPrazo) {
           try {
             const processo = await getProcessoService().obterPorId(processoId);
-            const dataInicio = body.dataMovimento ?? (new Date().toISOString().split('T')[0] ?? '');
+            const dataInicio = body.dataMovimento ?? new Date().toISOString().split('T')[0] ?? '';
             const dataFatal = new Date(dataInicio);
             dataFatal.setDate(dataFatal.getDate() + 15); // Default 15 days
             const prazoId = await getPrazoService().criar({
@@ -1445,7 +1493,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // --- Documentos ---
     if (path === '/api/documentos' && method === 'GET') {
       if (!(await requirePermission(res, user, 'documentos:ler_todos'))) return;
-      const filtros: { processoId?: string; clienteId?: string; includeProcessoDocs?: boolean; categoria?: string; q?: string } = {};
+      const filtros: {
+        processoId?: string;
+        clienteId?: string;
+        includeProcessoDocs?: boolean;
+        categoria?: string;
+        q?: string;
+      } = {};
       const processoIdParam = url.searchParams.get('processoId');
       const clienteIdParam = url.searchParams.get('clienteId');
       const includeProcessoDocsParam = url.searchParams.get('includeProcessoDocs');
@@ -1700,7 +1754,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       const gdConfig = config.googleDrive;
       return json(res, {
-        authMode: gdConfig?.authMode ?? (gdConfig?.serviceAccountJson ? 'service_account' : 'oauth'),
+        authMode:
+          gdConfig?.authMode ?? (gdConfig?.serviceAccountJson ? 'service_account' : 'oauth'),
         configured: !!(gdConfig?.oauthTokens || gdConfig?.serviceAccountJson),
         connected: driveService !== null,
         rootFolderId: gdConfig?.rootFolderId ?? null,
@@ -1725,10 +1780,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       if (body.authMode !== undefined) config.googleDrive.authMode = body.authMode;
       if (body.oauthClientId !== undefined) config.googleDrive.oauthClientId = body.oauthClientId;
-      if (body.oauthClientSecret !== undefined) config.googleDrive.oauthClientSecret = body.oauthClientSecret;
-      if (body.serviceAccountJson !== undefined) config.googleDrive.serviceAccountJson = body.serviceAccountJson;
+      if (body.oauthClientSecret !== undefined)
+        config.googleDrive.oauthClientSecret = body.oauthClientSecret;
+      if (body.serviceAccountJson !== undefined)
+        config.googleDrive.serviceAccountJson = body.serviceAccountJson;
       if (body.rootFolderId !== undefined) config.googleDrive.rootFolderId = body.rootFolderId;
-      if (body.impersonateEmail !== undefined) config.googleDrive.impersonateEmail = body.impersonateEmail || '';
+      if (body.impersonateEmail !== undefined)
+        config.googleDrive.impersonateEmail = body.impersonateEmail || '';
 
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
@@ -1786,7 +1844,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const config: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       const rootFolderId = config.googleDrive?.rootFolderId;
       if (!rootFolderId) {
-        return error(res, 'Configure o ID da pasta raiz do Google Drive antes de sincronizar.', 400);
+        return error(
+          res,
+          'Configure o ID da pasta raiz do Google Drive antes de sincronizar.',
+          400,
+        );
       }
 
       try {
@@ -1839,7 +1901,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           documentoId: body.documentoId,
           error: err instanceof Error ? err.message : String(err),
         });
-        return error(res, `Erro ao sincronizar: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+        return error(
+          res,
+          `Erro ao sincronizar: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
+          500,
+        );
       }
     }
 
@@ -1851,7 +1917,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
       const syncAllConfig: AppConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
       if (!syncAllConfig.googleDrive?.rootFolderId) {
-        return error(res, 'Configure o ID da pasta raiz do Google Drive antes de sincronizar.', 400);
+        return error(
+          res,
+          'Configure o ID da pasta raiz do Google Drive antes de sincronizar.',
+          400,
+        );
       }
       const syncAllRootFolderId = syncAllConfig.googleDrive.rootFolderId;
 
@@ -1868,10 +1938,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         })
         .from(s.documentos)
         .where(
-          and(
-            sql`${s.documentos.conteudo} IS NOT NULL`,
-            sql`${s.documentos.driveFileId} IS NULL`,
-          ),
+          and(sql`${s.documentos.conteudo} IS NOT NULL`, sql`${s.documentos.driveFileId} IS NULL`),
         );
 
       let synced = 0;
@@ -1889,7 +1956,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
             rootFolderId: syncAllRootFolderId,
             clienteNome: docFull.clienteNome ?? undefined,
             clienteTipo: (docFull as Record<string, unknown>).clienteTipo as string | undefined,
-            clienteCpfCnpj: (docFull as Record<string, unknown>).clienteCpfCnpj as string | undefined,
+            clienteCpfCnpj: (docFull as Record<string, unknown>).clienteCpfCnpj as
+              | string
+              | undefined,
             numeroCnj: docFull.numeroCnj ?? undefined,
           });
 
@@ -1942,7 +2011,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           .select({ driveFileId: s.documentos.driveFileId })
           .from(s.documentos)
           .where(sql`${s.documentos.driveFileId} IS NOT NULL`);
-        const classifiedIds = new Set(classifiedRows.map((r: { driveFileId: string | null }) => r.driveFileId));
+        const classifiedIds = new Set(
+          classifiedRows.map((r: { driveFileId: string | null }) => r.driveFileId),
+        );
 
         const folders = await driveService.listCompartilhadoFolders(rootFolderId);
         const result: Array<{
@@ -1969,7 +2040,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         logger.error('GoogleDrive', 'Erro ao listar não classificados', {
           error: err instanceof Error ? err.message : String(err),
         });
-        return error(res, `Erro ao listar: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+        return error(
+          res,
+          `Erro ao listar: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
+          500,
+        );
       }
     }
 
@@ -2061,7 +2136,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         logger.error('GoogleDrive', 'Erro ao classificar documento', {
           error: err instanceof Error ? err.message : String(err),
         });
-        return error(res, `Erro ao classificar: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+        return error(
+          res,
+          `Erro ao classificar: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
+          500,
+        );
       }
     }
 
@@ -2085,9 +2164,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const clienteService = getClienteService();
         const allClientes = await clienteService.listar();
         let created = 0;
-        const details: Array<{ nome: string; folderName: string; ok: boolean; error?: string }> = [];
+        const details: Array<{ nome: string; folderName: string; ok: boolean; error?: string }> =
+          [];
 
-        logger.info('GoogleDrive', `sync-folders: processando ${allClientes.length} clientes (rootFolderId=${rootFolderId})`);
+        logger.info(
+          'GoogleDrive',
+          `sync-folders: processando ${allClientes.length} clientes (rootFolderId=${rootFolderId})`,
+        );
 
         for (const cliente of allClientes) {
           const folderName = GoogleDriveService.buildClienteFolderName({
@@ -2106,14 +2189,22 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
             details.push({ nome: cliente.nome, folderName, ok: true });
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err);
-            logger.error('GoogleDrive', `Erro ao criar pasta para cliente ${cliente.nome} (${folderName})`, {
-              error: errMsg,
-            });
+            logger.error(
+              'GoogleDrive',
+              `Erro ao criar pasta para cliente ${cliente.nome} (${folderName})`,
+              {
+                error: errMsg,
+              },
+            );
             details.push({ nome: cliente.nome, folderName, ok: false, error: errMsg });
           }
         }
 
-        logger.info('GoogleDrive', `sync-folders: concluído — ${created}/${allClientes.length} processados`, { details });
+        logger.info(
+          'GoogleDrive',
+          `sync-folders: concluído — ${created}/${allClientes.length} processados`,
+          { details },
+        );
         return json(res, { ok: true, total: allClientes.length, created, details });
       } catch (err) {
         logger.error('GoogleDrive', 'Erro ao sincronizar pastas', {
@@ -2147,7 +2238,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       }
       if (body.botToken !== undefined) config.telegram.botToken = body.botToken;
       if (body.chatId !== undefined) config.telegram.chatId = body.chatId;
-      if (body.dailySummaryEnabled !== undefined) config.telegram.dailySummaryEnabled = body.dailySummaryEnabled;
+      if (body.dailySummaryEnabled !== undefined)
+        config.telegram.dailySummaryEnabled = body.dailySummaryEnabled;
       if (body.alertDays !== undefined) config.telegram.alertDays = body.alertDays;
 
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
@@ -2202,7 +2294,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const sent = await telegramService.sendDailySummary(summaryData);
         return json(res, { ok: sent });
       } catch (err) {
-        return error(res, `Erro ao enviar resumo: ${err instanceof Error ? err.message : 'erro desconhecido'}`, 500);
+        return error(
+          res,
+          `Erro ao enviar resumo: ${err instanceof Error ? err.message : 'erro desconhecido'}`,
+          500,
+        );
       }
     }
 
@@ -2348,10 +2444,15 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (!(await requirePermission(res, user, 'licenca:gerenciar'))) return;
       try {
         if (fs.existsSync(GH_TOKEN_CONFIG)) {
-          const config = JSON.parse(fs.readFileSync(GH_TOKEN_CONFIG, 'utf-8')) as Record<string, unknown>;
+          const config = JSON.parse(fs.readFileSync(GH_TOKEN_CONFIG, 'utf-8')) as Record<
+            string,
+            unknown
+          >;
           return json(res, { token: (config.ghToken as string) ?? '' });
         }
-      } catch { /* ignorar */ }
+      } catch {
+        /* ignorar */
+      }
       return json(res, { token: '' });
     }
 
@@ -2363,7 +2464,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (fs.existsSync(GH_TOKEN_CONFIG)) {
           config = JSON.parse(fs.readFileSync(GH_TOKEN_CONFIG, 'utf-8')) as Record<string, unknown>;
         }
-      } catch { /* ignorar */ }
+      } catch {
+        /* ignorar */
+      }
       config.ghToken = body.token;
       fs.writeFileSync(GH_TOKEN_CONFIG, JSON.stringify(config, null, 2));
       logger.info('API', `GH_TOKEN salvo em ${GH_TOKEN_CONFIG}`, { hasToken: !!body.token });
@@ -2516,14 +2619,19 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         .where(gte(s.tarefas.createdAt, inicioStr));
 
       // Build a 30-day map
-      const timeline: { data: string; movimentacoes: number; prazos: number; tarefas: number }[] = [];
+      const timeline: { data: string; movimentacoes: number; prazos: number; tarefas: number }[] =
+        [];
       for (let i = 0; i < 30; i++) {
         const d = new Date(inicio);
         d.setDate(inicio.getDate() + i);
         const dStr = d.toISOString().split('T')[0] ?? '';
-        const mov = movimentacoesPorDia.find((m: { data: string; total: number }) => m.data === dStr);
+        const mov = movimentacoesPorDia.find(
+          (m: { data: string; total: number }) => m.data === dStr,
+        );
         const pz = prazosPorDia.find((p: { data: string; total: number }) => p.data === dStr);
-        const tf = tarefasPorDia.find((t: { data: string | null; total: number }) => t.data?.startsWith(dStr));
+        const tf = tarefasPorDia.find((t: { data: string | null; total: number }) =>
+          t.data?.startsWith(dStr),
+        );
         timeline.push({
           data: dStr,
           movimentacoes: mov?.total ?? 0,
@@ -2557,7 +2665,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         const d = new Date(inicio);
         d.setDate(inicio.getDate() + i);
         const dStr = d.toISOString().split('T')[0] ?? '';
-        const entry = timesheetPorDia.find((t: { data: string; totalMinutos: string | number | null }) => t.data === dStr);
+        const entry = timesheetPorDia.find(
+          (t: { data: string; totalMinutos: string | number | null }) => t.data === dStr,
+        );
         produtividade.push({
           data: dStr,
           minutos: Number(entry?.totalMinutos ?? 0),
@@ -2590,7 +2700,15 @@ async function buildDailySummary() {
   const fimSemana = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0] ?? '';
 
   // Prazos pendentes
-  type PrazoSummaryRow = { id: string; descricao: string; dataFatal: string; numeroCnj: string | null; fatal: boolean; responsavelNome: string | null; alertasEnviados: unknown };
+  type PrazoSummaryRow = {
+    id: string;
+    descricao: string;
+    dataFatal: string;
+    numeroCnj: string | null;
+    fatal: boolean;
+    responsavelNome: string | null;
+    alertasEnviados: unknown;
+  };
 
   const todosPrazos: PrazoSummaryRow[] = await dbq
     .select({
@@ -2609,15 +2727,23 @@ async function buildDailySummary() {
 
   const prazosHoje = todosPrazos.filter((p: PrazoSummaryRow) => p.dataFatal === hoje).length;
   const prazosAmanha = todosPrazos.filter((p: PrazoSummaryRow) => p.dataFatal === amanha).length;
-  const prazosSemana = todosPrazos.filter((p: PrazoSummaryRow) => p.dataFatal > amanha && p.dataFatal <= fimSemana).length;
+  const prazosSemana = todosPrazos.filter(
+    (p: PrazoSummaryRow) => p.dataFatal > amanha && p.dataFatal <= fimSemana,
+  ).length;
 
   const prazosProximos = todosPrazos
     .map((p: PrazoSummaryRow) => {
-      const dias = Math.ceil((new Date(p.dataFatal + 'T00:00:00').getTime() - new Date(hoje + 'T00:00:00').getTime()) / 86400000);
+      const dias = Math.ceil(
+        (new Date(p.dataFatal + 'T00:00:00').getTime() - new Date(hoje + 'T00:00:00').getTime()) /
+          86400000,
+      );
       return { ...p, diasRestantes: dias };
     })
     .filter((p: PrazoSummaryRow & { diasRestantes: number }) => p.diasRestantes >= 0)
-    .sort((a: { diasRestantes: number }, b: { diasRestantes: number }) => a.diasRestantes - b.diasRestantes);
+    .sort(
+      (a: { diasRestantes: number }, b: { diasRestantes: number }) =>
+        a.diasRestantes - b.diasRestantes,
+    );
 
   // Tarefas pendentes
   const [tarefasPend] = await dbq
@@ -2692,7 +2818,8 @@ async function checkAndSendPrazoAlerts(alertDays: number[]) {
 
   for (const prazo of prazos) {
     const diasRestantes = Math.ceil(
-      (new Date(prazo.dataFatal + 'T00:00:00').getTime() - new Date(hoje + 'T00:00:00').getTime()) / 86400000,
+      (new Date(prazo.dataFatal + 'T00:00:00').getTime() - new Date(hoje + 'T00:00:00').getTime()) /
+        86400000,
     );
 
     if (diasRestantes < 0) continue;

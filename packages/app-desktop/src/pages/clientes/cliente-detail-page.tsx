@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Briefcase, Pencil, MapPin, Phone, Tag, FileText, Download, Eye, Cloud, CloudOff, Loader2, Plus, Scale } from 'lucide-react';
+import {
+  Briefcase,
+  Pencil,
+  MapPin,
+  Phone,
+  Tag,
+  FileText,
+  Download,
+  Eye,
+  Cloud,
+  CloudOff,
+  Loader2,
+  Plus,
+  Scale,
+} from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
@@ -201,10 +215,7 @@ export function ClienteDetailPage() {
       {/* Header */}
       <PageHeader
         title={cliente.nome}
-        breadcrumb={[
-          { label: 'Clientes', to: '/app/clientes' },
-          { label: cliente.nome },
-        ]}
+        breadcrumb={[{ label: 'Clientes', to: '/app/clientes' }, { label: cliente.nome }]}
         action={
           can('clientes:editar') ? (
             <Button variant="secondary" onClick={handleEdit}>
@@ -478,8 +489,8 @@ export function ClienteDetailPage() {
                   <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
                     {new Date(d.createdAt).toLocaleDateString('pt-BR')}
                   </span>
-                  {driveEnabled && (
-                    d.driveFileId ? (
+                  {driveEnabled &&
+                    (d.driveFileId ? (
                       <span
                         className="p-1.5 text-causa-success"
                         title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
@@ -499,8 +510,7 @@ export function ClienteDetailPage() {
                       >
                         <CloudOff size={14} />
                       </button>
-                    )
-                  )}
+                    ))}
                   {canUpload && (
                     <button
                       type="button"
@@ -543,15 +553,16 @@ export function ClienteDetailPage() {
         presetClienteId={id}
       />
 
-      {viewDocId && (
-        <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
-      )}
+      {viewDocId && <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />}
 
       {editDoc && (
         <DocumentoEditModal
           documento={editDoc}
           onClose={() => setEditDoc(null)}
-          onSave={() => { setEditDoc(null); carregar(); }}
+          onSave={() => {
+            setEditDoc(null);
+            carregar();
+          }}
         />
       )}
 

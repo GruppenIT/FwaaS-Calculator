@@ -27,7 +27,12 @@ export function Modal({ open, onClose, title, children, size = 'md', footer }: M
     : { duration: 0.18, ease: 'easeOut' as const };
 
   return (
-    <Dialog.Root open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
+    >
       <Dialog.Portal forceMount>
         <AnimatePresence>
           {open && (

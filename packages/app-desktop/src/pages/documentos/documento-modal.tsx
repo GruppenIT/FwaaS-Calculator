@@ -36,7 +36,13 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function DocumentoModal({ open, onClose, onSave, presetClienteId, presetProcessoId }: Props) {
+export function DocumentoModal({
+  open,
+  onClose,
+  onSave,
+  presetClienteId,
+  presetProcessoId,
+}: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -52,8 +58,16 @@ export function DocumentoModal({ open, onClose, onSave, presetClienteId, presetP
 
   useEffect(() => {
     if (open) {
-      if (!presetProcessoId) api.listarProcessos().then(setProcessos).catch(() => {});
-      if (!presetClienteId) api.listarClientes().then(setClientes).catch(() => {});
+      if (!presetProcessoId)
+        api
+          .listarProcessos()
+          .then(setProcessos)
+          .catch(() => {});
+      if (!presetClienteId)
+        api
+          .listarClientes()
+          .then(setClientes)
+          .catch(() => {});
       setFile(null);
       setDescricao('');
       setCategoria('');
@@ -145,16 +159,15 @@ export function DocumentoModal({ open, onClose, onSave, presetClienteId, presetP
           </button>
         </div>
 
-        <form ref={formRef} onSubmit={handleSubmit} className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="px-6 py-4 space-y-3 max-h-[70vh] overflow-y-auto"
+        >
           {/* Área de upload */}
           <div>
             <label className={labelClass}>Arquivo *</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileChange}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

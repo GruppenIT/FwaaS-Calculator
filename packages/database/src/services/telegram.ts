@@ -27,10 +27,17 @@ export class TelegramService {
   }
 
   /** Testa a conexão com o bot */
-  async testConnection(): Promise<{ ok: boolean; botName?: string | undefined; error?: string | undefined }> {
+  async testConnection(): Promise<{
+    ok: boolean;
+    botName?: string | undefined;
+    error?: string | undefined;
+  }> {
     try {
       const res = await fetch(`${this.baseUrl}/getMe`);
-      const data = (await res.json()) as { ok: boolean; result?: { first_name: string; username: string } };
+      const data = (await res.json()) as {
+        ok: boolean;
+        result?: { first_name: string; username: string };
+      };
       if (data.ok && data.result) {
         return { ok: true, botName: `@${data.result.username}` };
       }
@@ -113,11 +120,12 @@ export class TelegramService {
     fatal: boolean;
     prioridade: string;
   }): Promise<boolean> {
-    const urgencia = prazo.diasRestantes <= 1
-      ? '🔴 URGENTE'
-      : prazo.diasRestantes <= 3
-        ? '🟠 ATENÇÃO'
-        : '🟡 LEMBRETE';
+    const urgencia =
+      prazo.diasRestantes <= 1
+        ? '🔴 URGENTE'
+        : prazo.diasRestantes <= 3
+          ? '🟠 ATENÇÃO'
+          : '🟡 LEMBRETE';
 
     const fatalTag = prazo.fatal ? ' [FATAL]' : '';
     const dataFormatada = new Date(prazo.dataFatal + 'T00:00:00').toLocaleDateString('pt-BR');
@@ -160,11 +168,7 @@ export class TelegramService {
       year: 'numeric',
     });
 
-    const lines: string[] = [
-      `<b>📊 Resumo Diário — CAUSA</b>`,
-      `<i>${hoje}</i>`,
-      '',
-    ];
+    const lines: string[] = [`<b>📊 Resumo Diário — CAUSA</b>`, `<i>${hoje}</i>`, ''];
 
     // Prazos
     if (stats.prazosHoje > 0) {
@@ -180,8 +184,10 @@ export class TelegramService {
     // Outros indicadores
     const indicadores: string[] = [];
     if (stats.tarefasPendentes > 0) indicadores.push(`📝 ${stats.tarefasPendentes} tarefa(s)`);
-    if (stats.movimentacoesNaoLidas > 0) indicadores.push(`📬 ${stats.movimentacoesNaoLidas} movimentação(ões) não lida(s)`);
-    if (stats.parcelasAtrasadas > 0) indicadores.push(`💰 ${stats.parcelasAtrasadas} parcela(s) atrasada(s)`);
+    if (stats.movimentacoesNaoLidas > 0)
+      indicadores.push(`📬 ${stats.movimentacoesNaoLidas} movimentação(ões) não lida(s)`);
+    if (stats.parcelasAtrasadas > 0)
+      indicadores.push(`💰 ${stats.parcelasAtrasadas} parcela(s) atrasada(s)`);
 
     if (indicadores.length > 0) {
       lines.push('');
@@ -196,7 +202,9 @@ export class TelegramService {
         const dataFmt = new Date(p.dataFatal + 'T00:00:00').toLocaleDateString('pt-BR');
         const fatalTag = p.fatal ? ' ⚠️' : '';
         const emoji = p.diasRestantes <= 1 ? '🔴' : p.diasRestantes <= 3 ? '🟠' : '🟡';
-        lines.push(`${emoji} ${dataFmt}${fatalTag} — ${escapeHtml(p.descricao)}${p.numeroCnj ? ` (${escapeHtml(p.numeroCnj)})` : ''}`);
+        lines.push(
+          `${emoji} ${dataFmt}${fatalTag} — ${escapeHtml(p.descricao)}${p.numeroCnj ? ` (${escapeHtml(p.numeroCnj)})` : ''}`,
+        );
       }
     }
 
@@ -208,11 +216,18 @@ export class TelegramService {
         const dt = new Date(a.dataHoraInicio);
         const dataFmt = dt.toLocaleDateString('pt-BR');
         const horaFmt = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        lines.push(`• ${dataFmt} ${horaFmt} — ${escapeHtml(a.titulo)}${a.local ? ` (${escapeHtml(a.local)})` : ''}`);
+        lines.push(
+          `• ${dataFmt} ${horaFmt} — ${escapeHtml(a.titulo)}${a.local ? ` (${escapeHtml(a.local)})` : ''}`,
+        );
       }
     }
 
-    if (stats.prazosHoje === 0 && stats.prazosAmanha === 0 && stats.prazosSemana === 0 && indicadores.length === 0) {
+    if (
+      stats.prazosHoje === 0 &&
+      stats.prazosAmanha === 0 &&
+      stats.prazosSemana === 0 &&
+      indicadores.length === 0
+    ) {
       lines.push('✅ Tudo em dia! Nenhum prazo ou pendência urgente.');
     }
 
@@ -225,8 +240,5 @@ export class TelegramService {
 }
 
 function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

@@ -160,9 +160,7 @@ export function BackupSection() {
 
   function updateDestination(id: string, partial: Partial<BackupDestination>) {
     updateConfig({
-      destinations: config.destinations.map((d) =>
-        d.id === id ? { ...d, ...partial } : d,
-      ),
+      destinations: config.destinations.map((d) => (d.id === id ? { ...d, ...partial } : d)),
     });
   }
 
@@ -226,9 +224,7 @@ export function BackupSection() {
           type="button"
           onClick={() => updateConfig({ enabled: !config.enabled })}
           className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${
-            config.enabled
-              ? 'bg-[var(--color-primary)]'
-              : 'bg-[var(--color-border)]'
+            config.enabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'
           }`}
         >
           <span
@@ -247,12 +243,14 @@ export function BackupSection() {
               Quando fazer o backup?
             </h4>
             <div className="space-y-2">
-              {([
-                { value: 'on_open', label: 'A cada abertura do sistema' },
-                { value: 'first_open_day', label: 'Na primeira abertura do dia' },
-                { value: 'daily', label: 'Diariamente em um horário fixo' },
-                { value: 'weekly', label: 'Semanalmente' },
-              ] as const).map(({ value, label }) => (
+              {(
+                [
+                  { value: 'on_open', label: 'A cada abertura do sistema' },
+                  { value: 'first_open_day', label: 'Na primeira abertura do dia' },
+                  { value: 'daily', label: 'Diariamente em um horário fixo' },
+                  { value: 'weekly', label: 'Semanalmente' },
+                ] as const
+              ).map(({ value, label }) => (
                 <div key={value}>
                   <label className="flex items-center gap-2.5 cursor-pointer">
                     <input
@@ -266,20 +264,25 @@ export function BackupSection() {
                   </label>
 
                   {/* Conditional fields */}
-                  {config.schedule.trigger === value && (value === 'on_open' || value === 'first_open_day') && (
-                    <div className="ml-7 mt-1.5 flex items-center gap-2">
-                      <span className="text-xs-causa text-[var(--color-text-muted)]">Atraso:</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={60}
-                        value={config.schedule.delayMinutes ?? 0}
-                        onChange={(e) => updateSchedule({ delayMinutes: Number(e.target.value) })}
-                        className="w-16 px-2 py-1 text-sm-causa rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] text-center"
-                      />
-                      <span className="text-xs-causa text-[var(--color-text-muted)]">minutos</span>
-                    </div>
-                  )}
+                  {config.schedule.trigger === value &&
+                    (value === 'on_open' || value === 'first_open_day') && (
+                      <div className="ml-7 mt-1.5 flex items-center gap-2">
+                        <span className="text-xs-causa text-[var(--color-text-muted)]">
+                          Atraso:
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={60}
+                          value={config.schedule.delayMinutes ?? 0}
+                          onChange={(e) => updateSchedule({ delayMinutes: Number(e.target.value) })}
+                          className="w-16 px-2 py-1 text-sm-causa rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] text-center"
+                        />
+                        <span className="text-xs-causa text-[var(--color-text-muted)]">
+                          minutos
+                        </span>
+                      </div>
+                    )}
                   {config.schedule.trigger === 'daily' && value === 'daily' && (
                     <div className="ml-7 mt-1.5 flex items-center gap-2">
                       <span className="text-xs-causa text-[var(--color-text-muted)]">Horário:</span>
@@ -299,7 +302,9 @@ export function BackupSection() {
                         className="px-2 py-1 text-sm-causa rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
                       >
                         {DAYS_OF_WEEK.map((d) => (
-                          <option key={d.value} value={d.value}>{d.label}</option>
+                          <option key={d.value} value={d.value}>
+                            {d.label}
+                          </option>
                         ))}
                       </select>
                       <span className="text-xs-causa text-[var(--color-text-muted)]">às</span>
@@ -365,7 +370,9 @@ export function BackupSection() {
                         type="text"
                         value={dest.path ?? ''}
                         onChange={(e) => updateDestination(dest.id, { path: e.target.value })}
-                        placeholder={dest.type === 'local' ? 'C:\\Backups\\CAUSA' : '\\\\servidor\\backups'}
+                        placeholder={
+                          dest.type === 'local' ? 'C:\\Backups\\CAUSA' : '\\\\servidor\\backups'
+                        }
                         className="mt-1 w-full px-2 py-1 text-xs-causa rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50"
                       />
                     )}
@@ -425,11 +432,7 @@ export function BackupSection() {
               onClick={handleRunNow}
               disabled={runningBackup || enabledDests.length === 0}
             >
-              {runningBackup ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Play size={16} />
-              )}
+              {runningBackup ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
               Fazer backup agora
             </Button>
           </div>
@@ -507,7 +510,11 @@ export function BackupSection() {
                         <tr
                           key={log.id}
                           className="border-b border-[var(--color-border)]/50 hover:bg-causa-surface-alt/50"
-                          title={log.status === 'error' && log.error_message ? log.error_message : undefined}
+                          title={
+                            log.status === 'error' && log.error_message
+                              ? log.error_message
+                              : undefined
+                          }
                         >
                           <td className="py-1.5 px-2">{statusIcon}</td>
                           <td className="py-1.5 px-2 text-[var(--color-text)] whitespace-nowrap">
@@ -518,7 +525,10 @@ export function BackupSection() {
                           </td>
                           <td className="py-1.5 px-2 text-[var(--color-text)]">
                             <span className="inline-flex items-center gap-1.5">
-                              <DestIcon size={12} className="text-[var(--color-text-muted)] shrink-0" />
+                              <DestIcon
+                                size={12}
+                                className="text-[var(--color-text-muted)] shrink-0"
+                              />
                               {destTypeLabel[log.destination_type] ?? log.destination_type}
                             </span>
                           </td>
@@ -588,7 +598,8 @@ export function BackupSection() {
                 </code>
                 ) usando 7-Zip, WinRAR ou similar.
               </li>
-              <li>Copie o arquivo descompactado (
+              <li>
+                Copie o arquivo descompactado (
                 <code className="px-1.5 py-0.5 rounded bg-[var(--color-border)]/50 text-xs-causa font-mono">
                   .db
                 </code>
@@ -603,7 +614,8 @@ export function BackupSection() {
               <li>Abra o CAUSA novamente.</li>
             </ol>
             <p className="text-xs-causa mt-2">
-              Se o backup estiver no Google Drive, baixe-o primeiro para o computador antes de seguir os passos acima.
+              Se o backup estiver no Google Drive, baixe-o primeiro para o computador antes de
+              seguir os passos acima.
             </p>
           </div>
         )}

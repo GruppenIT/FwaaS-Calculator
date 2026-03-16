@@ -1094,9 +1094,12 @@ export function getBackupLogs() {
 }
 
 export function notifyBackupOpen() {
-  return request<{ ok: boolean; triggered: boolean; delayed?: boolean }>('/api/backup/notify-open', {
-    method: 'POST',
-  });
+  return request<{ ok: boolean; triggered: boolean; delayed?: boolean }>(
+    '/api/backup/notify-open',
+    {
+      method: 'POST',
+    },
+  );
 }
 
 export function setGhToken(token: string) {

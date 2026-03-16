@@ -51,11 +51,14 @@ export function BackupIndicator() {
 
           // Auto-hide after a delay
           if (!hideTimer.current) {
-            hideTimer.current = setTimeout(() => {
-              setVisible(false);
-              setState('idle');
-              hideTimer.current = null;
-            }, errors > 0 ? 5000 : 3000);
+            hideTimer.current = setTimeout(
+              () => {
+                setVisible(false);
+                setState('idle');
+                hideTimer.current = null;
+              },
+              errors > 0 ? 5000 : 3000,
+            );
           }
         } else if (!status.running && state !== 'idle' && !hideTimer.current) {
           // Reset after results cleared

@@ -11,7 +11,9 @@
       "Skill(gsd:plan-phase)",
       "Bash(pnpm lint:*)",
       "Bash(where pnpm:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(git push:*)",
+      "Bash(npx prettier:*)"
     ]
   }
 }

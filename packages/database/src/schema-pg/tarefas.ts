@@ -15,12 +15,8 @@ export const tarefas = pgTable('tarefas', {
   responsavelId: text('responsavel_id')
     .notNull()
     .references(() => users.id),
-  prioridade: text('prioridade')
-    .notNull()
-    .default('normal'),
-  status: text('status')
-    .notNull()
-    .default('pendente'),
+  prioridade: text('prioridade').notNull().default('normal'),
+  status: text('status').notNull().default('pendente'),
   categoria: text('categoria'),
   dataLimite: text('data_limite'),
   dataConclusao: text('data_conclusao'),

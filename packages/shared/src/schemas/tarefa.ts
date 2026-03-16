@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 export const PRIORIDADE_TAREFA_OPTIONS = ['baixa', 'normal', 'alta', 'urgente'] as const;
-export const STATUS_TAREFA_OPTIONS = ['pendente', 'em_andamento', 'concluida', 'cancelada'] as const;
+export const STATUS_TAREFA_OPTIONS = [
+  'pendente',
+  'em_andamento',
+  'concluida',
+  'cancelada',
+] as const;
 export const CATEGORIA_TAREFA_OPTIONS = [
   'peticao',
   'pesquisa',

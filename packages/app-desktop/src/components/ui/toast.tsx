@@ -25,9 +25,11 @@ const iconMap: Record<ToastType, typeof CheckCircle> = {
 };
 
 const styleMap: Record<ToastType, string> = {
-  success: 'border-[var(--color-success)]/30 bg-[var(--color-success)]/8 text-[var(--color-success)]',
+  success:
+    'border-[var(--color-success)]/30 bg-[var(--color-success)]/8 text-[var(--color-success)]',
   error: 'border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8 text-[var(--color-danger)]',
-  warning: 'border-[var(--color-warning)]/30 bg-[var(--color-warning)]/8 text-[var(--color-warning)]',
+  warning:
+    'border-[var(--color-warning)]/30 bg-[var(--color-warning)]/8 text-[var(--color-warning)]',
   info: 'border-[var(--color-primary)]/30 bg-[var(--color-primary)]/8 text-[var(--color-primary)]',
 };
 

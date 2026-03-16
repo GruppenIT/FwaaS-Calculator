@@ -16,17 +16,9 @@ const dotColorMap: Record<BadgeStatus, string> = {
 export const StatusDot = forwardRef<HTMLSpanElement, StatusDotProps>(
   ({ status, label, className = '', ...props }, ref) => {
     return (
-      <span
-        ref={ref}
-        className={`inline-flex items-center gap-1.5 ${className}`}
-        {...props}
-      >
-        <span
-          className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColorMap[status]}`}
-        />
-        {label && (
-          <span className="text-xs-causa text-[var(--color-text)]">{label}</span>
-        )}
+      <span ref={ref} className={`inline-flex items-center gap-1.5 ${className}`} {...props}>
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColorMap[status]}`} />
+        {label && <span className="text-xs-causa text-[var(--color-text)]">{label}</span>}
       </span>
     );
   },

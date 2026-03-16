@@ -16,7 +16,10 @@ export function LoginPage() {
   const { login } = useAuth();
 
   useEffect(() => {
-    window.causaElectron?.getAppVersion().then((v) => setAppVersion(v)).catch(() => {});
+    window.causaElectron
+      ?.getAppVersion()
+      .then((v) => setAppVersion(v))
+      .catch(() => {});
   }, []);
 
   async function handleSubmit(ev: FormEvent) {

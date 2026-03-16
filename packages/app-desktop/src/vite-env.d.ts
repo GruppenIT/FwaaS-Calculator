@@ -15,7 +15,15 @@ declare const __APP_VERSION__: string;
 type UpdateUserChoice = 'install-now' | 'install-later' | 'ignore';
 
 interface UpdateStatus {
-  state: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'restarting' | 'error' | 'not-available';
+  state:
+    | 'idle'
+    | 'checking'
+    | 'available'
+    | 'downloading'
+    | 'downloaded'
+    | 'restarting'
+    | 'error'
+    | 'not-available';
   version?: string;
   releaseNotes?: string;
   percent?: number;

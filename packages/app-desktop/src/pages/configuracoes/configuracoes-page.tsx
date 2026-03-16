@@ -59,9 +59,7 @@ function SettingsSection({
         )}
         <Icon size={20} className="text-[var(--color-text-muted)]" />
         <div className="flex-1 min-w-0">
-          <span className="text-base-causa font-semibold text-[var(--color-text)]">
-            {title}
-          </span>
+          <span className="text-base-causa font-semibold text-[var(--color-text)]">{title}</span>
           {description && !open && (
             <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
               — {description}
@@ -70,9 +68,7 @@ function SettingsSection({
         </div>
       </button>
       {open && (
-        <div className="px-5 pb-5 pt-1 border-t border-[var(--color-border)]">
-          {children}
-        </div>
+        <div className="px-5 pb-5 pt-1 border-t border-[var(--color-border)]">{children}</div>
       )}
     </div>
   );
@@ -120,11 +116,7 @@ function UpdateContent() {
       {/* Idle or checking */}
       {(status.state === 'idle' || isChecking) && (
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            onClick={handleCheck}
-            disabled={isChecking}
-          >
+          <Button variant="ghost" onClick={handleCheck} disabled={isChecking}>
             {isChecking ? (
               <Loader2 size={16} className="animate-spin mr-1.5" />
             ) : (
@@ -165,7 +157,8 @@ function UpdateContent() {
             <Download size={18} className="text-[var(--color-primary)] shrink-0" />
             <div>
               <p className="text-sm-causa font-medium text-[var(--color-text)]">
-                Nova versão disponível: <span className="text-[var(--color-primary)]">v{status.version}</span>
+                Nova versão disponível:{' '}
+                <span className="text-[var(--color-primary)]">v{status.version}</span>
               </p>
               <p className="text-xs-causa text-[var(--color-text-muted)] mt-0.5">
                 Clique para baixar e instalar a atualização.
@@ -214,9 +207,7 @@ function UpdateContent() {
               </p>
             </div>
           </div>
-          <Button onClick={() => window.causaElectron?.restartAndUpdate()}>
-            Reiniciar agora
-          </Button>
+          <Button onClick={() => window.causaElectron?.restartAndUpdate()}>Reiniciar agora</Button>
         </div>
       )}
     </div>
@@ -285,20 +276,12 @@ export function ConfiguracoesPage() {
 
       <div className="flex flex-col gap-4">
         {/* Atualizações */}
-        <SettingsSection
-          title="Atualizações"
-          description="Verifique novas versões"
-          icon={Download}
-        >
+        <SettingsSection title="Atualizações" description="Verifique novas versões" icon={Download}>
           <UpdateContent />
         </SettingsSection>
 
         {/* Aparência */}
-        <SettingsSection
-          title="Aparência"
-          description="Tema visual do sistema"
-          icon={Palette}
-        >
+        <SettingsSection title="Aparência" description="Tema visual do sistema" icon={Palette}>
           <p className="text-sm-causa text-[var(--color-text-muted)] mb-4">
             Escolha o tema visual do sistema.
           </p>

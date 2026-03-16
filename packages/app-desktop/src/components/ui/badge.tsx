@@ -9,23 +9,19 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const statusConfig: Record<BadgeStatus, { label: string; className: string }> = {
   active: {
     label: 'Ativo',
-    className:
-      'bg-[var(--color-tier-info)]/10 text-[var(--color-tier-info)]',
+    className: 'bg-[var(--color-tier-info)]/10 text-[var(--color-tier-info)]',
   },
   suspended: {
     label: 'Suspenso',
-    className:
-      'bg-[var(--color-tier-warning)]/10 text-[var(--color-tier-warning)]',
+    className: 'bg-[var(--color-tier-warning)]/10 text-[var(--color-tier-warning)]',
   },
   archived: {
     label: 'Arquivado',
-    className:
-      'bg-[var(--color-text-muted)]/10 text-[var(--color-text-muted)]',
+    className: 'bg-[var(--color-text-muted)]/10 text-[var(--color-text-muted)]',
   },
   closed: {
     label: 'Encerrado',
-    className:
-      'bg-[var(--color-success)]/10 text-[var(--color-success)]',
+    className: 'bg-[var(--color-success)]/10 text-[var(--color-success)]',
   },
 };
 

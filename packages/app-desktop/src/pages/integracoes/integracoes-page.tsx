@@ -104,9 +104,7 @@ function CollapsibleSection({
         <StatusBadge status={status} />
       </button>
       {open && (
-        <div className="px-5 pb-5 pt-1 border-t border-[var(--color-border)]">
-          {children}
-        </div>
+        <div className="px-5 pb-5 pt-1 border-t border-[var(--color-border)]">{children}</div>
       )}
     </div>
   );
@@ -147,7 +145,8 @@ function GitHubSection() {
   const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    api.getGhToken()
+    api
+      .getGhToken()
       .then(({ token }) => {
         setGhToken(token ?? '');
         setHasToken(!!token);
@@ -188,7 +187,8 @@ function GitHubSection() {
       <div className="flex items-start gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
         <Info size={16} className="text-[var(--color-primary)] shrink-0 mt-0.5" />
         <p className="text-sm-causa text-[var(--color-text-muted)]">
-          Configure um token de acesso pessoal (PAT) do GitHub para baixar atualizações automáticas de repositórios privados.
+          Configure um token de acesso pessoal (PAT) do GitHub para baixar atualizações automáticas
+          de repositórios privados.
         </p>
       </div>
 
@@ -210,7 +210,9 @@ function GitHubSection() {
           </Button>
         </div>
         <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
-          Token de acesso pessoal do GitHub (classic) com permissão <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">repo</code>. Necessário para baixar atualizações de repositórios privados.
+          Token de acesso pessoal do GitHub (classic) com permissão{' '}
+          <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">repo</code>. Necessário
+          para baixar atualizações de repositórios privados.
         </p>
       </div>
 
@@ -285,7 +287,9 @@ function GoogleDriveSection() {
           loadConfig();
           refreshFeatures();
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }, 2000);
     return () => clearInterval(interval);
   }, [connecting, toast, loadConfig, refreshFeatures]);
@@ -338,7 +342,10 @@ function GoogleDriveSection() {
       setShowSetup(false);
       setServiceAccountJson('');
       setDriveEmail(clientEmail);
-      toast('Service Account configurada! Agora configure a pasta raiz e o e-mail de impersonação.', 'success');
+      toast(
+        'Service Account configurada! Agora configure a pasta raiz e o e-mail de impersonação.',
+        'success',
+      );
       loadConfig();
       refreshFeatures();
     } catch (err) {
@@ -359,7 +366,10 @@ function GoogleDriveSection() {
     }
     setSavingSettings(true);
     try {
-      await api.updateGoogleDriveConfig({ rootFolderId, impersonateEmail: impersonateEmail.trim() || '' });
+      await api.updateGoogleDriveConfig({
+        rootFolderId,
+        impersonateEmail: impersonateEmail.trim() || '',
+      });
       toast('Configurações salvas.', 'success');
       loadConfig();
     } catch (err) {
@@ -375,10 +385,16 @@ function GoogleDriveSection() {
       const result = await api.syncDriveFolders();
       const failed = result.details?.filter((d) => !d.ok) ?? [];
       if (failed.length > 0) {
-        toast(`Sincronização parcial: ${result.created}/${result.total}. Erros: ${failed.map((d) => d.nome).join(', ')}`, 'error');
+        toast(
+          `Sincronização parcial: ${result.created}/${result.total}. Erros: ${failed.map((d) => d.nome).join(', ')}`,
+          'error',
+        );
       } else {
         const folderNames = result.details?.map((d) => d.folderName).join(', ') ?? '';
-        toast(`Estrutura sincronizada: ${result.created}/${result.total} clientes. Pastas: ${folderNames}`, 'success');
+        toast(
+          `Estrutura sincronizada: ${result.created}/${result.total} clientes. Pastas: ${folderNames}`,
+          'success',
+        );
       }
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao sincronizar pastas.', 'error');
@@ -511,11 +527,16 @@ function GoogleDriveSection() {
                 className={inputClass}
               />
               <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
-                ID da pasta onde os documentos serão organizados.
-                Copie da URL: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">drive.google.com/drive/folders/<strong>ID_AQUI</strong></code>
+                ID da pasta onde os documentos serão organizados. Copie da URL:{' '}
+                <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">
+                  drive.google.com/drive/folders/<strong>ID_AQUI</strong>
+                </code>
               </p>
               <p className="text-xs-causa text-[var(--color-text-muted)] mt-1">
-                Estrutura criada: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">Clientes/Nome-CPF/Proc.-NumeroCNJ/</code>
+                Estrutura criada:{' '}
+                <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded text-xs">
+                  Clientes/Nome-CPF/Proc.-NumeroCNJ/
+                </code>
               </p>
             </div>
 
@@ -539,7 +560,8 @@ function GoogleDriveSection() {
               </Button>
             </div>
             <p className="text-xs-causa text-[var(--color-text-muted)]">
-              &quot;Sincronizar pastas&quot; cria a estrutura de pastas (Clientes/Nome/Compartilhado) para todos os clientes cadastrados.
+              &quot;Sincronizar pastas&quot; cria a estrutura de pastas
+              (Clientes/Nome/Compartilhado) para todos os clientes cadastrados.
             </p>
           </div>
         </div>
@@ -564,10 +586,10 @@ function GoogleDriveSection() {
       {!connected && showSetup && !connecting && (
         <div className="mt-2 space-y-4">
           <div className="flex gap-1 p-1 bg-causa-surface-alt rounded-[var(--radius-md)]">
-            {([
+            {[
               { value: 'oauth' as const, label: 'Conta Google (Recomendado)' },
               { value: 'service_account' as const, label: 'Service Account (Workspace)' },
-            ]).map(({ value, label }) => (
+            ].map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
@@ -592,22 +614,37 @@ function GoogleDriveSection() {
                 </p>
                 <ol className="text-xs-causa text-[var(--color-text-muted)] space-y-2 list-decimal list-inside">
                   <li>
-                    Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] underline">Google Cloud Console</a> e crie um projeto
+                    Acesse o{' '}
+                    <a
+                      href="https://console.cloud.google.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--color-primary)] underline"
+                    >
+                      Google Cloud Console
+                    </a>{' '}
+                    e crie um projeto
                   </li>
                   <li>
                     Ative a <strong>Google Drive API</strong> em APIs e Serviços &gt; Biblioteca
                   </li>
                   <li>
-                    Configure a <strong>Tela de consentimento OAuth</strong> (tipo: Externo, adicione seu email como usuário de teste)
+                    Configure a <strong>Tela de consentimento OAuth</strong> (tipo: Externo,
+                    adicione seu email como usuário de teste)
                   </li>
                   <li>
-                    Vá em <strong>Credenciais &gt; Criar credenciais &gt; ID do cliente OAuth</strong>
+                    Vá em{' '}
+                    <strong>Credenciais &gt; Criar credenciais &gt; ID do cliente OAuth</strong>
                   </li>
                   <li>
-                    Tipo: <strong>Aplicativo da Web</strong>. Em URIs de redirecionamento, adicione: <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded">http://localhost:3456/api/google-drive/oauth/callback</code>
+                    Tipo: <strong>Aplicativo da Web</strong>. Em URIs de redirecionamento, adicione:{' '}
+                    <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded">
+                      http://localhost:3456/api/google-drive/oauth/callback
+                    </code>
                   </li>
                   <li>
-                    Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> e cole abaixo
+                    Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> e cole
+                    abaixo
                   </li>
                 </ol>
               </div>
@@ -644,7 +681,12 @@ function GoogleDriveSection() {
                   <Cloud size={14} className="mr-1" />
                   {saving ? 'Conectando...' : 'Conectar com Google'}
                 </Button>
-                <Button variant="ghost" onClick={() => { setShowSetup(false); }}>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowSetup(false);
+                  }}
+                >
                   Cancelar
                 </Button>
               </div>
@@ -662,7 +704,11 @@ function GoogleDriveSection() {
                   <li>Crie uma Service Account no Google Cloud Console</li>
                   <li>Baixe a chave JSON e cole o conteúdo abaixo</li>
                   <li>
-                    No <strong>Google Admin Console</strong>, habilite a <strong>delegação de domínio</strong> com o escopo <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded">https://www.googleapis.com/auth/drive</code>
+                    No <strong>Google Admin Console</strong>, habilite a{' '}
+                    <strong>delegação de domínio</strong> com o escopo{' '}
+                    <code className="bg-[var(--color-bg)] px-1 py-0.5 rounded">
+                      https://www.googleapis.com/auth/drive
+                    </code>
                   </li>
                   <li>Informe o e-mail do usuário a impersonar e o ID da pasta raiz</li>
                 </ol>
@@ -686,7 +732,13 @@ function GoogleDriveSection() {
                   <Save size={14} className="mr-1" />
                   {saving ? 'Salvando...' : 'Salvar e conectar'}
                 </Button>
-                <Button variant="ghost" onClick={() => { setShowSetup(false); setServiceAccountJson(''); }}>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowSetup(false);
+                    setServiceAccountJson('');
+                  }}
+                >
                   Cancelar
                 </Button>
               </div>
@@ -859,7 +911,8 @@ function TelegramSectionContent() {
                 checked={dailySummary}
                 onChange={(e) => {
                   setDailySummary(e.target.checked);
-                  api.updateTelegramConfig({ dailySummaryEnabled: e.target.checked })
+                  api
+                    .updateTelegramConfig({ dailySummaryEnabled: e.target.checked })
                     .then(() => toast('Configuração atualizada.', 'success'))
                     .catch(() => {});
                 }}
@@ -941,7 +994,11 @@ function TelegramSectionContent() {
                 disabled={loadingChats || !botToken.trim()}
                 title="Salve o token primeiro, envie uma mensagem ao bot, depois clique aqui"
               >
-                {loadingChats ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                {loadingChats ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={14} />
+                )}
               </Button>
             </div>
             {availableChats.length > 0 && (
@@ -957,7 +1014,8 @@ function TelegramSectionContent() {
                         : 'bg-causa-surface-alt text-[var(--color-text)] hover:bg-causa-bg'
                     }`}
                   >
-                    {c.chatTitle} <span className="text-[var(--color-text-muted)]">({c.chatId})</span>
+                    {c.chatTitle}{' '}
+                    <span className="text-[var(--color-text-muted)]">({c.chatId})</span>
                   </button>
                 ))}
               </div>
@@ -1018,23 +1076,31 @@ export function IntegracoesPage() {
         ]);
         if (!mounted) return;
         if (driveConfig.status === 'fulfilled') setDriveConnected(driveConfig.value.connected);
-        if (telegramConfig.status === 'fulfilled') setTelegramConfigured(telegramConfig.value.configured);
+        if (telegramConfig.status === 'fulfilled')
+          setTelegramConfigured(telegramConfig.value.configured);
         if (ghTokenResult.status === 'fulfilled') setGhTokenConfigured(!!ghTokenResult.value.token);
       } finally {
         if (mounted) setLoading(false);
       }
     }
     load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const completedCount = [driveConnected, telegramConfigured, ghTokenConfigured].filter(Boolean).length;
+  const completedCount = [driveConnected, telegramConfigured, ghTokenConfigured].filter(
+    Boolean,
+  ).length;
   const totalIntegrations = 4; // CNJ, Google Drive, GitHub, Telegram
 
   if (loading) {
     return (
       <div>
-        <PageHeader title="Integrações" description="Configure as integrações e conectores do sistema" />
+        <PageHeader
+          title="Integrações"
+          description="Configure as integrações e conectores do sistema"
+        />
         <div className="flex flex-col gap-4">
           {Array.from({ length: 4 }, (_, i) => (
             <div
@@ -1052,14 +1118,21 @@ export function IntegracoesPage() {
 
   return (
     <div>
-      <PageHeader title="Integrações" description="Configure as integrações e conectores do sistema" />
+      <PageHeader
+        title="Integrações"
+        description="Configure as integrações e conectores do sistema"
+      />
 
       {/* Summary bar */}
       <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-causa-surface-alt border border-[var(--color-border)]">
         <Info size={18} className="text-[var(--color-primary)] shrink-0" />
         <p className="text-sm-causa text-[var(--color-text)]">
-          <span className="font-medium">{completedCount} de {totalIntegrations}</span> integrações configuradas.
-          {completedCount < totalIntegrations && ' Complete as pendentes para aproveitar todos os recursos.'}
+          <span className="font-medium">
+            {completedCount} de {totalIntegrations}
+          </span>{' '}
+          integrações configuradas.
+          {completedCount < totalIntegrations &&
+            ' Complete as pendentes para aproveitar todos os recursos.'}
         </p>
       </div>
 

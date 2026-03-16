@@ -23,7 +23,9 @@ export function DeadlineBanner() {
             </p>
           )}
           {tomorrow > 0 && (
-            <p className={`text-sm-causa font-medium text-causa-tier-fatal ${today > 0 ? 'mt-0.5' : ''}`}>
+            <p
+              className={`text-sm-causa font-medium text-causa-tier-fatal ${today > 0 ? 'mt-0.5' : ''}`}
+            >
               {tomorrow} {tomorrow === 1 ? 'prazo fatal vence' : 'prazos fatais vencem'} amanha
             </p>
           )}

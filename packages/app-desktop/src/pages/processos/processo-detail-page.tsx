@@ -271,10 +271,7 @@ export function ProcessoDetailPage() {
       {/* Header */}
       <PageHeader
         title={processo.numeroCnj}
-        breadcrumb={[
-          { label: 'Processos', to: '/app/processos' },
-          { label: processo.numeroCnj },
-        ]}
+        breadcrumb={[{ label: 'Processos', to: '/app/processos' }, { label: processo.numeroCnj }]}
         action={
           can('processos:editar') ? (
             <Button variant="secondary" onClick={handleEdit}>
@@ -561,8 +558,8 @@ export function ProcessoDetailPage() {
                   <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
                     {formatDate(d.createdAt)}
                   </span>
-                  {driveEnabled && (
-                    d.driveFileId ? (
+                  {driveEnabled &&
+                    (d.driveFileId ? (
                       <span
                         className="p-1.5 text-causa-success"
                         title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
@@ -582,8 +579,7 @@ export function ProcessoDetailPage() {
                       >
                         <CloudOff size={14} />
                       </button>
-                    )
-                  )}
+                    ))}
                   {canUpload && (
                     <button
                       type="button"
@@ -704,15 +700,16 @@ export function ProcessoDetailPage() {
         />
       )}
 
-      {viewDocId && (
-        <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />
-      )}
+      {viewDocId && <DocumentoViewer documentoId={viewDocId} onClose={() => setViewDocId(null)} />}
 
       {editDoc && (
         <DocumentoEditModal
           documento={editDoc}
           onClose={() => setEditDoc(null)}
-          onSave={() => { setEditDoc(null); carregar(); }}
+          onSave={() => {
+            setEditDoc(null);
+            carregar();
+          }}
         />
       )}
 

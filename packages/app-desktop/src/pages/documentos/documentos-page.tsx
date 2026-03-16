@@ -73,7 +73,10 @@ export function DocumentosPage() {
       const data = await api.listarDocumentosNaoClassificados();
       setFolders(data);
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao carregar documentos não classificados.', 'error');
+      toast(
+        err instanceof Error ? err.message : 'Erro ao carregar documentos não classificados.',
+        'error',
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -89,8 +92,16 @@ export function DocumentosPage() {
     load();
   }
 
-  function startClassify(file: { id: string; name: string; mimeType: string }, compartilhadoId: string) {
-    setClassifyTarget({ driveFileId: file.id, fileName: file.name, mimeType: file.mimeType, sourceParentId: compartilhadoId });
+  function startClassify(
+    file: { id: string; name: string; mimeType: string },
+    compartilhadoId: string,
+  ) {
+    setClassifyTarget({
+      driveFileId: file.id,
+      fileName: file.name,
+      mimeType: file.mimeType,
+      sourceParentId: compartilhadoId,
+    });
     setClassifyStep('vinculo');
     setVinculoType('cliente');
     setSelectedClienteId('');
@@ -188,7 +199,10 @@ export function DocumentosPage() {
           title="Documentos não Classificados"
           description="Documentos nas pastas Compartilhado aguardando classificação"
         />
-        <EmptyState icon={FileText} message="Integração com Google Drive não está habilitada. Ative nas Configurações." />
+        <EmptyState
+          icon={FileText}
+          message="Integração com Google Drive não está habilitada. Ative nas Configurações."
+        />
       </div>
     );
   }
@@ -223,12 +237,15 @@ export function DocumentosPage() {
 
         <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="text-sm-causa text-[var(--color-text-muted)]">
-            Arquivo: <span className="font-medium text-[var(--color-text)]">{classifyTarget.fileName}</span>
+            Arquivo:{' '}
+            <span className="font-medium text-[var(--color-text)]">{classifyTarget.fileName}</span>
           </div>
 
           {classifyStep === 'vinculo' && (
             <div className="space-y-3">
-              <p className="text-sm-causa text-[var(--color-text)]">O documento será vinculado a:</p>
+              <p className="text-sm-causa text-[var(--color-text)]">
+                O documento será vinculado a:
+              </p>
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -260,7 +277,10 @@ export function DocumentosPage() {
             <div className="space-y-3">
               <p className="text-sm-causa text-[var(--color-text)]">Selecione o cliente:</p>
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
                 <input
                   type="text"
                   value={clienteSearch}
@@ -271,7 +291,10 @@ export function DocumentosPage() {
               </div>
               <div className="max-h-48 overflow-auto border border-[var(--color-border)] rounded-[var(--radius-md)]">
                 {clientes
-                  .filter((c) => !clienteSearch || c.nome.toLowerCase().includes(clienteSearch.toLowerCase()))
+                  .filter(
+                    (c) =>
+                      !clienteSearch || c.nome.toLowerCase().includes(clienteSearch.toLowerCase()),
+                  )
                   .map((c) => (
                     <button
                       key={c.id}
@@ -285,7 +308,9 @@ export function DocumentosPage() {
                     >
                       <div>{c.nome}</div>
                       {c.cpfCnpj && (
-                        <div className="text-xs-causa text-[var(--color-text-muted)]">{c.cpfCnpj}</div>
+                        <div className="text-xs-causa text-[var(--color-text-muted)]">
+                          {c.cpfCnpj}
+                        </div>
                       )}
                     </button>
                   ))}
@@ -297,7 +322,10 @@ export function DocumentosPage() {
             <div className="space-y-3">
               <p className="text-sm-causa text-[var(--color-text)]">Selecione o processo:</p>
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
                 <input
                   type="text"
                   value={processoSearch}
@@ -338,7 +366,9 @@ export function DocumentosPage() {
 
           {classifyStep === 'metadados' && (
             <div className="space-y-3">
-              <p className="text-sm-causa text-[var(--color-text)] font-medium">Metadados do documento:</p>
+              <p className="text-sm-causa text-[var(--color-text)] font-medium">
+                Metadados do documento:
+              </p>
               <div>
                 <label className={labelClass}>Descrição</label>
                 <input
@@ -388,9 +418,7 @@ export function DocumentosPage() {
 
           {classifyStep === 'confirmar' && (
             <div className="space-y-3">
-              <p className="text-sm-causa text-[var(--color-text)]">
-                Confirme a classificação:
-              </p>
+              <p className="text-sm-causa text-[var(--color-text)]">Confirme a classificação:</p>
               <div className="bg-causa-bg rounded-[var(--radius-md)] p-3 text-sm-causa space-y-1">
                 <div>
                   <span className="text-[var(--color-text-muted)]">Vínculo:</span>{' '}
@@ -426,9 +454,7 @@ export function DocumentosPage() {
                     </span>
                   </div>
                 )}
-                {confidencial && (
-                  <div className="text-causa-danger font-medium">Confidencial</div>
-                )}
+                {confidencial && <div className="text-causa-danger font-medium">Confidencial</div>}
               </div>
               <div className="flex gap-3 mt-2">
                 <button
@@ -468,9 +494,7 @@ export function DocumentosPage() {
                 Voltar
               </Button>
             )}
-            {classifyStep === 'vinculo' && (
-              <Button onClick={handleStepVinculo}>Avançar</Button>
-            )}
+            {classifyStep === 'vinculo' && <Button onClick={handleStepVinculo}>Avançar</Button>}
             {classifyStep === 'cliente' && (
               <Button onClick={handleStepCliente} disabled={!selectedClienteId}>
                 Avançar
@@ -481,9 +505,7 @@ export function DocumentosPage() {
                 Avançar
               </Button>
             )}
-            {classifyStep === 'metadados' && (
-              <Button onClick={handleStepMetadados}>Avançar</Button>
-            )}
+            {classifyStep === 'metadados' && <Button onClick={handleStepMetadados}>Avançar</Button>}
             {classifyStep === 'confirmar' && (
               <Button onClick={handleConfirmClassify} disabled={classifying}>
                 {classifying ? 'Classificando...' : 'Classificar'}
@@ -515,7 +537,10 @@ export function DocumentosPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-causa-surface-alt rounded-[var(--radius-md)] animate-pulse" />
+            <div
+              key={i}
+              className="h-20 bg-causa-surface-alt rounded-[var(--radius-md)] animate-pulse"
+            />
           ))}
         </div>
       ) : totalFiles === 0 ? (
@@ -535,7 +560,9 @@ export function DocumentosPage() {
                 <span className="text-sm-causa font-semibold text-[var(--color-text)]">
                   {folder.clienteFolderName}
                 </span>
-                <span className="text-xs-causa text-[var(--color-text-muted)]">/ Compartilhado</span>
+                <span className="text-xs-causa text-[var(--color-text-muted)]">
+                  / Compartilhado
+                </span>
                 <span className="text-xs-causa text-[var(--color-text-muted)] bg-[var(--color-bg)] px-1.5 py-0.5 rounded-full ml-1">
                   {folder.files.length}
                 </span>

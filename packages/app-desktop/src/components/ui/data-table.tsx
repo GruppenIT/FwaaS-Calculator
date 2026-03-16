@@ -30,7 +30,13 @@ interface DataTableProps<T> {
   className?: string;
 }
 
-function SortIcon({ columnKey, sortState }: { columnKey: string; sortState: SortState | undefined }) {
+function SortIcon({
+  columnKey,
+  sortState,
+}: {
+  columnKey: string;
+  sortState: SortState | undefined;
+}) {
   if (!sortState || sortState.key !== columnKey || sortState.direction === null) {
     return <ArrowUpDown size={14} className="inline-block ml-1 opacity-40" />;
   }
@@ -90,7 +96,9 @@ export function DataTable<T extends Record<string, unknown>>({
                 <th
                   key={col.key}
                   className={`px-4 py-3 text-xs-causa font-semibold text-[var(--color-text-muted)] uppercase tracking-wider ${alignClass} ${col.width ?? ''} ${
-                    col.sortable ? 'cursor-pointer select-none hover:text-[var(--color-text)] transition-causa' : ''
+                    col.sortable
+                      ? 'cursor-pointer select-none hover:text-[var(--color-text)] transition-causa'
+                      : ''
                   }`}
                   onClick={() => handleHeaderClick(col)}
                 >

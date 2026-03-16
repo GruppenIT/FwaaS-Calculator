@@ -154,7 +154,13 @@ export function DocumentoEditModal({ documento, onClose, onSave }: Props) {
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={(e) => { e.preventDefault(); handleSubmit(e); }} disabled={saving}>
+          <Button
+            onClick={(e) => {
+              e.preventDefault();
+              handleSubmit(e);
+            }}
+            disabled={saving}
+          >
             <Save size={14} className="mr-1" />
             {saving ? 'Salvando...' : 'Salvar'}
           </Button>

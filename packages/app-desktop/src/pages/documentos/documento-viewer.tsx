@@ -43,7 +43,8 @@ export function DocumentoViewer({ documentoId, onClose }: Props) {
         if (data.tipoMime === 'application/pdf' || data.tipoMime.startsWith('image/')) {
           setContent(base64ToBlobUrl(data.conteudo, data.tipoMime));
         } else if (
-          data.tipoMime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          data.tipoMime ===
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ) {
           const mammoth = await import('mammoth');
           const result = await mammoth.convertToHtml({
@@ -159,11 +160,7 @@ export function DocumentoViewer({ documentoId, onClose }: Props) {
           )}
 
           {!loading && !error && tipoMime === 'application/pdf' && (
-            <iframe
-              src={content}
-              className="w-full h-full border-0"
-              title={nome}
-            />
+            <iframe src={content} className="w-full h-full border-0" title={nome} />
           )}
 
           {!loading && !error && tipoMime.startsWith('image/') && (
@@ -186,13 +183,11 @@ export function DocumentoViewer({ documentoId, onClose }: Props) {
               />
             )}
 
-          {!loading &&
-            !error &&
-            (tipoMime === 'text/plain' || tipoMime === 'text/csv') && (
-              <pre className="p-6 text-sm-causa text-[var(--color-text)] font-[var(--font-mono)] whitespace-pre-wrap break-words">
-                {content}
-              </pre>
-            )}
+          {!loading && !error && (tipoMime === 'text/plain' || tipoMime === 'text/csv') && (
+            <pre className="p-6 text-sm-causa text-[var(--color-text)] font-[var(--font-mono)] whitespace-pre-wrap break-words">
+              {content}
+            </pre>
+          )}
 
           {!loading && !error && tipoMime === 'text/html' && (
             <div

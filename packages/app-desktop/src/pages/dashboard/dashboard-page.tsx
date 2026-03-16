@@ -183,10 +183,7 @@ export function DashboardPage() {
 
   const total = stats.processosAtivos + stats.clientes;
 
-  const totalParcelasAtrasadasValor = stats.parcelasAtrasadasList.reduce(
-    (s, p) => s + p.valor,
-    0,
-  );
+  const totalParcelasAtrasadasValor = stats.parcelasAtrasadasList.reduce((s, p) => s + p.valor, 0);
 
   return (
     <div>
@@ -539,10 +536,7 @@ export function DashboardPage() {
             <div className="p-4" style={{ height: 260 }}>
               {timeline.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={timeline}
-                    margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-                  >
+                  <AreaChart data={timeline} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                     <XAxis
                       dataKey="data"
@@ -611,10 +605,7 @@ export function DashboardPage() {
             <div className="p-4" style={{ height: 260 }}>
               {produtividade.some((p) => p.minutos > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={produtividade}
-                    margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-                  >
+                  <BarChart data={produtividade} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                     <XAxis
                       dataKey="data"
