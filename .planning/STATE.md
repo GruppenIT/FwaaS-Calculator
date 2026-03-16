@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-03-16T17:05:08.132Z"
+stopped_at: Completed 04-06-PLAN.md
+last_updated: "2026-03-16T17:25:40.648Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 18
+  completed_plans: 18
   percent: 0
 ---
 
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04 P01 | 3min | 1 tasks | 1 files |
 | Phase 04-detail-pages-auth-e-polish P04 | 1min | 2 tasks | 3 files |
 | Phase 04-detail-pages-auth-e-polish P05 | 15min | 2 tasks | 3 files |
+| Phase 04-detail-pages-auth-e-polish P06 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,8 @@ Recent decisions affecting current work:
 - [Phase 04]: Row stagger uses native CSS animation via inline style on tr — motion.tr or wrapping motion.div both break table layout
 - [Phase 04]: animateFirstLoad is a controlled prop from parent, not internal DataTable state — parent manages when to animate
 - [Phase 04-05]: --color-text-muted bumped to #636e7b in :root for 4.78:1 WCAG AA contrast; focus-causa ring opacity increased from 0.15 to 0.30 for keyboard visibility
+- [Phase 04-06]: data-sidebar attribute wires sidebar.tsx to globals.css @media print selector for print hide (DET-03)
+- [Phase 04-06]: isFirstLoad state in listing pages controls animateFirstLoad prop — starts true, flips false after first carregar() (ANIM-03)
 
 ### Pending Todos
 
@@ -130,6 +133,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:05:08.129Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-03-16T17:25:40.645Z
+Stopped at: Completed 04-06-PLAN.md
 Resume file: None
