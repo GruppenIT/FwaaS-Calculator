@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: CAUSA Revisao UX/UI
-status: shipped
-stopped_at: Milestone v1.0 archived
-last_updated: "2026-03-16T21:10:00.000Z"
-last_activity: 2026-03-16 — v1.0 milestone archived with 5 phases, 19 plans
+milestone: v2.1
+milestone_name: Interacao e Dados
+status: defining_requirements
+stopped_at: Defining requirements for v2.1
+last_updated: "2026-03-16T21:30:00.000Z"
+last_activity: 2026-03-16 — Milestone v2.1 started
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,31 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Interface que transmite seriedade juridica com modernidade — advogados confiam no sistema desde o primeiro contato visual
-**Current focus:** Milestone v1.0 shipped — use `/gsd:new-milestone` to start next
+**Current focus:** v2.1 Interacao e Dados — defining requirements
 
 ## Current Position
 
-Milestone: v1.0 SHIPPED (2026-03-16)
-Next: `/gsd:new-milestone` to define v1.1 or v2.0
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-16 — Milestone v2.1 started
 
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 19
-- Timeline: 10 days (2026-03-06 → 2026-03-16)
-- Files modified: 309
-
-**By Phase:**
-
-| Phase | Plans | Completed |
-|-------|-------|-----------|
-| 1. Design System Foundation | 6 | 2026-03-15 |
-| 2. Layout Shell | 2 | 2026-03-15 |
-| 3. Core Feature Screens | 4 | 2026-03-16 |
-| 4. Detail Pages, Auth e Polish | 6 | 2026-03-16 |
-| 5. Critical Integration Fixes | 1 | 2026-03-16 |
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
@@ -59,10 +44,10 @@ None.
 
 ### Blockers/Concerns
 
-None — milestone shipped.
+None.
 
 ## Session Continuity
 
 Last session: 2026-03-16
-Stopped at: Milestone v1.0 archived
+Stopped at: Defining requirements for v2.1
 Resume file: None

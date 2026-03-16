@@ -25,15 +25,29 @@ A interface deve transmitir seriedade juridica combinada com modernidade, fazend
 
 ### Active
 
-(No active requirements — use `/gsd:new-milestone` to define next)
+- [ ] CLI de seed que popula todas as entidades com dados falsos realistas
+- [ ] Navegacao por teclado em tabelas (arrow keys, Enter, Esc)
+- [ ] Atalho N para criar novo registro
+- [ ] Toggle de visibilidade de colunas
+- [ ] Hover card com resumo do cliente
+- [ ] Preferencia de ordenacao persistente em localStorage
+- [ ] Sidebar colapsavel para icon rail
+- [ ] Timeline de audit trail no detalhe do processo
+- [ ] Sparklines reais com dados historicos nos KPI cards
 
 ### Out of Scope
 
-- Mudancas em logica de negocio/backend — somente visual
-- Redesign de navegacao/rotas — manter estrutura atual
-- Novos modulos ou funcionalidades — apenas melhorar o que existe
 - Mobile/responsive — app e desktop-only (min 1366x768)
 - Custom title bar — proibido pelo guia de identidade visual
+
+## Current Milestone: v2.1 Interacao e Dados
+
+**Goal:** Tornar o sistema testavel com dados realistas e adicionar interacoes avancadas (teclado, hover cards, sidebar colapsavel, sparklines)
+
+**Target features:**
+- Data seed CLI para todas as 16+ entidades
+- Interacao avancada em tabelas (teclado, colunas, hover, sort persistente)
+- Visual avancado (sidebar colapsavel, audit trail timeline, sparklines reais)
 
 ## Context
 
@@ -73,4 +87,4 @@ Resolution target: 1366x768 (notebook padrao de escritorios juridicos brasileiro
 | DeadlineBanner non-dismissible | Fatal deadlines must be visible | ✓ Good — role=alert, polling every 5min |
 
 ---
-*Last updated: 2026-03-16 after v1.0 milestone*
+*Last updated: 2026-03-16 after v2.1 milestone start*
