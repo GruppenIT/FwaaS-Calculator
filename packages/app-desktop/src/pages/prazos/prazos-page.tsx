@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Clock, Trash2, Pencil, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Clock, Trash2, Pencil, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
+import { PrazoCountdown, diasRestantes } from './prazo-countdown';
 import { PrazoModal } from './prazo-modal';
 import type { PrazoEditData } from './prazo-modal';
 import { usePermission } from '../../hooks/use-permission';
@@ -36,33 +38,26 @@ const TIPO_LABELS: Record<string, string> = {
   outros: 'Outros',
 };
 
-const PRIORIDADE_STYLES: Record<string, string> = {
-  normal: '',
-  alta: 'bg-causa-warning/10 text-causa-warning',
-  urgente: 'bg-causa-danger/10 text-causa-danger',
-};
-
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function diasRestantes(dataFatal: string): number {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const fatal = new Date(dataFatal + 'T00:00:00');
-  return Math.ceil((fatal.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-}
-
 export function PrazosPage() {
   const { can } = usePermission();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tierFilter = searchParams.get('tier');
   const [modalData, setModalData] = useState<PrazoEditData | null | undefined>(undefined);
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [sortState, setSortState] = useState<
+    { key: string; direction: 'asc' | 'desc' | null } | undefined
+  >(undefined);
 
   const carregar = useCallback(async () => {
     try {
@@ -80,6 +75,29 @@ export function PrazosPage() {
   }, [carregar]);
 
   const showModal = modalData !== undefined;
+
+  // Apply tier filter from URL param
+  const filtrados = useMemo(() => {
+    if (!tierFilter) return prazos;
+    return prazos.filter((p) => {
+      const dias = diasRestantes(p.dataFatal);
+      if (tierFilter === 'fatal') return dias <= 1;
+      if (tierFilter === 'urgente') return dias >= 2 && dias <= 3;
+      if (tierFilter === 'semana') return dias >= 4 && dias <= 7;
+      if (tierFilter === 'proximo') return dias >= 8;
+      return true;
+    });
+  }, [prazos, tierFilter]);
+
+  const sorted = useMemo(() => {
+    if (!sortState || sortState.direction === null) return filtrados;
+    const dir = sortState.direction === 'asc' ? 1 : -1;
+    return [...filtrados].sort((a, b) => {
+      const aVal = String((a as unknown as Record<string, unknown>)[sortState.key] ?? '');
+      const bVal = String((b as unknown as Record<string, unknown>)[sortState.key] ?? '');
+      return aVal.localeCompare(bVal) * dir;
+    });
+  }, [filtrados, sortState]);
 
   function handleSaved() {
     const isEdit = !!modalData;
@@ -132,6 +150,112 @@ export function PrazosPage() {
     }
   }
 
+  const columns: Column<PrazoRow>[] = [
+    {
+      key: 'descricao',
+      header: 'Descricao',
+      width: 'w-[250px]',
+      sortable: true,
+      render: (value, row) => (
+        <div>
+          <div className="truncate">{String(value ?? '')}</div>
+          <PrazoCountdown dataFatal={row.dataFatal} status={row.status} />
+        </div>
+      ),
+    },
+    {
+      key: 'numeroCnj',
+      header: 'Processo',
+      width: 'w-[200px]',
+      sortable: true,
+      render: (value) =>
+        value ? (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{String(value)}</span>
+        ) : (
+          <span className="text-[var(--color-text-muted)]">-</span>
+        ),
+    },
+    {
+      key: 'dataFatal',
+      header: 'Data Fatal',
+      width: 'w-[110px]',
+      sortable: true,
+      render: (value) => formatDate(String(value ?? '')),
+    },
+    {
+      key: 'tipoPrazo',
+      header: 'Tipo',
+      width: 'w-[100px]',
+      render: (value) => (
+        <span className="text-xs-causa px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--color-bg)] text-[var(--color-text-muted)]">
+          {TIPO_LABELS[String(value ?? '')] ?? String(value ?? '')}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: 'w-[100px]',
+      render: (value) => {
+        const s = String(value ?? '');
+        return (
+          <span
+            className={`text-xs-causa font-medium px-2 py-0.5 rounded-[var(--radius-sm)] ${STATUS_STYLES[s] ?? ''}`}
+          >
+            {STATUS_LABELS[s] ?? s}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'responsavelNome',
+      header: 'Responsavel',
+      width: 'w-[140px]',
+      render: (value) => <span className="truncate block">{String(value ?? '-')}</span>,
+    },
+    {
+      key: 'id',
+      header: '',
+      width: 'w-[100px]',
+      align: 'right',
+      render: (_value, row) => (
+        <div
+          className="flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {can('prazos:cumprido') && row.status === 'pendente' && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-causa-success transition-causa cursor-pointer"
+              onClick={() => handleStatusChange(row.id, 'cumprido')}
+              title="Marcar como cumprido"
+            >
+              <CheckCircle2 size={14} />
+            </button>
+          )}
+          {can('prazos:editar') && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-causa cursor-pointer"
+              onClick={() => handleEdit(row)}
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {can('prazos:excluir') && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+              onClick={() => setDeleteId(row.id)}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <PageHeader
@@ -174,143 +298,16 @@ export function PrazosPage() {
         ))}
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Descrição
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Processo
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Data Fatal
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Tipo
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Status
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Responsável
-              </th>
-              <th className="w-24"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows rows={5} cols={7} />
-            ) : prazos.length === 0 ? (
-              <EmptyState icon={Clock} message="Nenhum prazo encontrado." colSpan={7} />
-            ) : (
-              prazos.map((p) => {
-                const dias = diasRestantes(p.dataFatal);
-                const urgente = p.status === 'pendente' && dias <= 3;
-                return (
-                  <tr
-                    key={p.id}
-                    className={`border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa ${urgente ? 'bg-causa-danger/5' : ''}`}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {urgente && (
-                          <AlertTriangle size={14} className="text-causa-danger shrink-0" />
-                        )}
-                        {p.fatal && (
-                          <span className="text-[10px] font-bold text-causa-danger bg-causa-danger/10 px-1 rounded shrink-0">
-                            FATAL
-                          </span>
-                        )}
-                        <span className="text-base-causa text-[var(--color-text)] font-medium">
-                          {p.descricao}
-                        </span>
-                        {p.prioridade !== 'normal' && (
-                          <span
-                            className={`inline-flex px-1.5 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-medium ${PRIORIDADE_STYLES[p.prioridade] ?? ''}`}
-                          >
-                            {p.prioridade}
-                          </span>
-                        )}
-                      </div>
-                      {p.status === 'pendente' && (
-                        <span
-                          className={`text-xs-causa ${dias <= 1 ? 'text-causa-danger' : dias <= 3 ? 'text-causa-warning' : 'text-[var(--color-text-muted)]'}`}
-                        >
-                          {dias < 0
-                            ? `${Math.abs(dias)} dia(s) atrasado`
-                            : dias === 0
-                              ? 'Vence hoje'
-                              : `${dias} dia(s) restante(s)`}
-                        </span>
-                      )}
-                      {p.categoriaPrazo && (
-                        <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
-                          {p.categoriaPrazo}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
-                      {p.numeroCnj ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
-                      {formatDate(p.dataFatal)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
-                        {TIPO_LABELS[p.tipoPrazo] ?? p.tipoPrazo}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${STATUS_STYLES[p.status] ?? ''}`}
-                      >
-                        {STATUS_LABELS[p.status] ?? p.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
-                      {p.responsavelNome ?? '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        {can('processos:editar') && (
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(p)}
-                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        )}
-                        {p.status === 'pendente' && can('processos:editar') && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(p.id, 'cumprido')}
-                            title="Marcar como cumprido"
-                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-success/10 text-[var(--color-text-muted)] hover:text-causa-success transition-causa cursor-pointer"
-                          >
-                            <CheckCircle2 size={14} />
-                          </button>
-                        )}
-                        {can('processos:excluir') && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteId(p.id)}
-                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        data={(loading ? [] : sorted) as unknown as Record<string, unknown>[]}
+        keyExtractor={(r) => r['id'] as string}
+        onRowClick={(r) => navigate('/app/processos/' + (r['processoId'] as string))}
+        {...(sortState !== undefined ? { sortState } : {})}
+        onSort={setSortState}
+        emptyIcon={Clock}
+        emptyMessage="Nenhum prazo encontrado"
+      />
 
       {showModal && (
         <PrazoModal

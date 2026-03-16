@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Search, Pencil, Trash2, Download } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
 import { usePermission } from '../../hooks/use-permission';
@@ -39,6 +39,9 @@ export function ClientesPage() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [sortState, setSortState] = useState<
+    { key: string; direction: 'asc' | 'desc' | null } | undefined
+  >(undefined);
 
   const showModal = modalData !== undefined;
 
@@ -61,6 +64,16 @@ export function ClientesPage() {
   const filteredClientes = filtroStatus
     ? clientes.filter((c) => c.statusCliente === filtroStatus)
     : clientes;
+
+  const sorted = useMemo(() => {
+    if (!sortState || sortState.direction === null) return filteredClientes;
+    const dir = sortState.direction === 'asc' ? 1 : -1;
+    return [...filteredClientes].sort((a, b) => {
+      const aVal = String((a as unknown as Record<string, unknown>)[sortState.key] ?? '');
+      const bVal = String((b as unknown as Record<string, unknown>)[sortState.key] ?? '');
+      return aVal.localeCompare(bVal) * dir;
+    });
+  }, [filteredClientes, sortState]);
 
   function handleSaved() {
     const isEdit = !!modalData;
@@ -90,6 +103,83 @@ export function ClientesPage() {
       setDeleteId(null);
     }
   }
+
+  const columns: Column<ClienteData>[] = [
+    {
+      key: 'nome',
+      header: 'Nome',
+      width: 'w-[250px]',
+      sortable: true,
+    },
+    {
+      key: 'cpfCnpj',
+      header: 'CPF/CNPJ',
+      width: 'w-[160px]',
+      render: (value) => (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+          {String(value ?? '-')}
+        </span>
+      ),
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      width: 'w-[220px]',
+      render: (value) => <span className="truncate block">{String(value ?? '-')}</span>,
+    },
+    {
+      key: 'telefone',
+      header: 'Telefone',
+      width: 'w-[140px]',
+      render: (value) => String(value ?? '-'),
+    },
+    {
+      key: 'statusCliente',
+      header: 'Status',
+      width: 'w-[100px]',
+      render: (value) => {
+        const s = String(value ?? '');
+        return (
+          <span
+            className={`text-xs-causa font-medium px-2 py-0.5 rounded-[var(--radius-sm)] ${STATUS_STYLES[s] ?? ''}`}
+          >
+            {STATUS_LABELS[s] ?? s}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'id',
+      header: '',
+      width: 'w-[80px]',
+      align: 'right',
+      render: (_value, row) => (
+        <div
+          className="flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {can('clientes:editar') && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-causa cursor-pointer"
+              onClick={() => handleEdit(row)}
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {can('clientes:excluir') && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+              onClick={() => setDeleteId(row.id)}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -165,103 +255,20 @@ export function ClientesPage() {
         </button>
       </div>
 
-      {/* Tabela */}
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Nome / Razão Social
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Tipo
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                CPF/CNPJ
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Contato
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Status
-              </th>
-              <th className="w-20"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows rows={5} cols={6} />
-            ) : filteredClientes.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                message={
-                  busca || filtroStatus
-                    ? 'Nenhum cliente encontrado.'
-                    : 'Cadastre seu primeiro cliente para começar.'
-                }
-                colSpan={6}
-              />
-            ) : (
-              filteredClientes.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
-                >
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/app/clientes/${c.id}`)}
-                      className="text-base-causa text-[var(--color-primary)] hover:underline font-medium cursor-pointer bg-transparent border-0 p-0"
-                    >
-                      {c.nome}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
-                      {c.tipo}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
-                    {c.cpfCnpj ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
-                    {c.email ?? c.telefone ?? c.whatsapp ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${STATUS_STYLES[c.statusCliente] ?? ''}`}
-                    >
-                      {c.statusCliente}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      {can('clientes:editar') && (
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(c)}
-                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      )}
-                      {can('clientes:excluir') && (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteId(c.id)}
-                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        data={(loading ? [] : sorted) as unknown as Record<string, unknown>[]}
+        keyExtractor={(r) => r['id'] as string}
+        onRowClick={(r) => navigate('/app/clientes/' + (r['id'] as string))}
+        {...(sortState !== undefined ? { sortState } : {})}
+        onSort={setSortState}
+        emptyIcon={Users}
+        emptyMessage={
+          busca || filtroStatus
+            ? 'Nenhum cliente encontrado.'
+            : 'Cadastre seu primeiro cliente para começar.'
+        }
+      />
 
       {showModal && (
         <ClienteModal
