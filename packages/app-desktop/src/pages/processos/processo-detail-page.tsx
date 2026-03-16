@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react';
 import {
   Clock,
   FileText,
@@ -18,6 +19,7 @@ import {
   Cloud,
   CloudOff,
   Loader2,
+  CheckSquare,
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -30,7 +32,7 @@ import { DocumentoEditModal } from '../documentos/documento-edit-modal';
 import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
-import type { PrazoRow, HonorarioRow, MovimentacaoRow, DocumentoRow } from '../../lib/api';
+import type { PrazoRow, HonorarioRow, MovimentacaoRow, DocumentoRow, TarefaRow } from '../../lib/api';
 import { useFeatures } from '../../lib/auth-context';
 
 const PREVIEWABLE_MIMES = new Set([
@@ -63,6 +65,20 @@ const HONORARIO_STATUS_STYLES: Record<string, string> = {
   pendente: 'bg-causa-warning/10 text-causa-warning',
   recebido: 'bg-causa-success/10 text-causa-success',
   inadimplente: 'bg-causa-danger/10 text-causa-danger',
+};
+
+const TAREFA_STATUS_STYLES: Record<string, string> = {
+  pendente: 'bg-causa-warning/10 text-causa-warning',
+  em_andamento: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+  concluida: 'bg-causa-success/10 text-causa-success',
+  cancelada: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
+};
+
+const TAREFA_PRIORIDADE_STYLES: Record<string, string> = {
+  baixa: 'text-[var(--color-text-muted)]',
+  normal: 'text-[var(--color-text-muted)]',
+  alta: 'text-causa-warning',
+  urgente: 'text-causa-danger',
 };
 
 const PRIORIDADE_LABELS: Record<string, string> = {
@@ -103,11 +119,25 @@ function diasRestantes(dataFatal: string): number {
   return Math.ceil((fatal.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+interface TabDef {
+  key: string;
+  label: string;
+  count?: number;
+}
+
 export function ProcessoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { can } = usePermission();
   const { financeiro: financeiroEnabled, googleDrive: driveEnabled } = useFeatures();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const prefersReducedMotion = useReducedMotion();
+
+  const activeTab = searchParams.get('tab') ?? 'dados-gerais';
+
+  function handleTabChange(tabKey: string) {
+    setSearchParams({ tab: tabKey });
+  }
 
   const [processo, setProcesso] = useState<api.ProcessoDetail | null>(null);
   const [clienteNome, setClienteNome] = useState<string>('');
@@ -115,6 +145,7 @@ export function ProcessoDetailPage() {
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoRow[]>([]);
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
   const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
+  const [tarefas, setTarefas] = useState<TarefaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState<ProcessoEditData | null | undefined>(undefined);
   const [deleteMovId, setDeleteMovId] = useState<string | null>(null);
@@ -128,18 +159,20 @@ export function ProcessoDetailPage() {
   const carregar = useCallback(async () => {
     if (!id) return;
     try {
-      const [proc, movs, prazosData, honData, docsData] = await Promise.all([
+      const [proc, movs, prazosData, honData, docsData, tarefasData] = await Promise.all([
         api.obterProcesso(id),
         api.listarMovimentacoes(id),
         api.listarPrazosDoProcesso(id),
         financeiroEnabled ? api.listarHonorariosDoProcesso(id) : Promise.resolve([]),
         api.listarDocumentos({ processoId: id }),
+        api.listarTarefas({ processoId: id }),
       ]);
       setProcesso(proc);
       setMovimentacoes(movs);
       setPrazos(prazosData);
       setHonorarios(honData);
       setDocumentos(docsData);
+      setTarefas(tarefasData);
 
       if (proc.clienteId) {
         try {
@@ -266,6 +299,21 @@ export function ProcessoDetailPage() {
     );
   }
 
+  const allTabs: TabDef[] = [
+    { key: 'dados-gerais', label: 'Dados Gerais' },
+    { key: 'prazos', label: 'Prazos', count: prazos.length },
+    { key: 'movimentacoes', label: 'Movimentações', count: movimentacoes.length },
+    { key: 'documentos', label: 'Documentos', count: documentos.length },
+    ...(financeiroEnabled
+      ? [{ key: 'financeiro', label: 'Financeiro', count: honorarios.length }]
+      : []),
+    { key: 'tarefas', label: 'Tarefas', count: tarefas.length },
+  ];
+
+  const animTransition: Transition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.1, ease: 'easeOut' as const };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -310,380 +358,560 @@ export function ProcessoDetailPage() {
         )}
       </div>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <InfoCard label="Cliente">
-          {processo.clienteId ? (
-            <Link
-              to={`/app/clientes/${processo.clienteId}`}
-              className="text-[var(--color-primary)] hover:underline"
+      {/* Tab Bar */}
+      <nav
+        role="tablist"
+        aria-label="Seções do processo"
+        className="flex items-center gap-0 border-b border-[var(--color-border)] -mb-2"
+      >
+        {allTabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              role="tab"
+              id={`tab-${tab.key}`}
+              aria-selected={isActive}
+              aria-controls={`panel-${tab.key}`}
+              type="button"
+              onClick={() => handleTabChange(tab.key)}
+              className={[
+                'relative px-4 py-2.5 text-sm-causa font-medium transition-causa focus-causa',
+                'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:transition-causa',
+                isActive
+                  ? 'text-[var(--color-primary)] after:bg-[var(--color-primary)]'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] after:bg-transparent',
+              ].join(' ')}
             >
-              {clienteNome || '...'}
-            </Link>
-          ) : (
-            '—'
-          )}
-        </InfoCard>
-        <InfoCard label="Plataforma">{processo.plataforma.toUpperCase()}</InfoCard>
-        <InfoCard label="Valor da causa">
-          {processo.valorCausa ? formatCurrency(processo.valorCausa) : '—'}
-        </InfoCard>
-        <InfoCard label="Cadastrado em">{formatDate(processo.createdAt)}</InfoCard>
-      </div>
+              {tab.label}
+              {tab.count !== undefined && (
+                <span
+                  className={[
+                    'ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-medium',
+                    isActive
+                      ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                      : 'bg-causa-surface-alt text-[var(--color-text-muted)]',
+                  ].join(' ')}
+                >
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
 
-      {/* Extra Info */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {processo.grau && (
-          <InfoCard label="Grau">
-            <span className="flex items-center gap-1">
-              <Scale size={12} className="text-[var(--color-text-muted)]" />
-              {processo.grau === 'primeiro'
-                ? '1º Grau'
-                : processo.grau === 'segundo'
-                  ? '2º Grau'
-                  : processo.grau === 'superior'
-                    ? 'Superior'
-                    : 'STF'}
-            </span>
-          </InfoCard>
-        )}
-        {processo.comarca && (
-          <InfoCard label="Comarca">
-            <span className="flex items-center gap-1">
-              <MapPin size={12} className="text-[var(--color-text-muted)]" />
-              {processo.comarca}
-            </span>
-          </InfoCard>
-        )}
-        {processo.vara && <InfoCard label="Vara">{processo.vara}</InfoCard>}
-        {processo.juiz && <InfoCard label="Juiz">{processo.juiz}</InfoCard>}
-        {processo.rito && <InfoCard label="Rito">{processo.rito}</InfoCard>}
-        {processo.dataDistribuicao && (
-          <InfoCard label="Distribuição">{formatDate(processo.dataDistribuicao)}</InfoCard>
-        )}
-        {processo.valorCondenacao != null && (
-          <InfoCard label="Valor Condenação">{formatCurrency(processo.valorCondenacao)}</InfoCard>
-        )}
-        {processo.advogadoContrario && (
-          <InfoCard label="Advogado Contrário">
-            {processo.advogadoContrario}
-            {processo.oabContrario && (
-              <span className="text-xs-causa text-[var(--color-text-muted)] ml-1">
-                OAB {processo.oabContrario}
-              </span>
-            )}
-          </InfoCard>
-        )}
-      </div>
-
-      {/* Tags */}
-      {processo.tags && processo.tags.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <Tag size={14} className="text-[var(--color-text-muted)]" />
-          {processo.tags.map((t, i) => (
-            <span
-              key={i}
-              className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-causa-surface-alt text-[var(--color-text-muted)]"
+      {/* Tab Panels — all in DOM for print compatibility (DET-03 contract) */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={animTransition}
+        >
+          {allTabs.map((tab) => (
+            <div
+              key={tab.key}
+              role="tabpanel"
+              id={`panel-${tab.key}`}
+              aria-labelledby={`tab-${tab.key}`}
+              data-print-section
+              className={activeTab !== tab.key ? 'hidden' : ''}
             >
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
+              {tab.key === 'dados-gerais' && (
+                <div className="space-y-6">
+                  {/* Info Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <InfoCard label="Cliente">
+                      {processo.clienteId ? (
+                        <Link
+                          to={`/app/clientes/${processo.clienteId}`}
+                          className="text-[var(--color-primary)] hover:underline"
+                        >
+                          {clienteNome || '...'}
+                        </Link>
+                      ) : (
+                        '—'
+                      )}
+                    </InfoCard>
+                    <InfoCard label="Plataforma">{processo.plataforma.toUpperCase()}</InfoCard>
+                    <InfoCard label="Valor da causa">
+                      {processo.valorCausa ? formatCurrency(processo.valorCausa) : '—'}
+                    </InfoCard>
+                    <InfoCard label="Cadastrado em">{formatDate(processo.createdAt)}</InfoCard>
+                  </div>
 
-      {/* Observações */}
-      {processo.observacoes && (
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
-          <div className="text-xs-causa text-[var(--color-text-muted)] mb-1">Observações</div>
-          <div className="text-sm-causa text-[var(--color-text)] whitespace-pre-wrap">
-            {processo.observacoes}
-          </div>
-        </div>
-      )}
-
-      {/* Tabs-like sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Prazos */}
-        <Section title="Prazos" icon={Clock} count={prazos.length}>
-          {prazos.length === 0 ? (
-            <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
-              Nenhum prazo vinculado.
-            </p>
-          ) : (
-            <div className="divide-y divide-[var(--color-border)]">
-              {prazos.map((p) => {
-                const dias = diasRestantes(p.dataFatal);
-                const urgente = p.status === 'pendente' && dias <= 3;
-                return (
-                  <div key={p.id} className={`px-4 py-3 ${urgente ? 'bg-causa-danger/5' : ''}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {urgente && <AlertTriangle size={12} className="text-causa-danger" />}
-                        {p.fatal && (
-                          <span className="text-[10px] font-bold text-causa-danger bg-causa-danger/10 px-1 rounded">
-                            FATAL
+                  {/* Extra Info */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {processo.grau && (
+                      <InfoCard label="Grau">
+                        <span className="flex items-center gap-1">
+                          <Scale size={12} className="text-[var(--color-text-muted)]" />
+                          {processo.grau === 'primeiro'
+                            ? '1º Grau'
+                            : processo.grau === 'segundo'
+                              ? '2º Grau'
+                              : processo.grau === 'superior'
+                                ? 'Superior'
+                                : 'STF'}
+                        </span>
+                      </InfoCard>
+                    )}
+                    {processo.comarca && (
+                      <InfoCard label="Comarca">
+                        <span className="flex items-center gap-1">
+                          <MapPin size={12} className="text-[var(--color-text-muted)]" />
+                          {processo.comarca}
+                        </span>
+                      </InfoCard>
+                    )}
+                    {processo.vara && <InfoCard label="Vara">{processo.vara}</InfoCard>}
+                    {processo.juiz && <InfoCard label="Juiz">{processo.juiz}</InfoCard>}
+                    {processo.rito && <InfoCard label="Rito">{processo.rito}</InfoCard>}
+                    {processo.dataDistribuicao && (
+                      <InfoCard label="Distribuição">
+                        {formatDate(processo.dataDistribuicao)}
+                      </InfoCard>
+                    )}
+                    {processo.valorCondenacao != null && (
+                      <InfoCard label="Valor Condenação">
+                        {formatCurrency(processo.valorCondenacao)}
+                      </InfoCard>
+                    )}
+                    {processo.advogadoContrario && (
+                      <InfoCard label="Advogado Contrário">
+                        {processo.advogadoContrario}
+                        {processo.oabContrario && (
+                          <span className="text-xs-causa text-[var(--color-text-muted)] ml-1">
+                            OAB {processo.oabContrario}
                           </span>
                         )}
-                        <span className="text-sm-causa text-[var(--color-text)] font-medium">
-                          {p.descricao}
-                        </span>
-                      </div>
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${PRAZO_STATUS_STYLES[p.status] ?? ''}`}
-                      >
-                        {p.status}
-                      </span>
-                    </div>
-                    <div className="text-xs-causa text-[var(--color-text-muted)] mt-1">
-                      {formatDate(p.dataFatal)}
-                      {p.status === 'pendente' && (
+                      </InfoCard>
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  {processo.tags && processo.tags.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Tag size={14} className="text-[var(--color-text-muted)]" />
+                      {processo.tags.map((t, i) => (
                         <span
-                          className={`ml-2 ${dias <= 1 ? 'text-causa-danger' : dias <= 3 ? 'text-causa-warning' : ''}`}
+                          key={i}
+                          className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium bg-causa-surface-alt text-[var(--color-text-muted)]"
                         >
-                          {dias < 0
-                            ? `${Math.abs(dias)}d atrasado`
-                            : dias === 0
-                              ? 'Vence hoje'
-                              : `${dias}d restantes`}
+                          {t}
                         </span>
-                      )}
-                      {p.categoriaPrazo && (
-                        <span className="ml-2 text-[var(--color-text-muted)]">
-                          &middot; {p.categoriaPrazo}
-                        </span>
-                      )}
+                      ))}
                     </div>
+                  )}
+
+                  {/* Observações */}
+                  {processo.observacoes && (
+                    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
+                      <div className="text-xs-causa text-[var(--color-text-muted)] mb-1">
+                        Observações
+                      </div>
+                      <div className="text-sm-causa text-[var(--color-text)] whitespace-pre-wrap">
+                        {processo.observacoes}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab.key === 'prazos' && (
+                <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+                    <Clock size={16} className="text-[var(--color-text-muted)]" />
+                    <span className="text-sm-causa font-semibold text-[var(--color-text)]">
+                      Prazos
+                    </span>
                   </div>
-                );
-              })}
+                  {prazos.length === 0 ? (
+                    <p className="text-sm-causa text-[var(--color-text-muted)] py-8 text-center">
+                      Nenhum prazo vinculado.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-[var(--color-border)]">
+                      {prazos.map((p) => {
+                        const dias = diasRestantes(p.dataFatal);
+                        const urgente = p.status === 'pendente' && dias <= 3;
+                        return (
+                          <div
+                            key={p.id}
+                            className={`px-4 py-3 ${urgente ? 'bg-causa-danger/5' : ''}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {urgente && (
+                                  <AlertTriangle size={12} className="text-causa-danger" />
+                                )}
+                                {p.fatal && (
+                                  <span className="text-[10px] font-bold text-causa-danger bg-causa-danger/10 px-1 rounded">
+                                    FATAL
+                                  </span>
+                                )}
+                                <span className="text-sm-causa text-[var(--color-text)] font-medium">
+                                  {p.descricao}
+                                </span>
+                              </div>
+                              <span
+                                className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${PRAZO_STATUS_STYLES[p.status] ?? ''}`}
+                              >
+                                {p.status}
+                              </span>
+                            </div>
+                            <div className="text-xs-causa text-[var(--color-text-muted)] mt-1">
+                              {formatDate(p.dataFatal)}
+                              {p.status === 'pendente' && (
+                                <span
+                                  className={`ml-2 ${dias <= 1 ? 'text-causa-danger' : dias <= 3 ? 'text-causa-warning' : ''}`}
+                                >
+                                  {dias < 0
+                                    ? `${Math.abs(dias)}d atrasado`
+                                    : dias === 0
+                                      ? 'Vence hoje'
+                                      : `${dias}d restantes`}
+                                </span>
+                              )}
+                              {p.categoriaPrazo && (
+                                <span className="ml-2 text-[var(--color-text-muted)]">
+                                  &middot; {p.categoriaPrazo}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab.key === 'movimentacoes' && (
+                <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+                    <FileText size={16} className="text-[var(--color-text-muted)]" />
+                    <span className="text-sm-causa font-semibold text-[var(--color-text)]">
+                      Movimentações
+                    </span>
+                  </div>
+                  {movimentacoes.length === 0 ? (
+                    <p className="text-sm-causa text-[var(--color-text-muted)] py-8 text-center">
+                      Nenhuma movimentação registrada.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-[var(--color-border)]">
+                      {movimentacoes.map((m) => (
+                        <div
+                          key={m.id}
+                          className={`px-4 py-3 ${m.urgente ? 'border-l-2 border-l-causa-danger' : ''}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {m.urgente && (
+                                <AlertTriangle size={12} className="text-causa-danger shrink-0" />
+                              )}
+                              <span className="text-sm-causa text-[var(--color-text)] font-medium">
+                                {m.descricao}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
+                                {formatDate(m.dataMovimento)}
+                              </span>
+                              {m.linkExterno && (
+                                <a
+                                  href={m.linkExterno}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa"
+                                >
+                                  <ExternalLink size={12} />
+                                </a>
+                              )}
+                              {can('processos:editar') && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteMovId(m.id)}
+                                  className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa text-[var(--color-text-muted)]">
+                              {m.tipo}
+                            </span>
+                            <span className="text-xs-causa text-[var(--color-text-muted)]">
+                              {m.origem}
+                            </span>
+                            {!m.lido && (
+                              <span className="inline-flex px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-[10px] font-medium">
+                                Novo
+                              </span>
+                            )}
+                          </div>
+                          {m.teor && (
+                            <p className="text-xs-causa text-[var(--color-text-muted)] mt-1 line-clamp-2">
+                              {m.teor}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab.key === 'documentos' && (
+                <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+                    <FileText size={16} className="text-[var(--color-text-muted)]" />
+                    <span className="text-sm-causa font-semibold text-[var(--color-text)]">
+                      Documentos
+                    </span>
+                    {canUpload && (
+                      <div className="flex-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setDocModalOpen(true)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-sm)] text-xs-causa font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                        >
+                          <Plus size={14} />
+                          Novo
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {documentos.length === 0 ? (
+                    <p className="text-sm-causa text-[var(--color-text-muted)] py-8 text-center">
+                      Nenhum documento vinculado.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-[var(--color-border)]">
+                      {documentos.map((d) => (
+                        <div key={d.id} className="px-4 py-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText
+                              size={14}
+                              className="text-[var(--color-primary)] shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <span className="text-sm-causa text-[var(--color-text)] font-medium truncate block">
+                                {d.nome}
+                              </span>
+                              {d.descricao && (
+                                <span className="text-xs-causa text-[var(--color-text-muted)] truncate block">
+                                  {d.descricao}
+                                </span>
+                              )}
+                            </div>
+                            {d.categoria && (
+                              <span className="text-xs-causa text-[var(--color-text-muted)] shrink-0">
+                                {d.categoria}
+                              </span>
+                            )}
+                            {d.confidencial && (
+                              <span className="text-xs-causa text-causa-danger font-medium shrink-0">
+                                Confidencial
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
+                              {formatDate(d.createdAt)}
+                            </span>
+                            {driveEnabled &&
+                              (d.driveFileId ? (
+                                <span
+                                  className="p-1.5 text-causa-success"
+                                  title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
+                                >
+                                  <Cloud size={14} />
+                                </span>
+                              ) : syncingDocId === d.id ? (
+                                <span className="p-1.5 text-[var(--color-primary)]">
+                                  <Loader2 size={14} className="animate-spin" />
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSyncDoc(d.id)}
+                                  className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                                  title="Enviar ao Google Drive"
+                                >
+                                  <CloudOff size={14} />
+                                </button>
+                              ))}
+                            {canUpload && (
+                              <button
+                                type="button"
+                                onClick={() => setEditDoc(d)}
+                                className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                                title="Editar metadados"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                            )}
+                            {isPreviewable(d.tipoMime) && (
+                              <button
+                                type="button"
+                                onClick={() => setViewDocId(d.id)}
+                                className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                                title="Visualizar"
+                              >
+                                <Eye size={14} />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadDoc(d.id)}
+                              className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
+                              title="Baixar"
+                            >
+                              <Download size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab.key === 'financeiro' && financeiroEnabled && (
+                <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+                    <DollarSign size={16} className="text-[var(--color-text-muted)]" />
+                    <span className="text-sm-causa font-semibold text-[var(--color-text)]">
+                      Financeiro
+                    </span>
+                  </div>
+                  {honorarios.length === 0 ? (
+                    <p className="text-sm-causa text-[var(--color-text-muted)] py-8 text-center">
+                      Nenhum honorário vinculado.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-[var(--color-border)]">
+                      {honorarios.map((h) => (
+                        <div
+                          key={h.id}
+                          className="px-4 py-3 flex items-center justify-between"
+                        >
+                          <div>
+                            <span className="text-sm-causa text-[var(--color-text)] font-medium font-[var(--font-mono)]">
+                              {formatCurrency(h.valor)}
+                            </span>
+                            <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                              {h.tipo === 'fixo'
+                                ? 'Fixo'
+                                : h.tipo === 'exito'
+                                  ? 'Êxito'
+                                  : h.tipo === 'por_hora'
+                                    ? 'Por hora'
+                                    : h.tipo === 'sucumbencia'
+                                      ? 'Sucumbência'
+                                      : h.tipo}
+                            </span>
+                            {h.descricao && (
+                              <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
+                                — {h.descricao}
+                              </span>
+                            )}
+                          </div>
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${HONORARIO_STATUS_STYLES[h.status] ?? ''}`}
+                          >
+                            {h.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab.key === 'tarefas' && (
+                <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
+                    <CheckSquare size={16} className="text-[var(--color-text-muted)]" />
+                    <span className="text-sm-causa font-semibold text-[var(--color-text)]">
+                      Tarefas
+                    </span>
+                  </div>
+                  {tarefas.length === 0 ? (
+                    <p className="text-sm-causa text-[var(--color-text-muted)] py-8 text-center">
+                      Nenhuma tarefa vinculada.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-[var(--color-border)]">
+                      {tarefas.map((t) => (
+                        <div key={t.id} className="px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-sm-causa font-medium ${t.status === 'concluida' ? 'line-through text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}`}
+                              >
+                                {t.titulo}
+                              </span>
+                              {t.prioridade === 'alta' || t.prioridade === 'urgente' ? (
+                                <span
+                                  className={`text-xs-causa font-medium ${TAREFA_PRIORIDADE_STYLES[t.prioridade] ?? ''}`}
+                                >
+                                  {t.prioridade === 'urgente' ? 'Urgente' : 'Alta'}
+                                </span>
+                              ) : null}
+                            </div>
+                            <span
+                              className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${TAREFA_STATUS_STYLES[t.status] ?? ''}`}
+                            >
+                              {t.status === 'em_andamento'
+                                ? 'Em andamento'
+                                : t.status === 'concluida'
+                                  ? 'Concluída'
+                                  : t.status === 'cancelada'
+                                    ? 'Cancelada'
+                                    : 'Pendente'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            {t.dataLimite && (
+                              <span className="text-xs-causa text-[var(--color-text-muted)]">
+                                Prazo: {formatDate(t.dataLimite)}
+                              </span>
+                            )}
+                            {t.responsavelNome && (
+                              <span className="text-xs-causa text-[var(--color-text-muted)]">
+                                {t.responsavelNome}
+                              </span>
+                            )}
+                            {t.categoria && (
+                              <span className="text-xs-causa text-[var(--color-text-muted)]">
+                                {t.categoria}
+                              </span>
+                            )}
+                          </div>
+                          {t.descricao && (
+                            <p className="text-xs-causa text-[var(--color-text-muted)] mt-1 line-clamp-2">
+                              {t.descricao}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </Section>
+          ))}
+        </motion.div>
+      </AnimatePresence>
 
-        {/* Honorários */}
-        {financeiroEnabled && (
-          <Section title="Honorários" icon={DollarSign} count={honorarios.length}>
-            {honorarios.length === 0 ? (
-              <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
-                Nenhum honorário vinculado.
-              </p>
-            ) : (
-              <div className="divide-y divide-[var(--color-border)]">
-                {honorarios.map((h) => (
-                  <div key={h.id} className="px-4 py-3 flex items-center justify-between">
-                    <div>
-                      <span className="text-sm-causa text-[var(--color-text)] font-medium font-[var(--font-mono)]">
-                        {formatCurrency(h.valor)}
-                      </span>
-                      <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
-                        {h.tipo === 'fixo'
-                          ? 'Fixo'
-                          : h.tipo === 'exito'
-                            ? 'Êxito'
-                            : h.tipo === 'por_hora'
-                              ? 'Por hora'
-                              : h.tipo === 'sucumbencia'
-                                ? 'Sucumbência'
-                                : h.tipo}
-                      </span>
-                      {h.descricao && (
-                        <span className="ml-2 text-xs-causa text-[var(--color-text-muted)]">
-                          — {h.descricao}
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium ${HONORARIO_STATUS_STYLES[h.status] ?? ''}`}
-                    >
-                      {h.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-        )}
-      </div>
-
-      {/* Documentos */}
-      <Section
-        title="Documentos"
-        icon={FileText}
-        count={documentos.length}
-        action={
-          canUpload ? (
-            <button
-              type="button"
-              onClick={() => setDocModalOpen(true)}
-              className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-sm)] text-xs-causa font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-            >
-              <Plus size={14} />
-              Novo
-            </button>
-          ) : undefined
-        }
-      >
-        {documentos.length === 0 ? (
-          <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
-            Nenhum documento vinculado.
-          </p>
-        ) : (
-          <div className="divide-y divide-[var(--color-border)]">
-            {documentos.map((d) => (
-              <div key={d.id} className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText size={14} className="text-[var(--color-primary)] shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-sm-causa text-[var(--color-text)] font-medium truncate block">
-                      {d.nome}
-                    </span>
-                    {d.descricao && (
-                      <span className="text-xs-causa text-[var(--color-text-muted)] truncate block">
-                        {d.descricao}
-                      </span>
-                    )}
-                  </div>
-                  {d.categoria && (
-                    <span className="text-xs-causa text-[var(--color-text-muted)] shrink-0">
-                      {d.categoria}
-                    </span>
-                  )}
-                  {d.confidencial && (
-                    <span className="text-xs-causa text-causa-danger font-medium shrink-0">
-                      Confidencial
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-xs-causa text-[var(--color-text-muted)] mr-2">
-                    {formatDate(d.createdAt)}
-                  </span>
-                  {driveEnabled &&
-                    (d.driveFileId ? (
-                      <span
-                        className="p-1.5 text-causa-success"
-                        title={`Sincronizado em ${d.driveSyncedAt ? new Date(d.driveSyncedAt).toLocaleString('pt-BR') : ''}`}
-                      >
-                        <Cloud size={14} />
-                      </span>
-                    ) : syncingDocId === d.id ? (
-                      <span className="p-1.5 text-[var(--color-primary)]">
-                        <Loader2 size={14} className="animate-spin" />
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleSyncDoc(d.id)}
-                        className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-                        title="Enviar ao Google Drive"
-                      >
-                        <CloudOff size={14} />
-                      </button>
-                    ))}
-                  {canUpload && (
-                    <button
-                      type="button"
-                      onClick={() => setEditDoc(d)}
-                      className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-                      title="Editar metadados"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                  )}
-                  {isPreviewable(d.tipoMime) && (
-                    <button
-                      type="button"
-                      onClick={() => setViewDocId(d.id)}
-                      className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-                      title="Visualizar"
-                    >
-                      <Eye size={14} />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadDoc(d.id)}
-                    className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-causa cursor-pointer"
-                    title="Baixar"
-                  >
-                    <Download size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
-
-      {/* Movimentações - full width */}
-      <Section title="Movimentações" icon={FileText} count={movimentacoes.length}>
-        {movimentacoes.length === 0 ? (
-          <p className="text-sm-causa text-[var(--color-text-muted)] py-4 text-center">
-            Nenhuma movimentação registrada.
-          </p>
-        ) : (
-          <div className="divide-y divide-[var(--color-border)]">
-            {movimentacoes.map((m) => (
-              <div
-                key={m.id}
-                className={`px-4 py-3 ${m.urgente ? 'border-l-2 border-l-causa-danger' : ''}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {m.urgente && (
-                      <AlertTriangle size={12} className="text-causa-danger shrink-0" />
-                    )}
-                    <span className="text-sm-causa text-[var(--color-text)] font-medium">
-                      {m.descricao}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
-                      {formatDate(m.dataMovimento)}
-                    </span>
-                    {m.linkExterno && (
-                      <a
-                        href={m.linkExterno}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa"
-                      >
-                        <ExternalLink size={12} />
-                      </a>
-                    )}
-                    {can('processos:editar') && (
-                      <button
-                        type="button"
-                        onClick={() => setDeleteMovId(m.id)}
-                        className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa text-[var(--color-text-muted)]">
-                    {m.tipo}
-                  </span>
-                  <span className="text-xs-causa text-[var(--color-text-muted)]">{m.origem}</span>
-                  {!m.lido && (
-                    <span className="inline-flex px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-[10px] font-medium">
-                      Novo
-                    </span>
-                  )}
-                </div>
-                {m.teor && (
-                  <p className="text-xs-causa text-[var(--color-text-muted)] mt-1 line-clamp-2">
-                    {m.teor}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
-
+      {/* Modals */}
       <DocumentoModal
         open={docModalOpen}
         onClose={() => setDocModalOpen(false)}
@@ -731,34 +959,6 @@ function InfoCard({ label, children }: { label: string; children: React.ReactNod
     <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
       <div className="text-xs-causa text-[var(--color-text-muted)] mb-1">{label}</div>
       <div className="text-base-causa text-[var(--color-text)] font-medium">{children}</div>
-    </div>
-  );
-}
-
-function Section({
-  title,
-  icon: Icon,
-  count,
-  action,
-  children,
-}: {
-  title: string;
-  icon: typeof Clock;
-  count: number;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
-        <Icon size={16} className="text-[var(--color-text-muted)]" />
-        <span className="text-sm-causa font-semibold text-[var(--color-text)]">{title}</span>
-        <span className="text-xs-causa text-[var(--color-text-muted)] bg-[var(--color-bg)] px-1.5 py-0.5 rounded-full">
-          {count}
-        </span>
-        {action && <div className="flex-1 flex justify-end">{action}</div>}
-      </div>
-      <div className="max-h-80 overflow-auto">{children}</div>
     </div>
   );
 }
