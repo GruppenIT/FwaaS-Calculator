@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Interacao e Dados
-status: ready_to_plan
-stopped_at: Roadmap created for v2.1, ready to plan Phase 6
-last_updated: "2026-03-16T22:00:00.000Z"
-last_activity: 2026-03-16 — Roadmap created for v2.1 (Phases 6-8)
+status: planning
+stopped_at: Completed 06-01-PLAN.md (demo seed script)
+last_updated: "2026-03-16T23:19:51.779Z"
+last_activity: 2026-03-16 — Roadmap created for v2.1 (3 phases, 12 requirements)
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -46,6 +46,8 @@ Progress: [░░░░░░░░░░] 0%
 ### Decisions
 
 See PROJECT.md Key Decisions table for full history.
+- [Phase 06-data-seed]: Demo seed casts db to any for inserts: Drizzle strict types under exactOptionalPropertyTypes exclude .default() columns — seed-script pattern
+- [Phase 06-data-seed]: faker.seed(42) used for deterministic seed output — idempotency is clear+reinsert, not conflict-skip
 
 ### Pending Todos
 
@@ -57,7 +59,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16
-Stopped at: Roadmap created for v2.1 milestone
+Last session: 2026-03-16T23:19:51.777Z
+Stopped at: Completed 06-01-PLAN.md (demo seed script)
 Resume file: None
 Next action: `/gsd:plan-phase 6`

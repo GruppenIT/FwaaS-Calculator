@@ -9,10 +9,10 @@ Requirements para seed de dados, interacoes avancadas e melhorias visuais. Cada 
 
 ### Data Seed
 
-- [ ] **SEED-01**: CLI `pnpm db:seed:demo` popula todas as entidades com dados falsos realistas (clientes PF/PJ, processos com CNJ, prazos com distribuicao temporal, honorarios com parcelas, movimentacoes, tarefas, agenda, documentos, despesas, contatos, timesheets)
+- [x] **SEED-01**: CLI `pnpm db:seed:demo` popula todas as entidades com dados falsos realistas (clientes PF/PJ, processos com CNJ, prazos com distribuicao temporal, honorarios com parcelas, movimentacoes, tarefas, agenda, documentos, despesas, contatos, timesheets)
 - [ ] **SEED-02**: Seed gera dados temporalmente distribuidos nos ultimos 12 meses para alimentar sparklines e graficos de tendencia
 - [ ] **SEED-03**: Seed cria pelo menos 1 prazo fatal (0-1 dia) e 3 prazos urgentes para validar o sistema de urgencia de 4 tiers
-- [ ] **SEED-04**: Seed e idempotente — rodar duas vezes nao duplica dados (limpa antes de inserir)
+- [x] **SEED-04**: Seed e idempotente — rodar duas vezes nao duplica dados (limpa antes de inserir)
 
 ### Interacao Avancada
 
@@ -46,10 +46,10 @@ Nenhum deferido neste milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEED-01 | Phase 6 | Pending |
+| SEED-01 | Phase 6 | Complete |
 | SEED-02 | Phase 6 | Pending |
 | SEED-03 | Phase 6 | Pending |
-| SEED-04 | Phase 6 | Pending |
+| SEED-04 | Phase 6 | Complete |
 | INT-01 | Phase 7 | Pending |
 | INT-02 | Phase 7 | Pending |
 | INT-03 | Phase 7 | Pending |
