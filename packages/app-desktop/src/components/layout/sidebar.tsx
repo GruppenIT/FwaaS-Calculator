@@ -182,7 +182,7 @@ export function Sidebar() {
                   to={to}
                   end={to === '/app'}
                   className={({ isActive }) =>
-                    `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa ${
+                    `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa focus-causa ${
                       isActive
                         ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
                         : 'text-[var(--color-text)] hover:bg-causa-surface-alt'
@@ -222,7 +222,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa cursor-pointer flex-1"
+          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa focus-causa cursor-pointer flex-1"
         >
           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           {theme === 'light' ? 'Escuro' : 'Claro'}
@@ -230,7 +230,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={logout}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
+          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa focus-causa cursor-pointer"
           title="Sair"
         >
           <LogOut size={16} />

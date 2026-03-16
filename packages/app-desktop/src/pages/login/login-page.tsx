@@ -86,7 +86,7 @@ export function LoginPage() {
         <button
           type="button"
           onClick={toggleTheme}
-          className="absolute top-4 right-4 w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa cursor-pointer"
+          className="absolute top-4 right-4 w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa focus-causa cursor-pointer"
           title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
         >
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}

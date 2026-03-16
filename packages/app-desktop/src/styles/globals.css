@@ -79,7 +79,7 @@
   --color-surface-elevated: #ffffff;
   --color-surface-alt: #f3f4f6;
   --color-text: #1e1e2e;
-  --color-text-muted: #6b7280;
+  --color-text-muted: #636e7b; /* A11Y-01: bumped from #6b7280 — passes WCAG AA 4.5:1 on #f7f6f3 bg */
   --color-border: #e5e7eb;
   --color-primary: #2563a8;
   --color-primary-hover: #1d4e8f;
@@ -216,7 +216,7 @@ body {
 @utility focus-causa {
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px oklch(from #2563a8 l c h / 0.15);
+    box-shadow: 0 0 0 3px oklch(from #2563a8 l c h / 0.30); /* A11Y-02: bumped from 0.15 to 0.30 for visibility in both themes */
     border-color: var(--color-primary);
   }
 }
