@@ -15,6 +15,7 @@
     "db:generate": "pnpm --filter @causa/database run generate",
     "db:migrate": "pnpm --filter @causa/database run migrate",
     "db:seed": "pnpm --filter @causa/database run seed",
+    "db:seed:demo": "pnpm --filter @causa/database run seed:demo",
     "dev:desktop": "pnpm --filter @causa/app-desktop run dev",
     "dev:api": "pnpm --filter @causa/database run dev:api",
     "build:installer": "pnpm run build && pnpm --filter @causa/installer run build"

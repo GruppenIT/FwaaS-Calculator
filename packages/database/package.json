@@ -13,6 +13,7 @@
     "generate:pg": "drizzle-kit generate --config ../../drizzle-pg.config.ts",
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seeds/run.ts",
+    "seed:demo": "tsx src/seeds/seed-demo.ts",
     "dev:api": "tsx src/api-server.ts"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "uuid": "^11.0.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.3.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.12",
     "@types/jsonwebtoken": "^9.0.10",
