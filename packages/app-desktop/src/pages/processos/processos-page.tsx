@@ -1,24 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Briefcase, Search, Pencil, Trash2, Download, X } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
+import { Badge } from '../../components/ui/badge';
+import type { BadgeStatus } from '../../components/ui/badge';
 import { ProcessoModal } from './processo-modal';
 import type { ProcessoEditData } from './processo-modal';
 import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { ProcessoListRow } from '../../lib/api';
 
-const STATUS_STYLES: Record<string, string> = {
-  ativo: 'bg-causa-success/10 text-causa-success',
-  arquivado: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
-  encerrado: 'bg-causa-warning/10 text-causa-warning',
-  suspenso: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
-  baixado: 'bg-causa-surface-alt text-[var(--color-text-muted)]',
+export const STATUS_TO_BADGE: Record<string, BadgeStatus> = {
+  ativo: 'active',
+  suspenso: 'suspended',
+  arquivado: 'archived',
+  encerrado: 'closed',
+  baixado: 'archived',
 };
 
 const PRIORIDADE_STYLES: Record<string, string> = {
@@ -54,6 +56,9 @@ export function ProcessosPage() {
   const [deleting, setDeleting] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroArea, setFiltroArea] = useState('');
+  const [sortState, setSortState] = useState<
+    { key: string; direction: 'asc' | 'desc' | null } | undefined
+  >(undefined);
 
   const showModal = modalData !== undefined;
 
@@ -62,6 +67,16 @@ export function ProcessosPage() {
     if (filtroArea && p.area !== filtroArea) return false;
     return true;
   });
+
+  const sorted = useMemo(() => {
+    if (!sortState || sortState.direction === null) return filtrados;
+    const dir = sortState.direction === 'asc' ? 1 : -1;
+    return [...filtrados].sort((a, b) => {
+      const aVal = String((a as unknown as Record<string, unknown>)[sortState.key] ?? '');
+      const bVal = String((b as unknown as Record<string, unknown>)[sortState.key] ?? '');
+      return aVal.localeCompare(bVal) * dir;
+    });
+  }, [filtrados, sortState]);
 
   const areas = [...new Set(processos.map((p) => p.area))].sort();
   const hasFilters = !!filtroStatus || !!filtroArea;
@@ -166,6 +181,105 @@ export function ProcessosPage() {
     URL.revokeObjectURL(url);
   }
 
+  const columns: Column<ProcessoListRow>[] = [
+    {
+      key: 'numeroCnj',
+      header: 'Numero CNJ',
+      width: 'w-[220px]',
+      sortable: true,
+      render: (value, row) => (
+        <div className="flex items-center gap-1.5">
+          <span
+            className="text-[var(--color-primary)] font-medium"
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}
+          >
+            {String(value ?? '')}
+          </span>
+          {row.prioridade !== 'normal' && (
+            <span
+              className={`inline-flex px-1.5 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-medium ${PRIORIDADE_STYLES[row.prioridade] ?? ''}`}
+            >
+              {row.prioridade === 'idoso'
+                ? 'Idoso'
+                : row.prioridade === 'deficiente'
+                  ? 'PCD'
+                  : row.prioridade === 'grave_enfermidade'
+                    ? 'Enf.'
+                    : row.prioridade === 'reu_preso'
+                      ? 'Preso'
+                      : row.prioridade}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'clienteNome',
+      header: 'Cliente',
+      width: 'w-[200px]',
+      sortable: true,
+      render: (value) => <span className="truncate block">{String(value ?? '-')}</span>,
+    },
+    {
+      key: 'advogadoNome',
+      header: 'Advogado',
+      width: 'w-[160px]',
+      sortable: true,
+      render: (value) => <span className="truncate block">{String(value ?? '-')}</span>,
+    },
+    {
+      key: 'tribunalSigla',
+      header: 'Tribunal',
+      width: 'w-[80px]',
+    },
+    {
+      key: 'area',
+      header: 'Area',
+      width: 'w-[100px]',
+      render: (value) => AREA_LABELS[String(value ?? '')] ?? String(value ?? ''),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: 'w-[100px]',
+      render: (value) => {
+        const mapped = STATUS_TO_BADGE[String(value ?? '')] ?? 'archived';
+        return <Badge status={mapped} />;
+      },
+    },
+    {
+      key: 'id',
+      header: '',
+      width: 'w-[80px]',
+      align: 'right',
+      render: (_value, row) => (
+        <div
+          className="flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {can('processos:editar') && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-causa cursor-pointer"
+              onClick={() => handleEdit(row)}
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {can('processos:excluir') && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+              onClick={() => setDeleteId(row.id)}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <PageHeader
@@ -245,130 +359,18 @@ export function ProcessosPage() {
         </button>
       </div>
 
-      {/* Tabela */}
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Número CNJ
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Cliente
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Advogado
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Tribunal
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Área
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Comarca
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Status
-              </th>
-              <th className="w-20"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows rows={5} cols={8} />
-            ) : filtrados.length === 0 ? (
-              <EmptyState
-                icon={Briefcase}
-                message={
-                  busca || hasFilters
-                    ? 'Nenhum processo encontrado.'
-                    : 'Cadastre seu primeiro processo.'
-                }
-                colSpan={8}
-              />
-            ) : (
-              filtrados.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
-                >
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/app/processos/${p.id}`)}
-                      className="text-base-causa text-[var(--color-primary)] hover:underline font-[var(--font-mono)] font-medium cursor-pointer bg-transparent border-0 p-0"
-                    >
-                      {p.numeroCnj}
-                    </button>
-                    {p.prioridade !== 'normal' && (
-                      <span
-                        className={`ml-2 inline-flex px-1.5 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-medium ${PRIORIDADE_STYLES[p.prioridade] ?? ''}`}
-                      >
-                        {p.prioridade === 'idoso'
-                          ? 'Idoso'
-                          : p.prioridade === 'deficiente'
-                            ? 'PCD'
-                            : p.prioridade === 'grave_enfermidade'
-                              ? 'Enf.'
-                              : p.prioridade === 'reu_preso'
-                                ? 'Preso'
-                                : p.prioridade}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-base-causa text-[var(--color-text)]">
-                    {p.clienteNome ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
-                    {p.advogadoNome ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
-                      {p.tribunalSigla}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
-                    {AREA_LABELS[p.area] ?? p.area}
-                  </td>
-                  <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
-                    {p.comarca ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium capitalize ${STATUS_STYLES[p.status] ?? ''}`}
-                    >
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      {can('processos:editar') && (
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(p)}
-                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      )}
-                      {can('processos:excluir') && (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteId(p.id)}
-                          className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        data={(loading ? [] : sorted) as unknown as Record<string, unknown>[]}
+        keyExtractor={(r) => r['id'] as string}
+        onRowClick={(r) => navigate(`/app/processos/${r['id'] as string}`)}
+        {...(sortState !== undefined ? { sortState } : {})}
+        onSort={setSortState}
+        emptyIcon={Briefcase}
+        emptyMessage={
+          busca || hasFilters ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'
+        }
+      />
 
       {showModal && (
         <ProcessoModal
