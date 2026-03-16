@@ -68,8 +68,8 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Acessibilidade
 
-- [ ] **A11Y-01**: Contraste WCAG AA em ambos os temas (light e dark) para todos os textos e elementos interativos
-- [ ] **A11Y-02**: Focus rings visiveis em todos os elementos interativos (botoes, inputs, links, rows de tabela)
+- [x] **A11Y-01**: Contraste WCAG AA em ambos os temas (light e dark) para todos os textos e elementos interativos
+- [x] **A11Y-02**: Focus rings visiveis em todos os elementos interativos (botoes, inputs, links, rows de tabela)
 
 ## v2 Requirements
 
@@ -146,8 +146,8 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | ANIM-01 | Phase 4 | Complete |
 | ANIM-02 | Phase 4 | Complete |
 | ANIM-03 | Phase 4 | Complete |
-| A11Y-01 | Phase 4 | Pending |
-| A11Y-02 | Phase 4 | Pending |
+| A11Y-01 | Phase 4 | Complete |
+| A11Y-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 40 total
