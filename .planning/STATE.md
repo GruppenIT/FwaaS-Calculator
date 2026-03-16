@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Interacao e Dados
 status: planning
-stopped_at: Completed 06-01-PLAN.md (demo seed script)
-last_updated: "2026-03-16T23:19:51.779Z"
-last_activity: 2026-03-16 — Roadmap created for v2.1 (3 phases, 12 requirements)
+stopped_at: Completed 06-02-PLAN.md (seed verification — human action checkpoint)
+last_updated: "2026-03-16T23:27:00.000Z"
+last_activity: 2026-03-16 — 06-02 verification plan reached human-action checkpoint (Node 24/better-sqlite3 env constraint)
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Phase: 6 of 8 (Data Seed) — first phase of v2.1
-Plan: —
-Status: Ready to plan
-Last activity: 2026-03-16 — Roadmap created for v2.1 (3 phases, 12 requirements)
+Plan: 2 of 2 (Seed Verification) — awaiting human verification
+Status: Checkpoint — human-action required
+Last activity: 2026-03-16 — 06-02 seed verification paused at checkpoint (Node 24 env constraint)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -39,7 +39,7 @@ Progress: [░░░░░░░░░░] 0%
 - Average duration: ~30 min
 - Total execution time: ~9.5 hours
 
-**v2.1:** No plans executed yet.
+**v2.1:** 2 plans completed (06-01 seed script, 06-02 verification checkpoint).
 
 ## Accumulated Context
 
@@ -48,6 +48,7 @@ Progress: [░░░░░░░░░░] 0%
 See PROJECT.md Key Decisions table for full history.
 - [Phase 06-data-seed]: Demo seed casts db to any for inserts: Drizzle strict types under exactOptionalPropertyTypes exclude .default() columns — seed-script pattern
 - [Phase 06-data-seed]: faker.seed(42) used for deterministic seed output — idempotency is clear+reinsert, not conflict-skip
+- [Phase 06-02]: Node 24 + better-sqlite3 v11.10.0 incompatibility prevents seed execution from CLI — requires Node 22 or Electron runtime
 
 ### Pending Todos
 
@@ -59,7 +60,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:19:51.777Z
-Stopped at: Completed 06-01-PLAN.md (demo seed script)
+Last session: 2026-03-16T23:27:00.000Z
+Stopped at: 06-02-PLAN.md checkpoint — awaiting human seed verification
 Resume file: None
-Next action: `/gsd:plan-phase 6`
+Next action: User runs `pnpm db:seed:demo` in Node 22 env and confirms visual verification, then `/gsd:plan-phase 7`
