@@ -62,9 +62,9 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Animacoes
 
-- [ ] **ANIM-01**: Modal abre com scale(0.95 → 1) + opacity(0 → 1) a partir do trigger (transform-origin), 180ms ease-out — com AnimatePresence para animacao de saida
-- [ ] **ANIM-02**: Transicao entre paginas com opacity + translateY(4px → 0), 150ms ease-in-out — animar no render, nao no inicio da navegacao
-- [ ] **ANIM-03**: Table rows aparecem com stagger de 20ms (cap 10 rows / 200ms total) no primeiro load da lista
+- [x] **ANIM-01**: Modal abre com scale(0.95 → 1) + opacity(0 → 1) a partir do trigger (transform-origin), 180ms ease-out — com AnimatePresence para animacao de saida
+- [x] **ANIM-02**: Transicao entre paginas com opacity + translateY(4px → 0), 150ms ease-in-out — animar no render, nao no inicio da navegacao
+- [x] **ANIM-03**: Table rows aparecem com stagger de 20ms (cap 10 rows / 200ms total) no primeiro load da lista
 
 ### Acessibilidade
 
@@ -143,9 +143,9 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DET-03 | Phase 4 | Complete |
 | AUTH-01 | Phase 4 | Complete |
 | AUTH-02 | Phase 4 | Complete |
-| ANIM-01 | Phase 4 | Pending |
-| ANIM-02 | Phase 4 | Pending |
-| ANIM-03 | Phase 4 | Pending |
+| ANIM-01 | Phase 4 | Complete |
+| ANIM-02 | Phase 4 | Complete |
+| ANIM-03 | Phase 4 | Complete |
 | A11Y-01 | Phase 4 | Pending |
 | A11Y-02 | Phase 4 | Pending |
 

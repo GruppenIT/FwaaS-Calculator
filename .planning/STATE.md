@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-16T16:36:35.356Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-03-16T16:40:53.102Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
   percent: 0
 ---
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-detail-pages-auth-e-polish P02 | 2min | 2 tasks | 2 files |
 | Phase 04 P03 | 2min | 2 tasks | 2 files |
 | Phase 04 P01 | 3min | 1 tasks | 1 files |
+| Phase 04-detail-pages-auth-e-polish P04 | 1min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,9 @@ Recent decisions affecting current work:
 - [Phase 04]: All tab panels rendered in DOM simultaneously with data-print-section for Plan 04-03 print CSS contract
 - [Phase 04]: useSearchParams with replace:false adds history entry per tab enabling browser back/forward navigation
 - [Phase 04]: Financeiro tab conditionally included in allTabs array via financeiroEnabled feature flag
+- [Phase 04]: Page transition key on location.pathname only — tab changes via ?tab= search params must NOT trigger route-level transition
+- [Phase 04]: Row stagger uses native CSS animation via inline style on tr — motion.tr or wrapping motion.div both break table layout
+- [Phase 04]: animateFirstLoad is a controlled prop from parent, not internal DataTable state — parent manages when to animate
 
 ### Pending Todos
 
@@ -124,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:36:35.353Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-16T16:40:53.099Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
