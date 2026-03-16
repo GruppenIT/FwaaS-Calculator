@@ -39,7 +39,10 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
   2. Dashboard KPI cards and charts show meaningful trends because seed data spans 12 months of temporal distribution
   3. The urgency heat map displays at least 1 fatal (red) and 3 urgent deadlines, exercising all 4 tiers of the urgency system
   4. Running the seed command twice produces the same result — no duplicate records appear in any listing
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 06-01-PLAN.md — Install faker, create seed-demo.ts with all entity factories and idempotent clear logic
+- [ ] 06-02-PLAN.md — Verify idempotency, data counts, urgency tiers, and visual confirmation in the app
 
 ### Phase 7: Table Interactions
 **Goal**: Users navigate and manipulate tables efficiently using keyboard and mouse, with preferences that persist across sessions
@@ -72,6 +75,6 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 | 3. Core Feature Screens | v1.0 | 4/4 | Complete | 2026-03-16 |
 | 4. Detail Pages, Auth e Polish | v1.0 | 6/6 | Complete | 2026-03-16 |
 | 5. Critical Integration Fixes | v1.0 | 1/1 | Complete | 2026-03-16 |
-| 6. Data Seed | v2.1 | 0/? | Not started | - |
+| 6. Data Seed | v2.1 | 0/2 | Planned | - |
 | 7. Table Interactions | v2.1 | 0/? | Not started | - |
 | 8. Visual Enhancements | v2.1 | 0/? | Not started | - |
