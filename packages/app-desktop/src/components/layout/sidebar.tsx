@@ -156,7 +156,7 @@ export function Sidebar() {
   const features = useFeatures();
 
   return (
-    <aside className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
+    <aside data-sidebar className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
       {/* Logo */}
       <div className="px-5 py-4">
         <CausaLogo size={32} />
