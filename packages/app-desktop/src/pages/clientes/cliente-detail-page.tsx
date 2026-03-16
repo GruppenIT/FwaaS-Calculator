@@ -25,7 +25,7 @@ import { DocumentoEditModal } from '../documentos/documento-edit-modal';
 import { DocumentoViewer } from '../documentos/documento-viewer';
 import { usePermission } from '../../hooks/use-permission';
 import { useFeatures } from '../../lib/auth-context';
-import type { ClienteData, EnderecoJson, DocumentoRow } from '../../lib/api';
+import type { ClienteData, EnderecoJson, DocumentoRow, HonorarioRow } from '../../lib/api';
 import * as api from '../../lib/api';
 
 const PREVIEWABLE_MIMES = new Set([
@@ -102,11 +102,12 @@ export function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { can } = usePermission();
-  const { googleDrive: driveEnabled } = useFeatures();
+  const { googleDrive: driveEnabled, financeiro: financeiroEnabled } = useFeatures();
 
   const [cliente, setCliente] = useState<ClienteData | null>(null);
   const [processos, setProcessos] = useState<ProcessoRow[]>([]);
   const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
+  const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState<ClienteEditData | null | undefined>(undefined);
   const [viewDocId, setViewDocId] = useState<string | null>(null);
@@ -120,19 +121,21 @@ export function ClienteDetailPage() {
     try {
       const c = await api.obterCliente(id);
       setCliente(c);
-      const [matchedProcessos, docs] = await Promise.all([
+      const [matchedProcessos, docs, honData] = await Promise.all([
         api.listarProcessos(c.nome),
         api.listarDocumentos({ clienteId: id, includeProcessoDocs: true }),
+        financeiroEnabled ? api.listarHonorarios() : Promise.resolve([]),
       ]);
       const filtered = matchedProcessos.filter((p) => p.clienteNome === c.nome);
       setProcessos(filtered);
       setDocumentos(docs);
+      setHonorarios(honData.filter((h) => h.clienteId === id));
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao carregar cliente.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [id, toast]);
+  }, [id, toast, financeiroEnabled]);
 
   useEffect(() => {
     carregar();
@@ -360,6 +363,9 @@ export function ClienteDetailPage() {
         )}
       </div>
 
+      {/* Resumo Financeiro — gated behind financeiro feature flag */}
+      {financeiroEnabled && <ResumoFinanceiro honorarios={honorarios} />}
+
       {/* Processos vinculados */}
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
@@ -582,6 +588,116 @@ function InfoField({ label, value }: { label: string; value: string | null | und
     <div>
       <div className="text-xs-causa text-[var(--color-text-muted)] mb-0.5">{label}</div>
       <div className="text-sm-causa text-[var(--color-text)] font-medium">{value ?? '—'}</div>
+    </div>
+  );
+}
+
+const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function ResumoFinanceiro({ honorarios }: { honorarios: HonorarioRow[] }) {
+  const totalFaturado = honorarios.reduce((sum, h) => sum + h.valor, 0);
+  const recebido = honorarios
+    .filter((h) => h.status === 'recebido')
+    .reduce((sum, h) => sum + h.valor, 0);
+  const pendente = honorarios
+    .filter((h) => h.status === 'pendente')
+    .reduce((sum, h) => sum + h.valor, 0);
+  const inadimplente = totalFaturado - recebido - pendente;
+
+  const pctRecebido = totalFaturado > 0 ? (recebido / totalFaturado) * 100 : 0;
+  const pctPendente = totalFaturado > 0 ? (pendente / totalFaturado) * 100 : 0;
+  const pctInadimplente = totalFaturado > 0 ? (inadimplente / totalFaturado) * 100 : 0;
+
+  return (
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm-causa font-semibold text-[var(--color-text)]">Resumo Financeiro</h2>
+        {totalFaturado > 0 && (
+          <span className="text-xs-causa text-[var(--color-text-muted)]">
+            Total: {brl.format(totalFaturado)}
+          </span>
+        )}
+      </div>
+
+      {totalFaturado === 0 ? (
+        <p className="text-sm-causa text-[var(--color-text-muted)] text-center py-4">
+          Nenhum honorário registrado para este cliente.
+        </p>
+      ) : (
+        <>
+          {/* Stacked horizontal bar */}
+          <div className="flex h-2 rounded-full overflow-hidden mb-3">
+            {pctRecebido > 0 && (
+              <div
+                style={{
+                  width: `${pctRecebido}%`,
+                  backgroundColor: 'var(--color-success)',
+                }}
+              />
+            )}
+            {pctPendente > 0 && (
+              <div
+                style={{
+                  width: `${pctPendente}%`,
+                  backgroundColor: 'var(--color-primary)',
+                }}
+              />
+            )}
+            {pctInadimplente > 0 && (
+              <div
+                className="bg-causa-surface-alt"
+                style={{ width: `${pctInadimplente}%` }}
+              />
+            )}
+          </div>
+
+          {/* Segment labels */}
+          <div className="flex flex-wrap gap-4">
+            <SegmentLabel
+              color="var(--color-success)"
+              label="Recebido"
+              value={brl.format(recebido)}
+              pct={pctRecebido}
+            />
+            <SegmentLabel
+              color="var(--color-primary)"
+              label="Pendente"
+              value={brl.format(pendente)}
+              pct={pctPendente}
+            />
+            <SegmentLabel
+              color="var(--color-text-muted)"
+              label="Inadimplente"
+              value={brl.format(inadimplente)}
+              pct={pctInadimplente}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SegmentLabel({
+  color,
+  label,
+  value,
+  pct,
+}: {
+  color: string;
+  label: string;
+  value: string;
+  pct: number;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        className="w-2.5 h-2.5 rounded-sm shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      <span className="text-xs-causa text-[var(--color-text-muted)]">{label}:</span>
+      <span className="text-xs-causa font-medium text-[var(--color-text)]">{value}</span>
+      <span className="text-xs-causa text-[var(--color-text-muted)]">({pct.toFixed(1)}%)</span>
     </div>
   );
 }
