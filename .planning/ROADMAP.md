@@ -80,7 +80,14 @@ Plans:
   3. A login page usa layout split-panel com painel esquerdo escuro + proposta de valor e painel direito com formulario, e a splash screen exibe fundo #0F1829, logo branco centralizado, tagline em Lora 16px e barra de progresso azul 2px
   4. Modais abrem com animacao scale(0.95→1) + opacity em 180ms e fecham com AnimatePresence; transicoes de pagina usam opacity + translateY(4px→0) em 150ms; rows de tabela aparecem com stagger de 20ms no primeiro load (cap 10 rows)
   5. Todos os textos e elementos interativos passam em contraste WCAG AA em ambos os temas, e todos os elementos interativos (botoes, inputs, links, rows) exibem focus ring visivel ao navegar por teclado
-**Plans**: TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Processo detail tabs (URL-driven via useSearchParams)
+- [ ] 04-02-PLAN.md — Login split-panel + splash screen refresh
+- [ ] 04-03-PLAN.md — Cliente financial summary + print stylesheet
+- [ ] 04-04-PLAN.md — Page transitions + row stagger + modal verification
+- [ ] 04-05-PLAN.md — WCAG AA contrast audit + focus rings + visual checkpoint
 
 ## Progress
 
@@ -92,4 +99,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Design System Foundation | 6/6 | Complete   | 2026-03-15 |
 | 2. Layout Shell | 2/2 | Complete   | 2026-03-15 |
 | 3. Core Feature Screens | 4/4 | Complete   | 2026-03-16 |
-| 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
+| 4. Detail Pages, Auth e Polish | 0/5 | Planning complete | - |
