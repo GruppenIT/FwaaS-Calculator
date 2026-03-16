@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-16T11:37:46.208Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-16T11:43:32.408Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P02 | 3 | 2 tasks | 4 files |
 | Phase 02-layout-shell P01 | 4min | 2 tasks | 4 files |
 | Phase 03 P01 | 3min | 2 tasks | 6 files |
+| Phase 03 P02 | 3min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase 03-01]: UTC-safe date arithmetic: use Date.UTC() with local year/month/day for today — never new Date(dateStr).setHours(0,0,0,0) which is timezone-sensitive
 - [Phase 03-01]: useChartTheme uses MutationObserver on documentElement class + tick counter pattern to drive useMemo recomputation on theme toggle
 - [Phase 03-01]: Native title attribute for PrazoCountdown tooltip — zero dependencies, accessible
+- [Phase 03-02]: StatCard borderColor prop uses CSS var token via style.borderLeftColor — Tailwind JIT cannot purge dynamic border-left colors from prop values
+- [Phase 03-02]: All pending prazos passed to UrgencyHeatMap — 7-day filter removed as it was only for the old scrollable list display
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T11:37:46.205Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-03-16T11:43:32.405Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

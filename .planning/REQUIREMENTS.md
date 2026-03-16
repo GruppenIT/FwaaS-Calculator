@@ -37,8 +37,8 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Dashboard
 
-- [ ] **DASH-01**: KPI stat cards estilo Stripe com sparkline ou indicador de tendencia (±% vs mes anterior) para processos ativos, prazos da semana e honorarios pendentes
-- [ ] **DASH-02**: Heat map de urgencia 2x2 grid: fatal-esta-semana / vence-este-mes / proximo / sem-prazo — com cores do sistema de 4 tiers
+- [x] **DASH-01**: KPI stat cards estilo Stripe com sparkline ou indicador de tendencia (±% vs mes anterior) para processos ativos, prazos da semana e honorarios pendentes
+- [x] **DASH-02**: Heat map de urgencia 2x2 grid: fatal-esta-semana / vence-este-mes / proximo / sem-prazo — com cores do sistema de 4 tiers
 - [x] **DASH-03**: Hook useChartTheme() que fornece cores dinamicas para Recharts baseado no tema atual (light/dark), eliminando hex hardcoded
 
 ### Listagens
@@ -130,8 +130,8 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | LY-01 | Phase 2 | Complete |
 | LY-02 | Phase 2 | Complete |
 | LY-03 | Phase 2 | Complete |
-| DASH-01 | Phase 3 | Pending |
-| DASH-02 | Phase 3 | Pending |
+| DASH-01 | Phase 3 | Complete |
+| DASH-02 | Phase 3 | Complete |
 | DASH-03 | Phase 3 | Complete |
 | LIST-01 | Phase 3 | Pending |
 | LIST-02 | Phase 3 | Complete |
