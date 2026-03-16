@@ -1,8 +1,8 @@
-# CAUSA — Revisao UX/UI
+# CAUSA — ERP Juridico
 
 ## What This Is
 
-Revisao completa da experiencia visual (UX/UI) do CAUSA, um ERP juridico on-premise (Electron + React) para escritorios de advocacia brasileiros. O objetivo e transformar uma interface funcional mas datada em um produto visualmente profissional, moderno e confiavel — inspirado na estetica de Stripe/Vercel, com gradientes sutis, micro-animacoes e cards com profundidade.
+ERP juridico on-premise (Electron + React) para escritorios de advocacia brasileiros. Interface profissional e moderna inspirada na estetica Stripe/Vercel, com design system completo, micro-animacoes com proposito, e sistema de urgencia de 4 tiers para prazos processuais.
 
 ## Core Value
 
@@ -12,93 +12,65 @@ A interface deve transmitir seriedade juridica combinada com modernidade, fazend
 
 ### Validated
 
-<!-- Capacidades existentes no codebase atual -->
-
-- ✓ Dashboard com metricas e graficos (recharts) — existing
-- ✓ Gestao de processos judiciais (listagem + detalhe) — existing
-- ✓ Gestao de clientes (listagem + detalhe) — existing
-- ✓ Controle de prazos processuais — existing
-- ✓ Agenda — existing
-- ✓ Financeiro (honorarios) — existing
-- ✓ Despesas — existing
-- ✓ Documentos — existing
-- ✓ Tarefas — existing
-- ✓ Timesheet — existing
-- ✓ Contatos — existing
-- ✓ Conectores com tribunais (PJe, e-SAJ) — existing
-- ✓ Integracoes externas — existing
-- ✓ RBAC com 6 papeis — existing
-- ✓ Autenticacao JWT (login/refresh) — existing
-- ✓ Setup wizard (topologia solo/escritorio) — existing
-- ✓ Dark mode basico — existing
-- ✓ Auto-update via electron-updater — existing
-- ✓ Backup com indicador visual — existing
-- ✓ Busca global — existing
-- ✓ Sidebar fixa de navegacao — existing
-- ✓ Splash screen — existing
-- ✓ Componentes base: Button, Input, Modal, Toast, ConfirmDialog, Skeleton, EmptyState, PageHeader — existing
+- ✓ Design system completo: 15 componentes, tokens semanticos, self-hosted fonts — v1.0
+- ✓ Dark mode com qualidade igual ao light (3 niveis de superficie, contrastes pensados) — v1.0
+- ✓ Layout shell: sidebar com secoes, fatal deadline banner, page headers consistentes — v1.0
+- ✓ Dashboard: KPI stat cards, urgency heat map, themed Recharts — v1.0
+- ✓ Listagens: DataTable com PrazoCountdown, Badge, JetBrains Mono, 1366x768 — v1.0
+- ✓ Detalhe processo: tabs URL-driven, print stylesheet — v1.0
+- ✓ Detalhe cliente: resumo financeiro inline com barra de progresso — v1.0
+- ✓ Login split-panel + splash screen conforme guia — v1.0
+- ✓ Micro-animacoes: page transitions, modal enter/exit, row stagger — v1.0
+- ✓ WCAG AA: contraste em ambos temas, focus rings em todos interativos — v1.0
 
 ### Active
 
-<!-- Escopo desta revisao UX/UI -->
-
-- [ ] Refatorar design system completo (cores, tipografia, espacamento, sombras) alinhado ao guia de identidade visual CAUSA
-- [ ] Implementar dark mode de alta qualidade (nao apenas inversao de cores — superficies, contrastes e hierarquia pensados para dark)
-- [ ] Redesenhar dashboard com hierarquia visual clara (prazos criticos, movimentacoes, KPIs)
-- [ ] Redesenhar listagens (processos, clientes, prazos) com densidade de informacao adequada
-- [ ] Redesenhar paginas de detalhe (processo, cliente) com layout profissional
-- [ ] Redesenhar sidebar com agrupamento por secoes, estados ativos e hover conforme guia
-- [ ] Redesenhar login page com estetica profissional
-- [ ] Refatorar todos os componentes UI base (Button, Input, Modal, Toast, etc.) para seguir tokens do guia
-- [ ] Implementar sistema de alertas visuais por urgencia de prazo (informativo/atencao/urgente/fatal)
-- [ ] Adicionar micro-animacoes com proposito (transicoes de pagina, hover, modais) conforme guia
-- [ ] Revisar formularios (espacamento, labels, estados de erro/foco)
-- [ ] Revisar tabelas (zebrado, bordas, responsividade em 1366x768)
-- [ ] Revisar empty states com mensagens adequadas para advogados
-- [ ] Redesenhar splash screen conforme especificacao do guia
-- [ ] Revisar page headers para consistencia tipografica
-- [ ] Garantir acessibilidade WCAG AA nos dois temas
-- [ ] Documentar componentes e tokens CSS atualizados
+(No active requirements — use `/gsd:new-milestone` to define next)
 
 ### Out of Scope
 
 - Mudancas em logica de negocio/backend — somente visual
 - Redesign de navegacao/rotas — manter estrutura atual
 - Novos modulos ou funcionalidades — apenas melhorar o que existe
-- Redesign do logo/icone — manter identidade visual existente
 - Mobile/responsive — app e desktop-only (min 1366x768)
+- Custom title bar — proibido pelo guia de identidade visual
 
 ## Context
 
-- **Stack frontend**: React 19 + TypeScript + Tailwind CSS 4 + Vite 7 + Lucide Icons
-- **Plataforma**: Electron 33 para Windows (on-premise)
-- **Telas existentes**: 20 paginas (dashboard, processos, clientes, prazos, agenda, financeiro, despesas, documentos, tarefas, timesheet, contatos, conectores, configuracoes, integracoes, login, setup, server-error, usuarios)
-- **Componentes UI base**: 13 componentes em `components/ui/` + 3 em `components/layout/`
-- **Guia de identidade visual**: documento completo com paleta, tipografia, tokens CSS, regras de componentes, animacoes e proibicoes — deve ser seguido como lei
-- **Resolucao alvo**: 1366x768 (notebook padrao de escritorios juridicos brasileiros)
-- **Publico**: advogados, estagiarios, secretarias, socios — perfis nao-tecnicos
-- **Referencia estetica**: Stripe/Vercel — gradientes sutis, micro-animacoes, cards com profundidade
+Shipped v1.0 UX/UI redesign with 18,390 LOC (TSX/TS/CSS) across 309 files.
+Tech stack: React 19 + TypeScript + Tailwind CSS 4 + Vite 7 + Electron 33 + Lucide Icons + Recharts + Radix UI + motion/react.
+20 pages fully redesigned following CAUSA identity visual guide.
+Resolution target: 1366x768 (notebook padrao de escritorios juridicos brasileiros).
+
+**Known tech debt:**
+- 5 DS components (Select, Checkbox, Textarea, Card, StatusDot) built but unused
+- Barrel export partially adopted (1 consumer)
+- Nyquist validation non-compliant (draft status)
 
 ## Constraints
 
-- **Identidade visual**: Seguir rigorosamente o documento `CAUSA_identidade_visual.md` (paleta, tipografia, tokens, proibicoes)
-- **Vermelho reservado**: EXCLUSIVO para prazo fatal, erro critico, falha de conector — nunca decorativo
-- **Fontes offline**: Inter, Lora, JetBrains Mono devem ser self-hosted (sem CDN em runtime)
-- **Title bar nativa**: Nao customizar — manter title bar do Windows
+- **Identidade visual**: Seguir rigorosamente o documento `CAUSA_identidade_visual.md`
+- **Vermelho reservado**: EXCLUSIVO para prazo fatal, erro critico, falha de conector
+- **Fontes offline**: Inter, Lora, JetBrains Mono self-hosted (sem CDN)
+- **Title bar nativa**: Nao customizar
 - **Resolucao minima**: 1366x768 a 100% de escala
-- **Preto puro proibido**: Usar Grafite `#1E1E2E` para texto, nunca `#000000`
-- **Gradientes no logo proibidos**: Logo sempre em cor solida
-- **Animacoes com proposito**: Nenhuma animacao puramente decorativa
-- **Icones Lucide only**: Nao misturar bibliotecas de icones
+- **Preto puro proibido**: Usar Grafite `#1E1E2E`, nunca `#000000`
+- **Icones Lucide only**: Nao misturar bibliotecas
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Dark mode com qualidade igual ao light | Advogados trabalham muitas horas; dark mode nao pode ser "cidadao de segunda classe" | — Pending |
-| Estetica Stripe/Vercel como referencia | Combina profissionalismo com modernidade sem ser corporativo demais | — Pending |
-| Escopo completo (todas as telas) | Interface parcialmente atualizada gera inconsistencia visual pior que antes | — Pending |
-| Respeitar guia de identidade visual como lei | Documento ja aprovado pela equipe fundadora — nao renegociar decisoes de design | — Pending |
+| Dark mode com qualidade igual ao light | Advogados trabalham muitas horas | ✓ Good — 3 surface levels, dedicated tokens |
+| Estetica Stripe/Vercel como referencia | Profissionalismo com modernidade | ✓ Good — stat cards, gradients, depth |
+| Escopo completo (todas as 20 telas) | Interface parcial gera inconsistencia pior | ✓ Good — all pages redesigned |
+| Guia de identidade visual como lei | Documento aprovado pela equipe fundadora | ✓ Good — zero deviations |
+| @theme inline for Tailwind CSS 4 opacity modifiers | var() opacity requires @theme block | ✓ Good — clean token architecture |
+| UTC-safe date arithmetic (Date.UTC) | setHours(0,0,0,0) timezone-sensitive | ✓ Good — fixed in Phase 5 audit |
+| DataTable fully controlled for sort | Parent manages sort state | ✓ Good — flexible, composable |
+| Radix Dialog for Modal/ConfirmDialog | Focus trap + ARIA out of the box | ✓ Good — accessibility compliance |
+| Native CSS animation for row stagger | motion.tr breaks table layout | ✓ Good — inline style on tr |
+| DeadlineBanner non-dismissible | Fatal deadlines must be visible | ✓ Good — role=alert, polling every 5min |
 
 ---
-*Last updated: 2026-03-15 after initialization*
+*Last updated: 2026-03-16 after v1.0 milestone*
