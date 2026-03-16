@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Design System Foundation** - Tokens corrigidos, fontes self-hosted e todos os componentes primitivos redesenhados (completed 2026-03-15)
 - [x] **Phase 2: Layout Shell** - Sidebar, AppLayout e banner de prazo critico consistentes em todas as paginas (completed 2026-03-15)
-- [ ] **Phase 3: Core Feature Screens** - Dashboard e listagens redesenhados com hierarquia de urgencia e dados reais
+- [x] **Phase 3: Core Feature Screens** - Dashboard e listagens redesenhados com hierarquia de urgencia e dados reais (completed 2026-03-16)
 - [ ] **Phase 4: Detail Pages, Auth e Polish** - Paginas de detalhe, login, splash e micro-animacoes finalizados
 
 ## Phase Details
@@ -62,7 +62,7 @@ Plans:
   2. Em qualquer listagem de prazos, cada linha mostra countdown relativo ("Hoje", "2 dias", "Proxima semana") na cor do tier de urgencia correspondente, e hover sobre o countdown exibe a data absoluta em tooltip
   3. Em listagens de processos, cada linha exibe o numero do processo em JetBrains Mono 13px e um status badge colorido (Ativo=azul, Suspenso=ambar, Arquivado=cinza, Encerrado=verde-agua), e clicar em qualquer parte da linha navega para o detalhe
   4. Todas as listagens funcionam sem scroll horizontal em uma janela 1366x768 a 100% de escala
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 03-01-PLAN.md — Utility hooks and components: useChartTheme, PrazoCountdown, UrgencyHeatMap
@@ -91,5 +91,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Design System Foundation | 6/6 | Complete   | 2026-03-15 |
 | 2. Layout Shell | 2/2 | Complete   | 2026-03-15 |
-| 3. Core Feature Screens | 3/4 | In Progress|  |
+| 3. Core Feature Screens | 4/4 | Complete   | 2026-03-16 |
 | 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
