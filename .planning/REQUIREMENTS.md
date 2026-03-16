@@ -9,7 +9,7 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Design System
 
-- [ ] **DS-01**: Token system CSS completo com variaveis semanticas para cores, tipografia, espacamento, sombras e radius — corrigindo split @theme vs CSS vars
+- [x] **DS-01**: Token system CSS completo com variaveis semanticas para cores, tipografia, espacamento, sombras e radius — corrigindo split @theme vs CSS vars
 - [x] **DS-02**: Dark mode com 3 niveis de superficie distintos (background #0F0F1A / cards #1A1A2E / modais #22223A) e tokens semanticos dedicados
 - [x] **DS-03**: Componente Button refatorado conforme guia (Primary, Secondary, Danger, Ghost) com alturas 32/36/40px e hover states
 - [x] **DS-04**: Componente Input refatorado com estados de foco (border #2563A8 + shadow), erro (border #DC2626), e label posicionado conforme guia
@@ -26,7 +26,7 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 - [x] **DS-15**: Novo componente Select acessivel via Radix Select com estilo conforme tokens
 - [x] **DS-16**: Novo componente Checkbox acessivel com estilo conforme tokens
 - [x] **DS-17**: Novo componente Textarea com estilo consistente aos Inputs
-- [ ] **DS-18**: Fontes Inter, Lora e JetBrains Mono self-hosted via Fontsource no bundle Electron (sem CDN)
+- [x] **DS-18**: Fontes Inter, Lora e JetBrains Mono self-hosted via Fontsource no bundle Electron (sem CDN)
 - [x] **DS-19**: Todas as animacoes respeitam prefers-reduced-motion (WCAG AA)
 
 ### Layout
@@ -108,7 +108,7 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DS-01 | Phase 5 | Pending |
+| DS-01 | Phase 5 | Complete |
 | DS-02 | Phase 1 | Complete |
 | DS-03 | Phase 1 | Complete |
 | DS-04 | Phase 1 | Complete |
@@ -125,7 +125,7 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DS-15 | Phase 1 | Complete |
 | DS-16 | Phase 1 | Complete |
 | DS-17 | Phase 1 | Complete |
-| DS-18 | Phase 5 | Pending |
+| DS-18 | Phase 5 | Complete |
 | DS-19 | Phase 1 | Complete |
 | LY-01 | Phase 2 | Complete |
 | LY-02 | Phase 2 | Complete |
@@ -153,7 +153,7 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 - v1 requirements: 40 total
 - Mapped to phases: 40
 - Unmapped: 0 ✓
-- Pending (gap closure): 2 (DS-01, DS-18)
+- Pending (gap closure): 0 ✓
 
 ---
 *Requirements defined: 2026-03-15*

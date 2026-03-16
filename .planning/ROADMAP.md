@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Layout Shell** - Sidebar, AppLayout e banner de prazo critico consistentes em todas as paginas (completed 2026-03-15)
 - [x] **Phase 3: Core Feature Screens** - Dashboard e listagens redesenhados com hierarquia de urgencia e dados reais (completed 2026-03-16)
 - [x] **Phase 4: Detail Pages, Auth e Polish** - Paginas de detalhe, login, splash e micro-animacoes finalizados (completed 2026-03-16)
-- [ ] **Phase 5: Critical Integration Fixes** - Correcao de token causa-info, timezone diasRestantes e barrel export adoption
+- [x] **Phase 5: Critical Integration Fixes** - Correcao de token causa-info, timezone diasRestantes e barrel export adoption (completed 2026-03-16)
 
 ## Phase Details
 
@@ -102,7 +102,7 @@ Plans:
   3. Pelo menos 1 consumidor importa componentes via barrel export `components/ui/index.ts` em vez de path direto
 
 Plans:
-- [ ] 05-01-PLAN.md — Fix causa-info token, deduplicate diasRestantes, adopt barrel export
+- [x] 05-01-PLAN.md — Fix causa-info token, deduplicate diasRestantes, adopt barrel export
 
 ## Progress
 
@@ -115,4 +115,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Layout Shell | 2/2 | Complete   | 2026-03-15 |
 | 3. Core Feature Screens | 4/4 | Complete   | 2026-03-16 |
 | 4. Detail Pages, Auth e Polish | 6/6 | Complete   | 2026-03-16 |
-| 5. Critical Integration Fixes | 0/1 | Not Started | — |
+| 5. Critical Integration Fixes | 1/1 | Complete | 2026-03-16 |
