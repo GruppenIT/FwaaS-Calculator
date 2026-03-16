@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { UrgencyHeatMap } from './urgency-heat-map';
+import { useChartTheme } from '../../hooks/use-chart-theme';
 import {
   Briefcase,
   Clock,
@@ -100,13 +102,6 @@ function formatMinutesToHours(minutos: number): string {
   return h > 0 ? `${h}h${m > 0 ? `${m}m` : ''}` : `${m}m`;
 }
 
-function diasRestantes(dataFatal: string): number {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const fatal = new Date(dataFatal + 'T00:00:00');
-  return Math.ceil((fatal.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-}
-
 function diasAtraso(vencimento: string): number {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -118,6 +113,7 @@ export function DashboardPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { financeiro: financeiroEnabled } = useFeatures();
+  const theme = useChartTheme();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     processosAtivos: 0,
@@ -150,18 +146,8 @@ export function DashboardPage() {
         setTimeline(timelineData);
         setProdutividade(prodData);
 
-        // Prazos: proximos 7 dias, ordenados por data
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        const em7dias = new Date(hoje);
-        em7dias.setDate(em7dias.getDate() + 7);
-
-        const urgentes = prazosData
-          .filter((p) => {
-            const fatal = new Date(p.dataFatal + 'T00:00:00');
-            return fatal <= em7dias;
-          })
-          .sort((a, b) => a.dataFatal.localeCompare(b.dataFatal));
+        // All pending prazos sorted by date — UrgencyHeatMap computes tiers internally
+        const urgentes = prazosData.sort((a, b) => a.dataFatal.localeCompare(b.dataFatal));
         setPrazosUrgentes(urgentes);
         setHonorarios(honData);
       } catch (err) {
@@ -284,19 +270,14 @@ export function DashboardPage() {
       {/* Row 2: Prazos + Audiencias da semana */}
       {!loading && total > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Prazos Urgentes */}
+          {/* Urgency Heat Map */}
           <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-causa-surface-alt">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={16} className="text-causa-warning" />
                 <span className="text-sm-causa font-semibold text-[var(--color-text)]">
-                  Prazos desta semana
+                  Prazos por urgencia
                 </span>
-                {prazosUrgentes.length > 0 && (
-                  <span className="text-xs-causa text-white bg-causa-danger px-1.5 py-0.5 rounded-full font-medium">
-                    {prazosUrgentes.length}
-                  </span>
-                )}
               </div>
               <button
                 type="button"
@@ -306,54 +287,11 @@ export function DashboardPage() {
                 Ver todos <ArrowRight size={12} />
               </button>
             </div>
-            <div className="max-h-72 overflow-auto">
-              {prazosUrgentes.length === 0 ? (
-                <div className="flex items-center gap-2 px-4 py-6 justify-center text-sm-causa text-[var(--color-text-muted)]">
-                  <CheckCircle size={16} className="text-causa-success" />
-                  Nenhum prazo urgente esta semana
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--color-border)]">
-                  {prazosUrgentes.map((p) => {
-                    const dias = diasRestantes(p.dataFatal);
-                    const vencido = dias < 0;
-                    const hoje = dias === 0;
-                    const urgente = dias <= 3;
-                    return (
-                      <div
-                        key={p.id}
-                        className={`px-4 py-3 ${vencido ? 'bg-causa-danger/5' : hoje ? 'bg-causa-warning/5' : ''}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm-causa text-[var(--color-text)] font-medium">
-                            {p.descricao}
-                          </span>
-                          <span
-                            className={`text-xs-causa font-medium px-2 py-0.5 rounded-full ${
-                              vencido
-                                ? 'bg-causa-danger/10 text-causa-danger'
-                                : hoje
-                                  ? 'bg-causa-warning/10 text-causa-warning'
-                                  : urgente
-                                    ? 'bg-causa-warning/10 text-causa-warning'
-                                    : 'bg-causa-surface-alt text-[var(--color-text-muted)]'
-                            }`}
-                          >
-                            {vencido ? `${Math.abs(dias)}d atrasado` : hoje ? 'Hoje' : `${dias}d`}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs-causa text-[var(--color-text-muted)]">
-                          {p.numeroCnj && (
-                            <span className="font-[var(--font-mono)]">{p.numeroCnj}</span>
-                          )}
-                          <span>{formatDate(p.dataFatal)}</span>
-                          {p.responsavelNome && <span>{p.responsavelNome}</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+            <div className="p-4">
+              <UrgencyHeatMap
+                prazos={prazosUrgentes}
+                onTierClick={(tier) => navigate('/app/prazos?tier=' + tier)}
+              />
             </div>
           </div>
 
@@ -547,33 +485,28 @@ export function DashboardPage() {
               {timeline.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={timeline} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <CartesianGrid {...theme.gridProps} />
                     <XAxis
                       dataKey="data"
                       tickFormatter={formatShortDate}
-                      tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                      tick={theme.axisProps.tick}
                       interval="preserveStartEnd"
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                      tick={theme.axisProps.tick}
                       allowDecimals={false}
                     />
                     <Tooltip
                       labelFormatter={(v) => formatShortDate(v as string)}
-                      contentStyle={{
-                        background: 'var(--color-surface)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: 12,
-                      }}
+                      contentStyle={theme.tooltipProps.contentStyle}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Area
                       type="monotone"
                       dataKey="movimentacoes"
                       name="Movimentacoes"
-                      stroke="var(--color-primary)"
-                      fill="var(--color-primary)"
+                      stroke={theme.colors.primary}
+                      fill={theme.colors.primary}
                       fillOpacity={0.15}
                       strokeWidth={2}
                     />
@@ -581,8 +514,8 @@ export function DashboardPage() {
                       type="monotone"
                       dataKey="prazos"
                       name="Prazos"
-                      stroke="var(--color-accent-amber)"
-                      fill="var(--color-accent-amber)"
+                      stroke={theme.colors.amber}
+                      fill={theme.colors.amber}
                       fillOpacity={0.1}
                       strokeWidth={2}
                     />
@@ -590,8 +523,8 @@ export function DashboardPage() {
                       type="monotone"
                       dataKey="tarefas"
                       name="Tarefas"
-                      stroke="var(--color-accent-emerald)"
-                      fill="var(--color-accent-emerald)"
+                      stroke={theme.colors.emerald}
+                      fill={theme.colors.emerald}
                       fillOpacity={0.1}
                       strokeWidth={2}
                     />
@@ -616,30 +549,25 @@ export function DashboardPage() {
               {produtividade.some((p) => p.minutos > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={produtividade} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <CartesianGrid {...theme.gridProps} />
                     <XAxis
                       dataKey="data"
                       tickFormatter={formatShortDate}
-                      tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                      tick={theme.axisProps.tick}
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                      tick={theme.axisProps.tick}
                       tickFormatter={(v) => formatMinutesToHours(v as number)}
                     />
                     <Tooltip
                       labelFormatter={(v) => formatShortDate(v as string)}
                       formatter={(v) => [formatMinutesToHours(Number(v ?? 0)), 'Tempo']}
-                      contentStyle={{
-                        background: 'var(--color-surface)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: 12,
-                      }}
+                      contentStyle={theme.tooltipProps.contentStyle}
                     />
                     <Bar
                       dataKey="minutos"
                       name="Horas trabalhadas"
-                      fill="var(--color-primary)"
+                      fill={theme.colors.primary}
                       radius={[4, 4, 0, 0]}
                     />
                   </BarChart>
