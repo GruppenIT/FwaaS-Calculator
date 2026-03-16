@@ -3,6 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 CAUSA Revisao UX/UI** — Phases 1-5 (shipped 2026-03-16)
+- 🚧 **v2.1 Interacao e Dados** — Phases 6-8 (in progress)
 
 ## Phases
 
@@ -19,6 +20,49 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 
 </details>
 
+### 🚧 v2.1 Interacao e Dados
+
+**Milestone Goal:** Tornar o sistema testavel com dados realistas e adicionar interacoes avancadas (teclado, hover cards, sidebar colapsavel, sparklines)
+
+- [ ] **Phase 6: Data Seed** - CLI que popula todas as entidades com dados falsos realistas e temporalmente distribuidos
+- [ ] **Phase 7: Table Interactions** - Navegacao por teclado, atalhos, visibilidade de colunas, hover cards e sort persistente
+- [ ] **Phase 8: Visual Enhancements** - Sidebar colapsavel, audit trail timeline e sparklines reais nos KPIs
+
+## Phase Details
+
+### Phase 6: Data Seed
+**Goal**: Sistema pode ser demonstrado e testado com dados realistas que cobrem todos os cenarios de uso (urgencia, financeiro, temporal)
+**Depends on**: Phase 5 (v1.0 shipped)
+**Requirements**: SEED-01, SEED-02, SEED-03, SEED-04
+**Success Criteria** (what must be TRUE):
+  1. Running `pnpm db:seed:demo` populates the app with realistic data visible across all listing pages (processos, clientes, prazos)
+  2. Dashboard KPI cards and charts show meaningful trends because seed data spans 12 months of temporal distribution
+  3. The urgency heat map displays at least 1 fatal (red) and 3 urgent deadlines, exercising all 4 tiers of the urgency system
+  4. Running the seed command twice produces the same result — no duplicate records appear in any listing
+**Plans**: TBD
+
+### Phase 7: Table Interactions
+**Goal**: Users navigate and manipulate tables efficiently using keyboard and mouse, with preferences that persist across sessions
+**Depends on**: Phase 6 (seed data makes interaction testing meaningful)
+**Requirements**: INT-01, INT-02, INT-03, INT-04, INT-05
+**Success Criteria** (what must be TRUE):
+  1. User can navigate table rows with arrow keys, open a record with Enter, and dismiss search with Esc — without touching the mouse
+  2. Pressing N on any listing page opens the creation form for that entity type
+  3. User can toggle column visibility in processos and prazos tables, and the preference survives page reload (localStorage)
+  4. Hovering over a client name in the processos table shows a card with client summary (without navigating away)
+  5. User can sort any table column, leave the page, return, and find the same sort order applied automatically
+**Plans**: TBD
+
+### Phase 8: Visual Enhancements
+**Goal**: Interface adapts to smaller screens, shows process history visually, and displays real trend data in dashboard KPIs
+**Depends on**: Phase 6 (sparklines require historical seed data)
+**Requirements**: VIS-01, VIS-02, VIS-03
+**Success Criteria** (what must be TRUE):
+  1. On screens 1024px or narrower, sidebar automatically collapses to an icon rail; on wider screens, user can toggle collapse manually
+  2. Processo detail page shows a chronological timeline combining movimentacoes and prazos, making the process history scannable at a glance
+  3. Dashboard KPI stat cards display sparkline charts reflecting actual historical data from the last 30 days of snapshots
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -28,3 +72,6 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 | 3. Core Feature Screens | v1.0 | 4/4 | Complete | 2026-03-16 |
 | 4. Detail Pages, Auth e Polish | v1.0 | 6/6 | Complete | 2026-03-16 |
 | 5. Critical Integration Fixes | v1.0 | 1/1 | Complete | 2026-03-16 |
+| 6. Data Seed | v2.1 | 0/? | Not started | - |
+| 7. Table Interactions | v2.1 | 0/? | Not started | - |
+| 8. Visual Enhancements | v2.1 | 0/? | Not started | - |

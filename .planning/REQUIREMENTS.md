@@ -46,24 +46,24 @@ Nenhum deferido neste milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEED-01 | — | Pending |
-| SEED-02 | — | Pending |
-| SEED-03 | — | Pending |
-| SEED-04 | — | Pending |
-| INT-01 | — | Pending |
-| INT-02 | — | Pending |
-| INT-03 | — | Pending |
-| INT-04 | — | Pending |
-| INT-05 | — | Pending |
-| VIS-01 | — | Pending |
-| VIS-02 | — | Pending |
-| VIS-03 | — | Pending |
+| SEED-01 | Phase 6 | Pending |
+| SEED-02 | Phase 6 | Pending |
+| SEED-03 | Phase 6 | Pending |
+| SEED-04 | Phase 6 | Pending |
+| INT-01 | Phase 7 | Pending |
+| INT-02 | Phase 7 | Pending |
+| INT-03 | Phase 7 | Pending |
+| INT-04 | Phase 7 | Pending |
+| INT-05 | Phase 7 | Pending |
+| VIS-01 | Phase 8 | Pending |
+| VIS-02 | Phase 8 | Pending |
+| VIS-03 | Phase 8 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12 ⚠️
+- Mapped to phases: 12
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-16*
-*Last updated: 2026-03-16 after initial definition*
+*Last updated: 2026-03-16 after roadmap creation*
