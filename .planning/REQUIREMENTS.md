@@ -57,8 +57,8 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Auth e Splash
 
-- [ ] **AUTH-01**: Login page redesenhada em split-panel: painel esquerdo escuro com proposta de valor CAUSA + painel direito com formulario de login
-- [ ] **AUTH-02**: Splash screen conforme guia: fundo #0F1829, logo CAUSA branco centralizado, tagline Lora 16px, barra de progresso azul 2px, versao no canto
+- [x] **AUTH-01**: Login page redesenhada em split-panel: painel esquerdo escuro com proposta de valor CAUSA + painel direito com formulario de login
+- [x] **AUTH-02**: Splash screen conforme guia: fundo #0F1829, logo CAUSA branco centralizado, tagline Lora 16px, barra de progresso azul 2px, versao no canto
 
 ### Animacoes
 
@@ -141,8 +141,8 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DET-01 | Phase 4 | Pending |
 | DET-02 | Phase 4 | Pending |
 | DET-03 | Phase 4 | Pending |
-| AUTH-01 | Phase 4 | Pending |
-| AUTH-02 | Phase 4 | Pending |
+| AUTH-01 | Phase 4 | Complete |
+| AUTH-02 | Phase 4 | Complete |
 | ANIM-01 | Phase 4 | Pending |
 | ANIM-02 | Phase 4 | Pending |
 | ANIM-03 | Phase 4 | Pending |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-16T13:10:56.486Z"
+stopped_at: Completed 04-02-PLAN.md (login split-panel + splash Lora)
+last_updated: "2026-03-16T16:34:51.271Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 17
+  completed_plans: 13
   percent: 0
 ---
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P02 | 3min | 2 tasks | 1 files |
 | Phase 03 P03 | 6min | 2 tasks | 4 files |
 | Phase 03 P04 | 30min | 2 tasks | 0 files |
+| Phase 04-detail-pages-auth-e-polish P02 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase 03-03]: sortState spread conditionally with spread operator for exactOptionalPropertyTypes strictness compatibility
 - [Phase 03-03]: Clientes status column uses statusCliente field (actual ClienteData interface) and prazos uses tipoPrazo (actual PrazoRow interface)
 - [Phase 03-04]: Phase 3 visual quality approved: 7 KPI stat cards (4+3 grid, colored left borders), 2x2 urgency heat map, themed Recharts charts, 3 listing pages with DataTable+PrazoCountdown+Badge — all in light and dark mode at 1366x768
+- [Phase 04-02]: Left panel background uses inline style (not Tailwind bg-[]) — theme-independent hardcoded hex consistent with existing design decision
+- [Phase 04-02]: Lora SemiBold (600) used for splash tagline — Lora-Regular.woff2 not bundled, SemiBold already declared in @font-face
 
 ### Pending Todos
 
@@ -114,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T13:10:56.483Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-detail-pages-auth-e-polish/04-CONTEXT.md
+Last session: 2026-03-16T16:34:51.267Z
+Stopped at: Completed 04-02-PLAN.md (login split-panel + splash Lora)
+Resume file: None
