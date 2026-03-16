@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-03-16T16:35:34.089Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-16T16:36:35.356Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 17
-  completed_plans: 14
+  completed_plans: 15
   percent: 0
 ---
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P04 | 30min | 2 tasks | 0 files |
 | Phase 04-detail-pages-auth-e-polish P02 | 2min | 2 tasks | 2 files |
 | Phase 04 P03 | 2min | 2 tasks | 2 files |
+| Phase 04 P01 | 3min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Recent decisions affecting current work:
 - [Phase 04-02]: Lora SemiBold (600) used for splash tagline — Lora-Regular.woff2 not bundled, SemiBold already declared in @font-face
 - [Phase 04]: ResumoFinanceiro fetches all honorarios then filters client-side by clienteId for consistency with existing page patterns
 - [Phase 04]: @media print data-print-section contract documented in CSS comments — processo-detail-page must add data-print-section attribute to tab sections for print to show all content
+- [Phase 04]: All tab panels rendered in DOM simultaneously with data-print-section for Plan 04-03 print CSS contract
+- [Phase 04]: useSearchParams with replace:false adds history entry per tab enabling browser back/forward navigation
+- [Phase 04]: Financeiro tab conditionally included in allTabs array via financeiroEnabled feature flag
 
 ### Pending Todos
 
@@ -120,6 +124,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:35:34.086Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-03-16T16:36:35.353Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None

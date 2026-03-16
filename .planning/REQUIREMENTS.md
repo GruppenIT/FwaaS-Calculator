@@ -51,7 +51,7 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Detalhes
 
-- [ ] **DET-01**: Pagina de detalhe do processo com layout em tabs: Dados Gerais / Prazos / Movimentacoes / Documentos / Financeiro / Tarefas — tabs URL-driven via React Router
+- [x] **DET-01**: Pagina de detalhe do processo com layout em tabs: Dados Gerais / Prazos / Movimentacoes / Documentos / Financeiro / Tarefas — tabs URL-driven via React Router
 - [x] **DET-02**: Resumo financeiro inline na pagina de detalhe do cliente: total faturado, recebido, pendente com barra visual de progresso
 - [x] **DET-03**: CSS @media print para pagina de detalhe do processo — resumo limpo e imprimivel via dialogo de impressao do sistema
 
@@ -138,7 +138,7 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | LIST-03 | Phase 3 | Complete |
 | LIST-04 | Phase 3 | Complete |
 | LIST-05 | Phase 3 | Complete |
-| DET-01 | Phase 4 | Pending |
+| DET-01 | Phase 4 | Complete |
 | DET-02 | Phase 4 | Complete |
 | DET-03 | Phase 4 | Complete |
 | AUTH-01 | Phase 4 | Complete |
