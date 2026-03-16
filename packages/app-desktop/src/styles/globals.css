@@ -28,6 +28,16 @@
   --color-causa-warning: var(--color-warning);
   --color-causa-danger: var(--color-danger);
 
+  /* Cores de acento — agenda, gráficos, integrações */
+  --color-causa-accent-purple: var(--color-accent-purple);
+  --color-causa-accent-pink: var(--color-accent-pink);
+  --color-causa-accent-blue: var(--color-accent-blue);
+  --color-causa-accent-red: var(--color-accent-red);
+  --color-causa-accent-green: var(--color-accent-green);
+  --color-causa-accent-amber: var(--color-accent-amber);
+  --color-causa-accent-emerald: var(--color-accent-emerald);
+  --color-causa-accent-telegram: var(--color-accent-telegram);
+
   /* Tiers de urgência */
   --color-causa-tier-info: var(--color-tier-info);
   --color-causa-tier-warning: var(--color-tier-warning);
@@ -80,6 +90,16 @@
   --color-warning: #e9a800;
   --color-danger: #dc2626;
 
+  /* Acento */
+  --color-accent-purple: #8b5cf6;
+  --color-accent-pink: #ec4899;
+  --color-accent-blue: #3b82f6;
+  --color-accent-red: #ef4444;
+  --color-accent-green: #22c55e;
+  --color-accent-amber: #f59e0b;
+  --color-accent-emerald: #10b981;
+  --color-accent-telegram: #0088cc;
+
   /* Tiers de urgência */
   --color-tier-info: #2563a8;
   --color-tier-warning: #e9a800;
@@ -109,6 +129,16 @@
   --color-success: #2a9d8f;
   --color-warning: #e9a800;
   --color-danger: #dc2626;
+
+  /* Acento */
+  --color-accent-purple: #a78bfa;
+  --color-accent-pink: #f472b6;
+  --color-accent-blue: #60a5fa;
+  --color-accent-red: #f87171;
+  --color-accent-green: #4ade80;
+  --color-accent-amber: #fbbf24;
+  --color-accent-emerald: #34d399;
+  --color-accent-telegram: #29b6f6;
 
   /* Tiers de urgência — azul mais claro para contraste no escuro */
   --color-tier-info: #3b82f6;

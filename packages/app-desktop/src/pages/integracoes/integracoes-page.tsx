@@ -1104,7 +1104,7 @@ export function IntegracoesPage() {
           <CollapsibleSection
             title="Telegram"
             icon={MessageCircle}
-            iconColor="text-[#0088cc]"
+            iconColor="text-causa-accent-telegram"
             status={telegramConfigured ? 'ok' : 'incomplete'}
             defaultOpen={!telegramConfigured}
           >

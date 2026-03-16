@@ -30,12 +30,12 @@ const TIPOS = [
 
 const CORES = [
   { value: '', label: 'Padrão' },
-  { value: '#3b82f6', label: 'Azul' },
-  { value: '#ef4444', label: 'Vermelho' },
-  { value: '#22c55e', label: 'Verde' },
-  { value: '#f59e0b', label: 'Amarelo' },
-  { value: '#8b5cf6', label: 'Roxo' },
-  { value: '#ec4899', label: 'Rosa' },
+  { value: 'var(--color-accent-blue)', label: 'Azul' },
+  { value: 'var(--color-accent-red)', label: 'Vermelho' },
+  { value: 'var(--color-accent-green)', label: 'Verde' },
+  { value: 'var(--color-accent-amber)', label: 'Amarelo' },
+  { value: 'var(--color-accent-purple)', label: 'Roxo' },
+  { value: 'var(--color-accent-pink)', label: 'Rosa' },
 ];
 
 export function EventoModal({ onClose, onCreated }: Props) {

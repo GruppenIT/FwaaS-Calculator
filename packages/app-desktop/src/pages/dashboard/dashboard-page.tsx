@@ -577,8 +577,8 @@ export function DashboardPage() {
                       type="monotone"
                       dataKey="prazos"
                       name="Prazos"
-                      stroke="#f59e0b"
-                      fill="#f59e0b"
+                      stroke="var(--color-accent-amber)"
+                      fill="var(--color-accent-amber)"
                       fillOpacity={0.1}
                       strokeWidth={2}
                     />
@@ -586,8 +586,8 @@ export function DashboardPage() {
                       type="monotone"
                       dataKey="tarefas"
                       name="Tarefas"
-                      stroke="#10b981"
-                      fill="#10b981"
+                      stroke="var(--color-accent-emerald)"
+                      fill="var(--color-accent-emerald)"
                       fillOpacity={0.1}
                       strokeWidth={2}
                     />
