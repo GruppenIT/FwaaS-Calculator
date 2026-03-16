@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-02-PLAN.md (login split-panel + splash Lora)
-last_updated: "2026-03-16T16:34:51.271Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-03-16T16:35:34.089Z"
 last_activity: 2026-03-15 — Roadmap criado com 4 fases, 40 requisitos mapeados
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 17
-  completed_plans: 13
+  completed_plans: 14
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P03 | 6min | 2 tasks | 4 files |
 | Phase 03 P04 | 30min | 2 tasks | 0 files |
 | Phase 04-detail-pages-auth-e-polish P02 | 2min | 2 tasks | 2 files |
+| Phase 04 P03 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase 03-04]: Phase 3 visual quality approved: 7 KPI stat cards (4+3 grid, colored left borders), 2x2 urgency heat map, themed Recharts charts, 3 listing pages with DataTable+PrazoCountdown+Badge — all in light and dark mode at 1366x768
 - [Phase 04-02]: Left panel background uses inline style (not Tailwind bg-[]) — theme-independent hardcoded hex consistent with existing design decision
 - [Phase 04-02]: Lora SemiBold (600) used for splash tagline — Lora-Regular.woff2 not bundled, SemiBold already declared in @font-face
+- [Phase 04]: ResumoFinanceiro fetches all honorarios then filters client-side by clienteId for consistency with existing page patterns
+- [Phase 04]: @media print data-print-section contract documented in CSS comments — processo-detail-page must add data-print-section attribute to tab sections for print to show all content
 
 ### Pending Todos
 
@@ -117,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:34:51.267Z
-Stopped at: Completed 04-02-PLAN.md (login split-panel + splash Lora)
+Last session: 2026-03-16T16:35:34.086Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
