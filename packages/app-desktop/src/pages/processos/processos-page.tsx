@@ -56,6 +56,7 @@ export function ProcessosPage() {
   const [deleting, setDeleting] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroArea, setFiltroArea] = useState('');
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [sortState, setSortState] = useState<
     { key: string; direction: 'asc' | 'desc' | null } | undefined
   >(undefined);
@@ -89,6 +90,7 @@ export function ProcessosPage() {
       toast(err instanceof Error ? err.message : 'Erro ao carregar processos.', 'error');
     } finally {
       setLoading(false);
+      setIsFirstLoad(false);
     }
   }, [busca, toast]);
 
@@ -366,6 +368,7 @@ export function ProcessosPage() {
         onRowClick={(r) => navigate(`/app/processos/${r['id'] as string}`)}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
+        animateFirstLoad={isFirstLoad}
         emptyIcon={Briefcase}
         emptyMessage={
           busca || hasFilters ? 'Nenhum processo encontrado.' : 'Cadastre seu primeiro processo.'

@@ -52,6 +52,7 @@ export function PrazosPage() {
   const [modalData, setModalData] = useState<PrazoEditData | null | undefined>(undefined);
   const [prazos, setPrazos] = useState<PrazoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -67,6 +68,7 @@ export function PrazosPage() {
       toast(err instanceof Error ? err.message : 'Erro ao carregar prazos.', 'error');
     } finally {
       setLoading(false);
+      setIsFirstLoad(false);
     }
   }, [filtroStatus, toast]);
 
@@ -305,6 +307,7 @@ export function PrazosPage() {
         onRowClick={(r) => navigate('/app/processos/' + (r['processoId'] as string))}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
+        animateFirstLoad={isFirstLoad}
         emptyIcon={Clock}
         emptyMessage="Nenhum prazo encontrado"
       />

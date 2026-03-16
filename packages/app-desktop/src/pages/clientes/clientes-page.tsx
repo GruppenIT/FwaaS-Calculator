@@ -37,6 +37,7 @@ export function ClientesPage() {
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sortState, setSortState] = useState<
@@ -53,6 +54,7 @@ export function ClientesPage() {
       toast(err instanceof Error ? err.message : 'Erro ao carregar clientes.', 'error');
     } finally {
       setLoading(false);
+      setIsFirstLoad(false);
     }
   }, [busca, toast]);
 
@@ -262,6 +264,7 @@ export function ClientesPage() {
         onRowClick={(r) => navigate('/app/clientes/' + (r['id'] as string))}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
+        animateFirstLoad={isFirstLoad}
         emptyIcon={Users}
         emptyMessage={
           busca || filtroStatus
