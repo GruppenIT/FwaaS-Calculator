@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Layout Shell** - Sidebar, AppLayout e banner de prazo critico consistentes em todas as paginas (completed 2026-03-15)
 - [x] **Phase 3: Core Feature Screens** - Dashboard e listagens redesenhados com hierarquia de urgencia e dados reais (completed 2026-03-16)
 - [x] **Phase 4: Detail Pages, Auth e Polish** - Paginas de detalhe, login, splash e micro-animacoes finalizados (completed 2026-03-16)
+- [ ] **Phase 5: Critical Integration Fixes** - Correcao de token causa-info, timezone diasRestantes e barrel export adoption
 
 ## Phase Details
 
@@ -90,6 +91,19 @@ Plans:
 - [ ] 04-05-PLAN.md — WCAG AA contrast audit + focus rings + visual checkpoint
 - [ ] 04-06-PLAN.md — Gap closure: print sidebar hiding (DET-03) + row stagger wiring (ANIM-03)
 
+### Phase 5: Critical Integration Fixes
+**Goal**: Corrigir defeitos de integracao cruzada entre fases — token CSS ausente causa badge invisivel, funcao duplicada causa timezone incorreto, e barrel export sem consumidores impede reuso do design system
+**Depends on**: Phase 4
+**Requirements**: DS-01, DS-18, DET-01, LIST-02, LIST-05, DS-11
+**Gap Closure:** Closes gaps from v1.0 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. O badge de status "Prospecto" na listagem de clientes e no detalhe do cliente renderiza com background e texto visiveis em ambos os temas (light e dark)
+  2. A aba Prazos no detalhe do processo usa a mesma funcao diasRestantes() timezone-safe da listagem de prazos — sem copia local
+  3. Pelo menos 1 consumidor importa componentes via barrel export `components/ui/index.ts` em vez de path direto
+
+Plans:
+- [ ] 05-01-PLAN.md — Fix causa-info token, deduplicate diasRestantes, adopt barrel export
+
 ## Progress
 
 **Execution Order:**
@@ -101,3 +115,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Layout Shell | 2/2 | Complete   | 2026-03-15 |
 | 3. Core Feature Screens | 4/4 | Complete   | 2026-03-16 |
 | 4. Detail Pages, Auth e Polish | 6/6 | Complete   | 2026-03-16 |
+| 5. Critical Integration Fixes | 0/1 | Not Started | — |
