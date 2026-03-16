@@ -43,11 +43,11 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 ### Listagens
 
-- [ ] **LIST-01**: Numeros de processo em JetBrains Mono 13px em todas as listagens e detalhes (formato CNJ consistente)
+- [x] **LIST-01**: Numeros de processo em JetBrains Mono 13px em todas as listagens e detalhes (formato CNJ consistente)
 - [x] **LIST-02**: Countdown relativo de prazos nas linhas: "Hoje", "2 dias", "Proxima semana" com cor de urgencia do tier correspondente — data absoluta em tooltip
-- [ ] **LIST-03**: Status badge inline em linhas de processo: pills coloridos para Ativo (azul), Suspenso (ambar), Arquivado (cinza), Encerrado (verde-agua)
-- [ ] **LIST-04**: Linha inteira da tabela clicavel com hover highlight e focus ring acessivel (pointer cursor)
-- [ ] **LIST-05**: Todas as listagens funcionam corretamente em 1366x768 sem scroll horizontal
+- [x] **LIST-03**: Status badge inline em linhas de processo: pills coloridos para Ativo (azul), Suspenso (ambar), Arquivado (cinza), Encerrado (verde-agua)
+- [x] **LIST-04**: Linha inteira da tabela clicavel com hover highlight e focus ring acessivel (pointer cursor)
+- [x] **LIST-05**: Todas as listagens funcionam corretamente em 1366x768 sem scroll horizontal
 
 ### Detalhes
 
@@ -133,11 +133,11 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | DASH-01 | Phase 3 | Complete |
 | DASH-02 | Phase 3 | Complete |
 | DASH-03 | Phase 3 | Complete |
-| LIST-01 | Phase 3 | Pending |
+| LIST-01 | Phase 3 | Complete |
 | LIST-02 | Phase 3 | Complete |
-| LIST-03 | Phase 3 | Pending |
-| LIST-04 | Phase 3 | Pending |
-| LIST-05 | Phase 3 | Pending |
+| LIST-03 | Phase 3 | Complete |
+| LIST-04 | Phase 3 | Complete |
+| LIST-05 | Phase 3 | Complete |
 | DET-01 | Phase 4 | Pending |
 | DET-02 | Phase 4 | Pending |
 | DET-03 | Phase 4 | Pending |
