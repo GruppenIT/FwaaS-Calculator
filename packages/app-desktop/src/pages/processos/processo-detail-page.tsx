@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
+import { diasRestantes } from '../prazos/prazo-countdown';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ProcessoModal } from './processo-modal';
@@ -110,13 +111,6 @@ function formatDate(iso: string | null | undefined): string {
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function diasRestantes(dataFatal: string): number {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const fatal = new Date(dataFatal + 'T00:00:00');
-  return Math.ceil((fatal.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 interface TabDef {

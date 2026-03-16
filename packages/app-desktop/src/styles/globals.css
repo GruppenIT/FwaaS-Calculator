@@ -27,6 +27,7 @@
   --color-causa-success: var(--color-success);
   --color-causa-warning: var(--color-warning);
   --color-causa-danger: var(--color-danger);
+  --color-causa-info: var(--color-info);
 
   /* Cores de acento — agenda, gráficos, integrações */
   --color-causa-accent-purple: var(--color-accent-purple);
@@ -89,6 +90,7 @@
   --color-success: #2a9d8f;
   --color-warning: #e9a800;
   --color-danger: #dc2626;
+  --color-info: #2563a8;
 
   /* Acento */
   --color-accent-purple: #8b5cf6;
@@ -129,6 +131,7 @@
   --color-success: #2a9d8f;
   --color-warning: #e9a800;
   --color-danger: #dc2626;
+  --color-info: #3b82f6;
 
   /* Acento */
   --color-accent-purple: #a78bfa;

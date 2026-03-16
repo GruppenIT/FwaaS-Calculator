@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Search, Pencil, Trash2, Download } from 'lucide-react';
-import { PageHeader } from '../../components/ui/page-header';
-import { Button } from '../../components/ui/button';
-import { useToast } from '../../components/ui/toast';
-import { ConfirmDialog } from '../../components/ui/confirm-dialog';
-import { DataTable } from '../../components/ui/data-table';
-import type { Column } from '../../components/ui/data-table';
+import { PageHeader, Button, useToast, ConfirmDialog, DataTable } from '../../components/ui';
+import type { Column } from '../../components/ui';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
 import { usePermission } from '../../hooks/use-permission';
