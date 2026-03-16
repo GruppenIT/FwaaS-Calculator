@@ -267,3 +267,58 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Impressão — layout limpo para processo-detail-page (DET-03)
+ *
+ * Contrato com processo-detail-page.tsx:
+ * - Cada seção de aba deve ter o atributo `data-print-section` para ser visível na impressão
+ *   (ex: <div data-print-section> ... </div>)
+ * - A sidebar deve ter o atributo `data-sidebar` no elemento raiz para ser ocultada
+ *
+ * Intenção: usuário abre processo, pressiona Ctrl+P, obtém layout limpo com
+ * todas as seções visíveis sem chrome de navegação.
+ */
+@media print {
+  /* Ocultar chrome da aplicação */
+  [data-sidebar],
+  nav:not([role='tablist']),
+  header,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  /* Conteúdo ocupa largura total */
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Remover restrições de layout flex da tela */
+  .flex.h-screen {
+    display: block !important;
+    height: auto !important;
+  }
+
+  /* Mostrar todas as seções de aba na impressão (não apenas a aba ativa) */
+  [data-print-section] {
+    display: block !important;
+  }
+
+  /* Evitar quebra de página dentro de cards */
+  [class*='rounded-'] {
+    break-inside: avoid;
+  }
+
+  /* Remover sombras decorativas que desperdiçam tinta */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* Garantir texto preto para legibilidade */
+  body {
+    color: #000 !important;
+    background: white !important;
+  }
+}
