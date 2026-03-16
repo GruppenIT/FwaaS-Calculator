@@ -39,12 +39,12 @@ Requirements para a revisao completa de UX/UI. Cada um mapeia para fases do road
 
 - [ ] **DASH-01**: KPI stat cards estilo Stripe com sparkline ou indicador de tendencia (±% vs mes anterior) para processos ativos, prazos da semana e honorarios pendentes
 - [ ] **DASH-02**: Heat map de urgencia 2x2 grid: fatal-esta-semana / vence-este-mes / proximo / sem-prazo — com cores do sistema de 4 tiers
-- [ ] **DASH-03**: Hook useChartTheme() que fornece cores dinamicas para Recharts baseado no tema atual (light/dark), eliminando hex hardcoded
+- [x] **DASH-03**: Hook useChartTheme() que fornece cores dinamicas para Recharts baseado no tema atual (light/dark), eliminando hex hardcoded
 
 ### Listagens
 
 - [ ] **LIST-01**: Numeros de processo em JetBrains Mono 13px em todas as listagens e detalhes (formato CNJ consistente)
-- [ ] **LIST-02**: Countdown relativo de prazos nas linhas: "Hoje", "2 dias", "Proxima semana" com cor de urgencia do tier correspondente — data absoluta em tooltip
+- [x] **LIST-02**: Countdown relativo de prazos nas linhas: "Hoje", "2 dias", "Proxima semana" com cor de urgencia do tier correspondente — data absoluta em tooltip
 - [ ] **LIST-03**: Status badge inline em linhas de processo: pills coloridos para Ativo (azul), Suspenso (ambar), Arquivado (cinza), Encerrado (verde-agua)
 - [ ] **LIST-04**: Linha inteira da tabela clicavel com hover highlight e focus ring acessivel (pointer cursor)
 - [ ] **LIST-05**: Todas as listagens funcionam corretamente em 1366x768 sem scroll horizontal
@@ -132,9 +132,9 @@ Deferidos para futuro release. Rastreados mas fora do roadmap atual.
 | LY-03 | Phase 2 | Complete |
 | DASH-01 | Phase 3 | Pending |
 | DASH-02 | Phase 3 | Pending |
-| DASH-03 | Phase 3 | Pending |
+| DASH-03 | Phase 3 | Complete |
 | LIST-01 | Phase 3 | Pending |
-| LIST-02 | Phase 3 | Pending |
+| LIST-02 | Phase 3 | Complete |
 | LIST-03 | Phase 3 | Pending |
 | LIST-04 | Phase 3 | Pending |
 | LIST-05 | Phase 3 | Pending |
