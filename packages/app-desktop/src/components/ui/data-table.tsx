@@ -28,6 +28,7 @@ interface DataTableProps<T> {
   emptyIcon?: ElementType;
   emptyMessage?: string;
   className?: string;
+  animateFirstLoad?: boolean;
 }
 
 function SortIcon({
@@ -72,6 +73,7 @@ export function DataTable<T extends Record<string, unknown>>({
   emptyIcon = Inbox,
   emptyMessage = 'Nenhum registro encontrado',
   className = '',
+  animateFirstLoad,
 }: DataTableProps<T>) {
   function handleHeaderClick(column: Column<T>) {
     if (!column.sortable || !onSort) return;
@@ -115,9 +117,19 @@ export function DataTable<T extends Record<string, unknown>>({
           {data.length === 0 ? (
             <EmptyState icon={emptyIcon} message={emptyMessage} colSpan={columns.length} />
           ) : (
-            data.map((row) => {
+            data.map((row, idx) => {
               const rowKey = keyExtractor(row);
               const clickable = !!onRowClick;
+              const staggerStyle =
+                animateFirstLoad && idx < 10
+                  ? {
+                      animationName: 'rowFadeIn',
+                      animationDuration: '200ms',
+                      animationTimingFunction: 'ease-out',
+                      animationFillMode: 'both' as const,
+                      animationDelay: `${idx * 20}ms`,
+                    }
+                  : undefined;
               return (
                 <tr
                   key={rowKey}
@@ -126,6 +138,7 @@ export function DataTable<T extends Record<string, unknown>>({
                       ? 'hover:bg-[var(--color-surface-alt)] cursor-pointer transition-causa focus-visible:outline-none focus-causa'
                       : ''
                   }`}
+                  style={staggerStyle}
                   tabIndex={clickable ? 0 : undefined}
                   onClick={clickable ? () => onRowClick(row) : undefined}
                   onKeyDown={clickable ? (e) => handleRowKeyDown(e, row) : undefined}
