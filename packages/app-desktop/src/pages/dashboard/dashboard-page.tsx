@@ -43,25 +43,27 @@ interface StatCardProps {
   icon: typeof Briefcase;
   label: string;
   value: string | number;
-  color: string;
+  borderColor: string;
+  iconColor: string;
   onClick?: () => void;
 }
 
-function StatCard({ icon: Icon, label, value, color, onClick }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, borderColor, iconColor, onClick }: StatCardProps) {
   return (
     <div
-      className={`bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 ${onClick ? 'cursor-pointer hover:border-[var(--color-primary)]/30 transition-causa' : ''}`}
+      className={`bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 overflow-hidden ${onClick ? 'cursor-pointer hover:border-[var(--color-primary)]/30 transition-causa' : ''}`}
+      style={{ borderLeft: '3px solid', borderLeftColor: borderColor }}
       onClick={onClick}
     >
-      <div className="flex items-center gap-3">
-        <div
-          className={`w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center ${color}`}
-        >
-          <Icon size={20} />
-        </div>
+      <div className="flex items-start justify-between">
         <div>
-          <div className="text-2xl-causa text-[var(--color-text)]">{value}</div>
-          <div className="text-sm-causa text-[var(--color-text-muted)]">{label}</div>
+          <div className="text-2xl-causa text-[var(--color-text)] font-bold">{value}</div>
+          <div className="text-sm-causa text-[var(--color-text-muted)] mt-0.5">{label}</div>
+        </div>
+        <div
+          className={`w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0 ${iconColor}`}
+        >
+          <Icon size={18} />
         </div>
       </div>
     </div>
@@ -197,12 +199,12 @@ export function DashboardPage() {
               key={i}
               className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5"
             >
-              <div className="flex items-center gap-3">
-                <Skeleton className="w-10 h-10 rounded-[var(--radius-md)]" />
+              <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <Skeleton className="h-7 w-12 mb-1" />
                   <Skeleton className="h-3.5 w-24" />
                 </div>
+                <Skeleton className="w-9 h-9 rounded-[var(--radius-md)]" />
               </div>
             </div>
           ))
@@ -212,35 +214,40 @@ export function DashboardPage() {
               icon={Briefcase}
               label="Processos ativos"
               value={stats.processosAtivos}
-              color="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+              borderColor="var(--color-tier-info)"
+              iconColor="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
               onClick={() => navigate('/app/processos')}
             />
             <StatCard
               icon={Clock}
               label="Prazos pendentes"
               value={stats.prazosPendentes}
-              color="bg-causa-warning/10 text-causa-warning"
+              borderColor="var(--color-tier-warning)"
+              iconColor="bg-causa-warning/10 text-causa-warning"
               onClick={() => navigate('/app/prazos')}
             />
             <StatCard
               icon={AlertTriangle}
               label="Prazos fatais"
               value={stats.prazosFatais}
-              color="bg-causa-danger/10 text-causa-danger"
+              borderColor="var(--color-tier-fatal)"
+              iconColor="bg-causa-danger/10 text-causa-danger"
               onClick={() => navigate('/app/prazos')}
             />
             <StatCard
               icon={Users}
               label="Clientes"
               value={stats.clientes}
-              color="bg-causa-success/10 text-causa-success"
+              borderColor="var(--color-success)"
+              iconColor="bg-causa-success/10 text-causa-success"
               onClick={() => navigate('/app/clientes')}
             />
             <StatCard
               icon={CheckSquare}
               label="Tarefas pendentes"
               value={stats.tarefasPendentes}
-              color="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+              borderColor="var(--color-tier-info)"
+              iconColor="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
               onClick={() => navigate('/app/tarefas')}
             />
             {/* 4.2.3 - Movimentacoes nao lidas */}
@@ -248,7 +255,8 @@ export function DashboardPage() {
               icon={Mail}
               label="Mov. nao lidas"
               value={stats.movimentacoesNaoLidas}
-              color="bg-causa-warning/10 text-causa-warning"
+              borderColor="var(--color-tier-warning)"
+              iconColor="bg-causa-warning/10 text-causa-warning"
               onClick={() => navigate('/app/processos')}
             />
             {financeiroEnabled ? (
@@ -256,7 +264,8 @@ export function DashboardPage() {
                 icon={DollarSign}
                 label="A receber"
                 value={totalPendente > 0 ? formatCurrency(totalPendente) : 'R$ 0'}
-                color="bg-causa-warning/10 text-causa-warning"
+                borderColor="var(--color-success)"
+                iconColor="bg-causa-success/10 text-causa-success"
                 onClick={() => navigate('/app/financeiro')}
               />
             ) : (
@@ -264,7 +273,8 @@ export function DashboardPage() {
                 icon={CreditCard}
                 label="Parcelas atrasadas"
                 value={stats.parcelasAtrasadas}
-                color="bg-causa-danger/10 text-causa-danger"
+                borderColor="var(--color-success)"
+                iconColor="bg-causa-success/10 text-causa-success"
               />
             )}
           </>
