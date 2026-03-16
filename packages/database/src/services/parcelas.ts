@@ -48,7 +48,7 @@ export class ParcelaService {
       const id = uuid();
       const venc = new Date(primeiroVencimento + 'T00:00:00');
       venc.setMonth(venc.getMonth() + i);
-      const vencStr = venc.toISOString().split('T')[0]!;
+      const vencStr = venc.toISOString().split('T')[0] ?? '';
 
       // Última parcela absorve arredondamento
       const valor =

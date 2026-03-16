@@ -289,8 +289,9 @@ async function executeBackup(): Promise<void> {
 
   // Process each destination
   for (let i = 0; i < enabledDests.length; i++) {
-    const dest = enabledDests[i]!;
-    const resultEntry = backupStatus.results[i]!;
+    const dest = enabledDests[i];
+    const resultEntry = backupStatus.results[i];
+    if (!dest || !resultEntry) continue;
     const logId = crypto.randomUUID();
     const logBase = {
       id: logId,
@@ -1041,14 +1042,14 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         if (body.geraPrazo) {
           try {
             const processo = await getProcessoService().obterPorId(processoId);
-            const dataInicio = body.dataMovimento ?? new Date().toISOString().split('T')[0]!;
+            const dataInicio = body.dataMovimento ?? (new Date().toISOString().split('T')[0] ?? '');
             const dataFatal = new Date(dataInicio);
             dataFatal.setDate(dataFatal.getDate() + 15); // Default 15 days
             const prazoId = await getPrazoService().criar({
               processoId,
               movimentacaoId: id,
               descricao: `Prazo gerado: ${body.descricao ?? 'Movimentação'}`,
-              dataFatal: dataFatal.toISOString().split('T')[0]!,
+              dataFatal: dataFatal.toISOString().split('T')[0] ?? '',
               dataInicio,
               diasPrazo: 15,
               tipoPrazo: 'ncpc',
@@ -2273,7 +2274,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           sql`SELECT * FROM backup_logs WHERE started_at >= ${cutoffIso} ORDER BY started_at DESC LIMIT 200`,
         );
         return json(res, rows);
-      } catch (err) {
+      } catch {
         return json(res, []);
       }
     }
@@ -2411,7 +2412,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         .from(s.tarefas)
         .where(eq(s.tarefas.status, 'pendente'));
 
-      const hoje = new Date().toISOString().split('T')[0]!;
+      const hoje = new Date().toISOString().split('T')[0] ?? '';
       const [parcelasAtrasadas] = await dbq
         .select({ count: count() })
         .from(s.parcelas)
@@ -2430,8 +2431,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       inicioSemana.setDate(hojeDate.getDate() - diaSemana);
       const fimSemana = new Date(inicioSemana);
       fimSemana.setDate(inicioSemana.getDate() + 6);
-      const inicioSemanaStr = inicioSemana.toISOString().split('T')[0]!;
-      const fimSemanaStr = fimSemana.toISOString().split('T')[0]!;
+      const inicioSemanaStr = inicioSemana.toISOString().split('T')[0] ?? '';
+      const fimSemanaStr = fimSemana.toISOString().split('T')[0] ?? '';
 
       const audienciasSemana = await dbq
         .select({
@@ -2486,7 +2487,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const hoje = new Date();
       const inicio = new Date(hoje);
       inicio.setDate(hoje.getDate() - 29);
-      const inicioStr = inicio.toISOString().split('T')[0]!;
+      const inicioStr = inicio.toISOString().split('T')[0] ?? '';
 
       const movimentacoesPorDia = await dbq
         .select({
@@ -2519,7 +2520,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       for (let i = 0; i < 30; i++) {
         const d = new Date(inicio);
         d.setDate(inicio.getDate() + i);
-        const dStr = d.toISOString().split('T')[0]!;
+        const dStr = d.toISOString().split('T')[0] ?? '';
         const mov = movimentacoesPorDia.find((m: { data: string; total: number }) => m.data === dStr);
         const pz = prazosPorDia.find((p: { data: string; total: number }) => p.data === dStr);
         const tf = tarefasPorDia.find((t: { data: string | null; total: number }) => t.data?.startsWith(dStr));
@@ -2540,7 +2541,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const hoje = new Date();
       const inicio = new Date(hoje);
       inicio.setDate(hoje.getDate() - 6);
-      const inicioStr = inicio.toISOString().split('T')[0]!;
+      const inicioStr = inicio.toISOString().split('T')[0] ?? '';
 
       const timesheetPorDia = await dbq
         .select({
@@ -2555,7 +2556,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       for (let i = 0; i < 7; i++) {
         const d = new Date(inicio);
         d.setDate(inicio.getDate() + i);
-        const dStr = d.toISOString().split('T')[0]!;
+        const dStr = d.toISOString().split('T')[0] ?? '';
         const entry = timesheetPorDia.find((t: { data: string; totalMinutos: string | number | null }) => t.data === dStr);
         produtividade.push({
           data: dStr,
@@ -2584,9 +2585,9 @@ async function buildDailySummary() {
   const dbq = getDb();
   const s = getAppSchema();
 
-  const hoje = new Date().toISOString().split('T')[0]!;
-  const amanha = new Date(Date.now() + 86400000).toISOString().split('T')[0]!;
-  const fimSemana = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]!;
+  const hoje = new Date().toISOString().split('T')[0] ?? '';
+  const amanha = new Date(Date.now() + 86400000).toISOString().split('T')[0] ?? '';
+  const fimSemana = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0] ?? '';
 
   // Prazos pendentes
   type PrazoSummaryRow = { id: string; descricao: string; dataFatal: string; numeroCnj: string | null; fatal: boolean; responsavelNome: string | null; alertasEnviados: unknown };
@@ -2670,7 +2671,7 @@ async function checkAndSendPrazoAlerts(alertDays: number[]) {
 
   const dbq = db as unknown as DatabaseQueryBuilder;
   const s = schema;
-  const hoje = new Date().toISOString().split('T')[0]!;
+  const hoje = new Date().toISOString().split('T')[0] ?? '';
 
   // Buscar prazos pendentes
   const prazos = await dbq

@@ -54,7 +54,7 @@ function formatDateTime(iso: string): string {
   });
 }
 
-function formatTime(iso: string): string {
+function _formatTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString('pt-BR', {
     hour: '2-digit',
@@ -529,7 +529,7 @@ export function BackupSection() {
                             {canOpenFolder && (
                               <button
                                 type="button"
-                                onClick={() => openFolder(log.destination_path!)}
+                                onClick={() => openFolder(log.destination_path ?? '')}
                                 className="p-0.5 rounded hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
                                 title="Abrir pasta do backup"
                               >

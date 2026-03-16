@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Calendar, Trash2, Video, ExternalLink } from 'lucide-react';
+import { Plus, Calendar, Trash2, Video } from 'lucide-react';
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';

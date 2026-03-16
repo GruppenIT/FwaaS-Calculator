@@ -6,7 +6,6 @@ import {
   AlertCircle,
   Circle,
   Cloud,
-  CloudOff,
   MessageCircle,
   Github,
   Scale,
@@ -19,8 +18,6 @@ import {
   Bell,
   Construction,
   Info,
-  Download,
-  Key,
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
@@ -143,7 +140,7 @@ function CnjSection() {
 
 function GitHubSection() {
   const { toast } = useToast();
-  const { status } = useUpdateStatus();
+  const { status: _status } = useUpdateStatus();
   const [ghToken, setGhToken] = useState('');
   const [ghTokenLoaded, setGhTokenLoaded] = useState(false);
   const [savingToken, setSavingToken] = useState(false);
@@ -322,7 +319,7 @@ function GoogleDriveSection() {
       toast('Cole o conteúdo do arquivo JSON da Service Account.', 'error');
       return;
     }
-    let clientEmail = '';
+    let clientEmail: string;
     try {
       const parsed = JSON.parse(serviceAccountJson);
       if (!parsed.client_email || !parsed.private_key) {

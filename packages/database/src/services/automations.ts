@@ -16,7 +16,7 @@ export function calcularDataFatal(
 
   if (tipoContagem === 'corridos') {
     inicio.setDate(inicio.getDate() + diasPrazo);
-    return inicio.toISOString().split('T')[0]!;
+    return inicio.toISOString().split('T')[0] ?? '';
   }
 
   // Dias úteis: pular sábados (6) e domingos (0)
@@ -29,7 +29,7 @@ export function calcularDataFatal(
       diasContados++;
     }
   }
-  return atual.toISOString().split('T')[0]!;
+  return atual.toISOString().split('T')[0] ?? '';
 }
 
 /**
@@ -41,7 +41,7 @@ export async function marcarParcelasAtrasadas(
   schema: CausaSchema,
 ): Promise<number> {
   const dbq = db as unknown as DatabaseQueryBuilder;
-  const hoje = new Date().toISOString().split('T')[0]!;
+  const hoje = new Date().toISOString().split('T')[0] ?? '';
 
   // Find overdue parcelas
   const atrasadas = await dbq

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(gsd:map-codebase)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebSearch",
+      "Skill(gsd:plan-phase)",
+      "Bash(pnpm lint:*)",
+      "Bash(where pnpm:*)",
+      "Bash(npx eslint:*)"
+    ]
+  }
+}

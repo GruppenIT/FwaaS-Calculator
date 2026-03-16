@@ -241,9 +241,9 @@ export function ClienteModal({ onClose, onSaved, editData }: Props) {
       ...(form.telefone ? { telefone: form.telefone } : {}),
       ...(form.telefoneSecundario ? { telefoneSecundario: form.telefoneSecundario } : {}),
       ...(form.whatsapp ? { whatsapp: form.whatsapp } : {}),
-      ...(cleanEndereco(form.endereco) ? { endereco: cleanEndereco(form.endereco)! } : {}),
+      ...(cleanEndereco(form.endereco) ? { endereco: cleanEndereco(form.endereco) as EnderecoJson } : {}),
       ...(cleanEndereco(form.enderecoComercial)
-        ? { enderecoComercial: cleanEndereco(form.enderecoComercial)! }
+        ? { enderecoComercial: cleanEndereco(form.enderecoComercial) as EnderecoJson }
         : {}),
       ...(form.observacoes ? { observacoes: form.observacoes } : {}),
       ...(form.origemCaptacao ? { origemCaptacao: form.origemCaptacao } : {}),

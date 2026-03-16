@@ -102,7 +102,7 @@ export class DocumentoService {
           or(
             eq(this.documentos.clienteId, filtros.clienteId),
             sql`${this.documentos.processoId} IN (SELECT id FROM processos WHERE cliente_id = ${filtros.clienteId})`,
-          )!,
+          ),
         );
       } else {
         conditions.push(eq(this.documentos.clienteId, filtros.clienteId));
@@ -121,7 +121,7 @@ export class DocumentoService {
           like(this.documentos.nome, termo),
           like(this.documentos.descricao, termo),
           like(this.documentos.conteudoTexto, termo),
-        )!,
+        ),
       );
     }
 
