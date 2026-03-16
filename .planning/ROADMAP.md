@@ -62,7 +62,13 @@ Plans:
   2. Em qualquer listagem de prazos, cada linha mostra countdown relativo ("Hoje", "2 dias", "Proxima semana") na cor do tier de urgencia correspondente, e hover sobre o countdown exibe a data absoluta em tooltip
   3. Em listagens de processos, cada linha exibe o numero do processo em JetBrains Mono 13px e um status badge colorido (Ativo=azul, Suspenso=ambar, Arquivado=cinza, Encerrado=verde-agua), e clicar em qualquer parte da linha navega para o detalhe
   4. Todas as listagens funcionam sem scroll horizontal em uma janela 1366x768 a 100% de escala
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Utility hooks and components: useChartTheme, PrazoCountdown, UrgencyHeatMap
+- [ ] 03-02-PLAN.md — Dashboard rewrite: Stripe-style StatCards + UrgencyHeatMap + chart theming
+- [ ] 03-03-PLAN.md — Listing migrations: processos, prazos, clientes to DataTable
+- [ ] 03-04-PLAN.md — Full verification + visual checkpoint
 
 ### Phase 4: Detail Pages, Auth e Polish
 **Goal**: Paginas de detalhe, login e splash completam a revisao visual com layouts profissionais e micro-animacoes com proposito — o app atinge qualidade visual Stripe/Vercel do primeiro clique ao ultimo
@@ -85,5 +91,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Design System Foundation | 6/6 | Complete   | 2026-03-15 |
 | 2. Layout Shell | 2/2 | Complete   | 2026-03-15 |
-| 3. Core Feature Screens | 0/TBD | Not started | - |
+| 3. Core Feature Screens | 0/4 | Planning complete | - |
 | 4. Detail Pages, Auth e Polish | 0/TBD | Not started | - |
