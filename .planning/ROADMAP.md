@@ -87,7 +87,7 @@ Plans:
   5. prazosFatais in api-server.ts queries actual fatal prazo count instead of hardcoded 0
 **Plans:** 2 plans
 Plans:
-- [ ] 09-01-PLAN.md — Fix permission bug, implement prazosFatais query, add UI barrel exports
+- [x] 09-01-PLAN.md — Fix permission bug, implement prazosFatais query, add UI barrel exports
 - [ ] 09-02-PLAN.md — Create Phase 7 VERIFICATION.md and update REQUIREMENTS.md checkboxes
 
 ## Progress
@@ -102,4 +102,4 @@ Plans:
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
 | 7. Table Interactions | v2.1 | 2/2 | Complete | 2026-03-17 |
 | 8. Visual Enhancements | v2.1 | 3/3 | Complete | 2026-03-17 |
-| 9. Bug Fix, Verification & Tech Debt | v2.1 | 0/2 | Pending | - |
+| 9. Bug Fix, Verification & Tech Debt | v2.1 | 1/2 | In Progress | - |

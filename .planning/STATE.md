@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Interacao e Dados
 status: executing
-stopped_at: Phase 8 complete — all visual enhancement plans executed
-last_updated: "2026-03-17T18:30:00Z"
-last_activity: 2026-03-17 — Phase 8 all 3 plans complete (sidebar, timeline, sparklines)
+stopped_at: Phase 9 plan 1 complete — permission bug fixed, prazosFatais query implemented, UI barrel exports added
+last_updated: "2026-03-17T18:45:00Z"
+last_activity: 2026-03-17 — Phase 9 plan 1 complete (prazos permission fix, prazosFatais query, barrel exports)
 progress:
   total_phases: 3
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 
 ## Current Position
 
-Phase: 8 of 8 (Visual Enhancements) — third phase of v2.1
-Plan: 3 of 3 — all complete
-Status: Complete
-Last activity: 2026-03-17 — Phase 8 all plans executed (collapsible sidebar, timeline, sparklines)
+Phase: 9 of 9 (Bug Fix, Verification & Tech Debt) — fourth phase of v2.1
+Plan: 1 of 2 complete
+Status: Executing
+Last activity: 2026-03-17 — Phase 9 plan 1 executed (prazos permission fix, prazosFatais real query, UI barrel exports)
 
 Progress: [██████████] 100%
 
@@ -39,7 +39,7 @@ Progress: [██████████] 100%
 - Average duration: ~30 min
 - Total execution time: ~9.8 hours
 
-**v2.1:** 7 plans completed (06-01, 06-02, 07-01, 07-02, 08-01, 08-02, 08-03).
+**v2.1:** 8 plans completed (06-01, 06-02, 07-01, 07-02, 08-01, 08-02, 08-03, 09-01).
 
 ## Accumulated Context
 
@@ -59,6 +59,8 @@ See PROJECT.md Key Decisions table for full history.
 - [Phase 08-02]: Timeline uses date column + circle node + content card layout with absolute vertical line through nodes
 - [Phase 08-02]: Prazo node color derived from status (pendente=warning, cumprido=success, perdido=danger) — matches PRAZO_STATUS_STYLES convention
 - [Phase 08-02]: var(--color-tier-warning) used for prazo pending color via inline style
+- [Phase 09-01]: Permission guard on prazos pages uses can('prazos:criar') || can('prazos:editar') — not processos permission
+- [Phase 09-01]: prazosFatais uses Drizzle count with and(eq(status,'pendente'), eq(fatal,true)) — same pattern as prazosPendentes
 
 ### Pending Todos
 
@@ -70,7 +72,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-17T18:30:00Z
-Stopped at: Phase 8 complete — all visual enhancement plans executed
+Last session: 2026-03-17T18:45:00Z
+Stopped at: Phase 9 plan 1 complete — permission bug fixed, prazosFatais query implemented, UI barrel exports added
 Resume file: None
-Next action: Phase verification → milestone completion
+Next action: Execute 09-02 — Phase 7 VERIFICATION.md and REQUIREMENTS.md checkbox updates
