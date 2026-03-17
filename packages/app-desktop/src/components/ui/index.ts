@@ -22,3 +22,5 @@ export type { Column } from './data-table';
 export { Select } from './select';
 export { Checkbox } from './checkbox';
 export { Textarea } from './textarea';
+export { ColumnVisibilityToggle } from './column-visibility-toggle';
+export { ClientHoverCard } from './client-hover-card';
