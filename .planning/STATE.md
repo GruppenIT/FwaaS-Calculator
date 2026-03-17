@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Interacao e Dados
-status: In Progress
-stopped_at: 07-01-PLAN.md complete — table interactions infrastructure built
-last_updated: "2026-03-17T12:41:00Z"
-last_activity: 2026-03-17 — 07-01 table interactions infrastructure complete (hook, DataTable nav, ColumnVisibilityToggle, ClientHoverCard)
+status: executing
+stopped_at: 07-02-PLAN.md complete — awaiting human verification checkpoint
+last_updated: "2026-03-17T12:37:08.046Z"
+last_activity: 2026-03-17 — 07-01 table interactions infrastructure complete
 progress:
   total_phases: 3
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
   percent: 55
 ---
 
@@ -53,6 +53,9 @@ See PROJECT.md Key Decisions table for full history.
 - [Phase 07-01]: ColumnVisibilityToggle uses native checkbox (not Radix) to keep it simple — plan specified explicitly
 - [Phase 07-01]: ClientHoverCard caches fetch in useRef — subsequent hovers instant, no redundant API calls
 - [Phase 07-01]: useTablePreferences stores sortState and hiddenColumns together in causa-table-{tableId} localStorage key
+- [Phase 07-02]: clienteId added to ProcessoListRow and listSelect() — hover card requires it and it was missing from the list query
+- [Phase 07-02]: Keyboard shortcut guard pattern: check isInput (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) and showModal to prevent conflicts
+- [Phase 07-02]: ClientesPage intentionally has no ColumnVisibilityToggle — INT-03 specifies processos and prazos only
 
 ### Pending Todos
 
@@ -64,7 +67,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:41:00Z
-Stopped at: 07-01-PLAN.md complete — awaiting 07-02 page wiring plan
+Last session: 2026-03-17T12:37:00.376Z
+Stopped at: 07-02-PLAN.md complete — awaiting human verification checkpoint
 Resume file: None
 Next action: Execute 07-02 plan to wire useTablePreferences, ColumnVisibilityToggle, and ClientHoverCard into individual pages

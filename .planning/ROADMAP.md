@@ -25,7 +25,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 **Milestone Goal:** Tornar o sistema testavel com dados realistas e adicionar interacoes avancadas (teclado, hover cards, sidebar colapsavel, sparklines)
 
 - [ ] **Phase 6: Data Seed** - CLI que popula todas as entidades com dados falsos realistas e temporalmente distribuidos
-- [ ] **Phase 7: Table Interactions** - Navegacao por teclado, atalhos, visibilidade de colunas, hover cards e sort persistente
+- [x] **Phase 7: Table Interactions** - Navegacao por teclado, atalhos, visibilidade de colunas, hover cards e sort persistente (completed 2026-03-17)
 - [ ] **Phase 8: Visual Enhancements** - Sidebar colapsavel, audit trail timeline e sparklines reais nos KPIs
 
 ## Phase Details
@@ -54,7 +54,7 @@ Plans:
   3. User can toggle column visibility in processos and prazos tables, and the preference survives page reload (localStorage)
   4. Hovering over a client name in the processos table shows a card with client summary (without navigating away)
   5. User can sort any table column, leave the page, return, and find the same sort order applied automatically
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 07-01-PLAN.md — Create useTablePreferences hook, enhance DataTable with arrow keys + hiddenColumns, build ColumnVisibilityToggle and ClientHoverCard components
 - [ ] 07-02-PLAN.md — Wire all interactions into ProcessosPage, PrazosPage, and ClientesPage with keyboard shortcuts and visual verification
@@ -79,5 +79,5 @@ Plans:
 | 4. Detail Pages, Auth e Polish | v1.0 | 6/6 | Complete | 2026-03-16 |
 | 5. Critical Integration Fixes | v1.0 | 1/1 | Complete | 2026-03-16 |
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
-| 7. Table Interactions | v2.1 | 1/2 | In Progress | - |
+| 7. Table Interactions | 2/2 | Complete   | 2026-03-17 | - |
 | 8. Visual Enhancements | v2.1 | 0/? | Not started | - |
