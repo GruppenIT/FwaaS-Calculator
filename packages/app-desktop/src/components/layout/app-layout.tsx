@@ -5,12 +5,14 @@ import { GlobalSearch } from './global-search';
 import { UpdateBanner } from '../update-banner';
 import { BackupIndicator } from '../ui/backup-indicator';
 import { DeadlineBanner } from './deadline-banner';
+import { SidebarProvider } from '../../hooks/use-sidebar';
 
 export function AppLayout() {
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
 
   return (
+    <SidebarProvider>
     <div className="flex h-screen bg-[var(--color-bg)]">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -37,5 +39,6 @@ export function AppLayout() {
       </div>
       <BackupIndicator />
     </div>
+    </SidebarProvider>
   );
 }

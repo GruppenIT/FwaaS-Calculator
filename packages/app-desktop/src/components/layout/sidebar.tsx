@@ -17,10 +17,13 @@ import {
   Receipt,
   Contact,
   Timer,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth, useFeatures } from '../../lib/auth-context';
 import { usePermission } from '../../hooks/use-permission';
+import { useSidebar } from '../../hooks/use-sidebar';
 import { CausaLogo } from '../ui/causa-logo';
 import type { AppFeatures } from '../../lib/api';
 
@@ -154,13 +157,31 @@ export function Sidebar() {
   const { logout, user } = useAuth();
   const { canAny } = usePermission();
   const features = useFeatures();
+  const { collapsed, toggle, autoCollapsed } = useSidebar();
 
   return (
-    <aside data-sidebar className="w-[var(--sidebar-width)] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0">
+    <aside
+      data-sidebar
+      className={`${collapsed ? 'w-[var(--sidebar-width-collapsed)]' : 'w-[var(--sidebar-width)]'} h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col shrink-0 transition-all duration-200 overflow-hidden`}
+    >
       {/* Logo */}
-      <div className="px-5 py-4">
-        <CausaLogo size={32} />
+      <div className={`px-5 py-4 ${collapsed ? 'flex justify-center px-0' : ''}`}>
+        <CausaLogo size={collapsed ? 24 : 32} />
       </div>
+
+      {/* Toggle button — only on wide screens */}
+      {!autoCollapsed && (
+        <div className="px-2.5 mb-1">
+          <button
+            type="button"
+            onClick={toggle}
+            className="px-2.5 py-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa cursor-pointer w-full flex items-center justify-center"
+            title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+          >
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-2">
@@ -173,16 +194,19 @@ export function Sidebar() {
           if (visibleItems.length === 0) return null;
           return (
             <div key={section.title} className="mb-4">
-              <div className="px-2 mb-1.5 text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
-                {section.title}
-              </div>
+              {!collapsed && (
+                <div className="px-2 mb-1.5 text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+                  {section.title}
+                </div>
+              )}
               {visibleItems.map(({ to, icon: Icon, label }) => (
                 <NavLink
                   key={to}
                   to={to}
                   end={to === '/app'}
+                  title={collapsed ? label : undefined}
                   className={({ isActive }) =>
-                    `flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] font-medium transition-causa focus-causa ${
+                    `flex items-center ${collapsed ? 'justify-center px-0 py-2.5' : 'gap-2.5 px-2.5 py-2'} rounded-[var(--radius-md)] text-[14px] font-medium transition-causa focus-causa ${
                       isActive
                         ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
                         : 'text-[var(--color-text)] hover:bg-causa-surface-alt'
@@ -190,7 +214,7 @@ export function Sidebar() {
                   }
                 >
                   <Icon size={18} />
-                  {label}
+                  {!collapsed && label}
                 </NavLink>
               ))}
             </div>
@@ -201,36 +225,39 @@ export function Sidebar() {
       {/* User Info */}
       {user && (
         <div className="px-3 pt-3 pb-2 border-t border-[var(--color-border)]">
-          <div className="flex items-center gap-2.5 px-2">
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 px-2'}`}>
             <div className="w-7 h-7 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-[11px] font-semibold shrink-0">
               {getInitials(user.email)}
             </div>
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium text-[var(--color-text)] truncate leading-tight">
-                {user.email}
-              </p>
-              <p className="text-[11px] text-[var(--color-text-muted)] leading-tight">
-                {formatRole(user.role)}
-              </p>
-            </div>
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium text-[var(--color-text)] truncate leading-tight">
+                  {user.email}
+                </p>
+                <p className="text-[11px] text-[var(--color-text-muted)] leading-tight">
+                  {formatRole(user.role)}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Footer */}
-      <div className="px-3 pb-3 pt-1 flex items-center gap-1">
+      <div className={`px-3 pb-3 pt-1 flex items-center ${collapsed ? 'flex-col gap-1' : 'gap-1'}`}>
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa focus-causa cursor-pointer flex-1"
+          title={collapsed ? (theme === 'light' ? 'Modo escuro' : 'Modo claro') : undefined}
+          className={`flex items-center ${collapsed ? 'justify-center px-2.5 py-2 w-full' : 'gap-2 px-2.5 py-2 flex-1'} rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa focus-causa cursor-pointer`}
         >
           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-          {theme === 'light' ? 'Escuro' : 'Claro'}
+          {!collapsed && (theme === 'light' ? 'Escuro' : 'Claro')}
         </button>
         <button
           type="button"
           onClick={logout}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa focus-causa cursor-pointer"
+          className={`flex items-center ${collapsed ? 'justify-center px-2.5 py-2 w-full' : 'gap-2 px-2.5 py-2'} rounded-[var(--radius-md)] text-[14px] text-[var(--color-text-muted)] hover:bg-causa-surface-alt transition-causa focus-causa cursor-pointer`}
           title="Sair"
         >
           <LogOut size={16} />
