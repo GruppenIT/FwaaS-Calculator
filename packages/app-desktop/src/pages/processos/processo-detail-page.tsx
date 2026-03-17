@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react';
 import {
   Clock,
@@ -123,6 +123,7 @@ export function ProcessoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { can } = usePermission();
+  const navigate = useNavigate();
   const { financeiro: financeiroEnabled, googleDrive: driveEnabled } = useFeatures();
   const [searchParams, setSearchParams] = useSearchParams();
   const prefersReducedMotion = useReducedMotion();
@@ -149,6 +150,24 @@ export function ProcessoDetailPage() {
   const [docModalOpen, setDocModalOpen] = useState(false);
   const [editDoc, setEditDoc] = useState<DocumentoRow | null>(null);
   const canUpload = can('documentos:upload');
+
+  // Esc returns to list when no modal/dialog is open
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      const active = document.activeElement;
+      const isInput =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement;
+      if (isInput) return;
+      // Skip if any modal/dialog is open
+      if (editData !== undefined || deleteMovId || docModalOpen || viewDocId) return;
+      navigate('/app/processos', { state: { selectedId: id } });
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, editData, deleteMovId, docModalOpen, viewDocId]);
 
   const carregar = useCallback(async () => {
     if (!id) return;

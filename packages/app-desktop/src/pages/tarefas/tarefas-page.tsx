@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, CheckSquare, Trash2, Pencil, CheckCircle2 } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, CheckSquare, Trash2, Pencil, CheckCircle2, Eye } from 'lucide-react';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { TarefaModal } from './tarefa-modal';
@@ -59,6 +59,7 @@ function formatDate(dateStr: string): string {
 export function TarefasPage() {
   const [tarefas, setTarefas] = useState<TarefaRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editData, setEditData] = useState<TarefaEditData | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -87,6 +88,17 @@ export function TarefasPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (tarefas.length > 0) {
+      if (!selectedId || !tarefas.find((t) => t.id === selectedId)) {
+        setSelectedId(tarefas[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tarefas]);
 
   function handleNew() {
     setEditData(undefined);
@@ -176,6 +188,126 @@ export function TarefasPage() {
     { value: 'cancelada', label: 'Canceladas' },
   ];
 
+  const columns = useMemo<Column<TarefaRow>[]>(
+    () => [
+      {
+        key: 'titulo',
+        header: 'Título',
+        render: (_value, row) => (
+          <div>
+            <div className="font-medium text-[var(--color-text)]">{row.titulo}</div>
+            {row.numeroCnj && (
+              <div className="text-xs text-[var(--color-text-muted)]">{row.numeroCnj}</div>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'responsavelNome',
+        header: 'Responsável',
+        render: (_value, row) => (
+          <span className="text-[var(--color-text)]">{row.responsavelNome ?? '—'}</span>
+        ),
+      },
+      {
+        key: 'categoria',
+        header: 'Categoria',
+        render: (_value, row) => (
+          <span className="text-[var(--color-text)]">
+            {row.categoria ? (CATEGORIA_LABELS[row.categoria] ?? row.categoria) : '—'}
+          </span>
+        ),
+      },
+      {
+        key: 'prioridade',
+        header: 'Prioridade',
+        render: (_value, row) => (
+          <>
+            {row.prioridade !== 'normal' && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${PRIORIDADE_STYLES[row.prioridade] ?? ''}`}
+              >
+                {PRIORIDADE_LABELS[row.prioridade] ?? row.prioridade}
+              </span>
+            )}
+            {row.prioridade === 'normal' && (
+              <span className="text-[var(--color-text-muted)]">Normal</span>
+            )}
+          </>
+        ),
+      },
+      {
+        key: 'dataLimite',
+        header: 'Data Limite',
+        render: (_value, row) => (
+          <span className="text-[var(--color-text)]">
+            {row.dataLimite ? formatDate(row.dataLimite) : '—'}
+          </span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (_value, row) => (
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[row.status] ?? ''}`}
+          >
+            {STATUS_LABELS[row.status] ?? row.status}
+          </span>
+        ),
+      },
+      {
+        key: 'acoes',
+        header: 'Ações',
+        align: 'right',
+        render: (_value, row) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-end gap-1">
+              <button
+                type="button"
+                className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-causa-bg transition-causa cursor-pointer"
+                onClick={() => handleEdit(row)}
+                title="Ver detalhes"
+              >
+                <Eye size={16} />
+              </button>
+              {row.status !== 'concluida' && row.status !== 'cancelada' && (
+                <button
+                  type="button"
+                  onClick={() => handleConcluir(row.id)}
+                  className="p-1.5 rounded-[var(--radius-md)] text-causa-success hover:bg-causa-success/10 transition-causa cursor-pointer"
+                  title="Concluir"
+                >
+                  <CheckCircle2 size={16} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleEdit(row)}
+                className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
+                title="Editar"
+              >
+                <Pencil size={16} />
+              </button>
+              {canEditAll && (
+                <button
+                  type="button"
+                  onClick={() => setDeleteId(row.id)}
+                  className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
+                  title="Excluir"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canEditAll],
+  );
+
   return (
     <div>
       <PageHeader
@@ -209,116 +341,16 @@ export function TarefasPage() {
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
-        <table className="w-full text-sm-causa">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-bg">
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Título
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Responsável
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Categoria
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Prioridade
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Data Limite
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Status
-              </th>
-              <th className="text-right px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows cols={7} rows={5} />
-            ) : tarefas.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
-                  <EmptyState icon={CheckSquare} message="Nenhuma tarefa encontrada" />
-                </td>
-              </tr>
-            ) : (
-              tarefas.map((t) => (
-                <tr
-                  key={t.id}
-                  className="border-b border-[var(--color-border)] hover:bg-causa-bg/50 transition-causa"
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-[var(--color-text)]">{t.titulo}</div>
-                    {t.numeroCnj && (
-                      <div className="text-xs text-[var(--color-text-muted)]">{t.numeroCnj}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">{t.responsavelNome ?? '—'}</td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {t.categoria ? (CATEGORIA_LABELS[t.categoria] ?? t.categoria) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {t.prioridade !== 'normal' && (
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${PRIORIDADE_STYLES[t.prioridade] ?? ''}`}
-                      >
-                        {PRIORIDADE_LABELS[t.prioridade] ?? t.prioridade}
-                      </span>
-                    )}
-                    {t.prioridade === 'normal' && (
-                      <span className="text-[var(--color-text-muted)]">Normal</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {t.dataLimite ? formatDate(t.dataLimite) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[t.status] ?? ''}`}
-                    >
-                      {STATUS_LABELS[t.status] ?? t.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {t.status !== 'concluida' && t.status !== 'cancelada' && (
-                        <button
-                          type="button"
-                          onClick={() => handleConcluir(t.id)}
-                          className="p-1.5 rounded-[var(--radius-md)] text-causa-success hover:bg-causa-success/10 transition-causa cursor-pointer"
-                          title="Concluir"
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(t)}
-                        className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
-                        title="Editar"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      {canEditAll && (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteId(t.id)}
-                          className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
-                          title="Excluir"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns as unknown as Column<Record<string, unknown>>[]}
+          data={(loading ? [] : tarefas) as unknown as Record<string, unknown>[]}
+          keyExtractor={(r) => r['id'] as string}
+          selectedKey={selectedId}
+          onSelect={(r) => setSelectedId(r['id'] as string)}
+          emptyIcon={CheckSquare}
+          emptyMessage="Nenhuma tarefa encontrada"
+          onActivate={(r) => { const t = tarefas.find(x => x.id === (r['id'] as string)); if (t) handleEdit(t); }}
+        />
       </div>
 
       {modalOpen && (

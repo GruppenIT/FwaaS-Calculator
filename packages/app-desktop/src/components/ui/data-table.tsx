@@ -1,5 +1,5 @@
 import type { ElementType, ReactNode, KeyboardEvent } from 'react';
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-react';
 import { EmptyState } from './empty-state';
 
@@ -23,7 +23,11 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   keyExtractor: (row: T) => string | number;
+  /** @deprecated Use selectedKey + onSelect instead */
   onRowClick?: (row: T) => void;
+  selectedKey?: string | number | null;
+  onSelect?: (row: T) => void;
+  onActivate?: (row: T) => void;
   sortState?: SortState;
   onSort?: (state: SortState) => void;
   emptyIcon?: ElementType;
@@ -70,6 +74,9 @@ export function DataTable<T extends Record<string, unknown>>({
   data,
   keyExtractor,
   onRowClick,
+  selectedKey,
+  onSelect,
+  onActivate,
   sortState,
   onSort,
   emptyIcon = Inbox,
@@ -79,26 +86,52 @@ export function DataTable<T extends Record<string, unknown>>({
   hiddenColumns,
 }: DataTableProps<T>) {
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const isSelectable = onSelect !== undefined;
+  const isClickable = isSelectable || !!onRowClick;
 
   const visibleColumns = useMemo(() => {
     if (!hiddenColumns || hiddenColumns.length === 0) return columns;
     return columns.filter((col) => !hiddenColumns.includes(col.key));
   }, [columns, hiddenColumns]);
 
+  // Focus the selected row when selectedKey changes via keyboard
+  useEffect(() => {
+    if (selectedKey == null || !tbodyRef.current) return;
+    const row = tbodyRef.current.querySelector(`tr[data-row-key="${selectedKey}"]`) as HTMLElement | null;
+    if (row && document.activeElement !== row) {
+      // Only focus if a table row already has focus (keyboard navigation)
+      if (document.activeElement?.closest('tbody') === tbodyRef.current) {
+        row.focus();
+      }
+    }
+  }, [selectedKey]);
+
   function handleHeaderClick(column: Column<T>) {
     if (!column.sortable || !onSort) return;
     onSort(nextSortState(column.key, sortState));
   }
 
-  function handleRowKeyDown(e: KeyboardEvent<HTMLTableRowElement>, row: T) {
-    if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
+  function handleRowClick(row: T) {
+    if (onSelect) {
+      onSelect(row);
+    } else if (onRowClick) {
       onRowClick(row);
     }
   }
 
+  function handleRowKeyDown(e: KeyboardEvent<HTMLTableRowElement>, row: T) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (onActivate) {
+        onActivate(row);
+      } else if (onRowClick) {
+        onRowClick(row);
+      }
+    }
+  }
+
   function handleTbodyKeyDown(e: KeyboardEvent<HTMLTableSectionElement>) {
-    if (!onRowClick) return;
+    if (!isClickable) return;
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
     const currentRow = (e.target as HTMLElement).closest('tr');
@@ -107,7 +140,15 @@ export function DataTable<T extends Record<string, unknown>>({
       e.key === 'ArrowDown'
         ? (currentRow.nextElementSibling as HTMLElement | null)
         : (currentRow.previousElementSibling as HTMLElement | null);
-    if (targetRow) targetRow.focus();
+    if (targetRow) {
+      targetRow.focus();
+      // Select the row that receives focus
+      const rowKey = targetRow.getAttribute('data-row-key');
+      if (rowKey && onSelect) {
+        const targetData = data.find((r) => String(keyExtractor(r)) === rowKey);
+        if (targetData) onSelect(targetData);
+      }
+    }
   }
 
   return (
@@ -142,7 +183,7 @@ export function DataTable<T extends Record<string, unknown>>({
           ) : (
             data.map((row, idx) => {
               const rowKey = keyExtractor(row);
-              const clickable = !!onRowClick;
+              const isSelected = selectedKey != null && rowKey === selectedKey;
               const staggerStyle =
                 animateFirstLoad && idx < 10
                   ? {
@@ -156,15 +197,21 @@ export function DataTable<T extends Record<string, unknown>>({
               return (
                 <tr
                   key={rowKey}
-                  className={`border-b border-[var(--color-border)] last:border-0 even:bg-[var(--color-surface-alt)]/50 ${
-                    clickable
+                  data-row-key={rowKey}
+                  className={`border-b border-[var(--color-border)] last:border-0 ${
+                    isSelected
+                      ? 'bg-[var(--color-primary)]/10'
+                      : 'even:bg-[var(--color-surface-alt)]/50'
+                  } ${
+                    isClickable
                       ? 'hover:bg-[var(--color-surface-alt)] cursor-pointer transition-causa focus-visible:outline-none focus-causa'
                       : ''
                   }`}
                   style={staggerStyle}
-                  tabIndex={clickable ? 0 : undefined}
-                  onClick={clickable ? () => onRowClick(row) : undefined}
-                  onKeyDown={clickable ? (e) => handleRowKeyDown(e, row) : undefined}
+                  tabIndex={isClickable ? 0 : undefined}
+                  onClick={isClickable ? () => handleRowClick(row) : undefined}
+                  onDoubleClick={onActivate ? () => onActivate(row) : undefined}
+                  onKeyDown={isClickable ? (e) => handleRowKeyDown(e, row) : undefined}
                 >
                   {visibleColumns.map((col) => {
                     const alignClass = ALIGN_MAP[col.align ?? 'left'];

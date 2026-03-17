@@ -5,9 +5,25 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import * as api from '../../lib/api';
 
+export interface EventoEditData {
+  id: string;
+  titulo: string;
+  descricao: string;
+  tipo: string;
+  dataHoraInicio: string;
+  dataHoraFim: string;
+  diaInteiro: boolean;
+  local: string;
+  linkVideoconferencia: string;
+  cor: string;
+  processoId: string;
+  numeroCnj: string;
+}
+
 interface Props {
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  editData?: EventoEditData | null;
 }
 
 interface ProcessoOption {
@@ -38,25 +54,27 @@ const CORES = [
   { value: 'var(--color-accent-pink)', label: 'Rosa' },
 ];
 
-export function EventoModal({ onClose, onCreated }: Props) {
+export function EventoModal({ onClose, onSaved, editData }: Props) {
+  const isEdit = !!editData?.id;
+
   const [form, setForm] = useState({
-    titulo: '',
-    descricao: '',
-    tipo: 'audiencia',
-    dataHoraInicio: '',
-    dataHoraFim: '',
-    diaInteiro: false,
-    local: '',
-    linkVideoconferencia: '',
-    cor: '',
-    processoId: '',
+    titulo: editData?.titulo ?? '',
+    descricao: editData?.descricao ?? '',
+    tipo: editData?.tipo ?? 'audiencia',
+    dataHoraInicio: editData?.dataHoraInicio ?? '',
+    dataHoraFim: editData?.dataHoraFim ?? '',
+    diaInteiro: editData?.diaInteiro ?? false,
+    local: editData?.local ?? '',
+    linkVideoconferencia: editData?.linkVideoconferencia ?? '',
+    cor: editData?.cor ?? '',
+    processoId: editData?.processoId ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   // Processo autocomplete
   const [processoBusca, setProcessoBusca] = useState('');
-  const [processoLabel, setProcessoLabel] = useState('');
+  const [processoLabel, setProcessoLabel] = useState(editData?.numeroCnj ?? '');
   const [processoOptions, setProcessoOptions] = useState<ProcessoOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -114,8 +132,12 @@ export function EventoModal({ onClose, onCreated }: Props) {
       if (form.cor) payload.cor = form.cor;
       if (form.processoId) payload.processoId = form.processoId;
 
-      await api.criarEvento(payload);
-      onCreated();
+      if (isEdit) {
+        await api.atualizarEvento(editData!.id, payload);
+      } else {
+        await api.criarEvento(payload);
+      }
+      onSaved();
     } catch (err) {
       setErrors({ geral: err instanceof Error ? err.message : 'Erro ao cadastrar.' });
     } finally {
@@ -128,7 +150,7 @@ export function EventoModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <Modal open title="Novo evento" onClose={onClose} size="lg">
+    <Modal open title={isEdit ? 'Editar evento' : 'Novo evento'} onClose={onClose} size="lg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           label="Título"
@@ -296,7 +318,7 @@ export function EventoModal({ onClose, onCreated }: Props) {
             Cancelar
           </Button>
           <Button type="submit" disabled={loading} className="flex-1">
-            {loading ? 'Salvando...' : 'Criar evento'}
+            {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar evento'}
           </Button>
         </div>
       </form>

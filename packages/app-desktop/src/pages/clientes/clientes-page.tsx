@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Search, Pencil, Trash2, Download } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus, Users, Search, Pencil, Trash2, Download, Eye } from 'lucide-react';
 import { PageHeader, Button, useToast, ConfirmDialog, DataTable } from '../../components/ui';
 import type { Column } from '../../components/ui';
 import { ClienteModal } from './cliente-modal';
@@ -29,6 +29,7 @@ export function ClientesPage() {
   const { can } = usePermission();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [modalData, setModalData] = useState<ClienteEditData | null | undefined>(undefined);
   const [clientes, setClientes] = useState<ClienteData[]>([]);
@@ -38,6 +39,9 @@ export function ClientesPage() {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    (location.state as { selectedId?: string } | null)?.selectedId ?? null,
+  );
 
   const { sortState, setSortState } = useTablePreferences('clientes');
 
@@ -73,6 +77,19 @@ export function ClientesPage() {
       return aVal.localeCompare(bVal) * dir;
     });
   }, [filteredClientes, sortState]);
+
+  // Auto-select first row when data changes (preserve restored selection)
+  useEffect(() => {
+    if (loading) return;
+    if (sorted.length > 0) {
+      if (!selectedId || !sorted.find((c) => c.id === selectedId)) {
+        setSelectedId(sorted[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, loading]);
 
   // Keyboard shortcuts: N to open create modal, Esc to clear search
   useEffect(() => {
@@ -138,6 +155,7 @@ export function ClientesPage() {
       header: 'Nome',
       width: 'w-[250px]',
       sortable: true,
+      render: (value) => <span className="truncate block">{String(value ?? '')}</span>,
     },
     {
       key: 'cpfCnpj',
@@ -179,13 +197,21 @@ export function ClientesPage() {
     {
       key: 'id',
       header: '',
-      width: 'w-[80px]',
+      width: 'w-[100px]',
       align: 'right',
       render: (_value, row) => (
         <div
           className="flex items-center gap-1"
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            type="button"
+            className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+            onClick={() => navigate('/app/clientes/' + row.id)}
+            title="Ver detalhes"
+          >
+            <Eye size={14} />
+          </button>
           {can('clientes:editar') && (
             <button
               type="button"
@@ -288,7 +314,9 @@ export function ClientesPage() {
         columns={columns as unknown as Column<Record<string, unknown>>[]}
         data={(loading ? [] : sorted) as unknown as Record<string, unknown>[]}
         keyExtractor={(r) => r['id'] as string}
-        onRowClick={(r) => navigate('/app/clientes/' + (r['id'] as string))}
+        selectedKey={selectedId}
+        onSelect={(r) => setSelectedId(r['id'] as string)}
+        onActivate={(r) => navigate('/app/clientes/' + (r['id'] as string))}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
         animateFirstLoad={isFirstLoad}

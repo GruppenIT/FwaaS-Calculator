@@ -11,7 +11,7 @@ export function DeadlineBanner() {
   return (
     <div
       role="alert"
-      onClick={() => navigate('/app/prazos')}
+      onClick={() => navigate('/app/prazos?tier=fatal')}
       className="mx-6 mt-4 mb-0 rounded-[var(--radius-md)] border border-causa-tier-fatal/30 bg-causa-tier-fatal/8 p-4 cursor-pointer hover:bg-causa-tier-fatal/12 transition-causa"
     >
       <div className="flex items-start gap-3">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Pencil,
@@ -102,6 +102,7 @@ export function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { can } = usePermission();
+  const navigate = useNavigate();
   const { googleDrive: driveEnabled, financeiro: financeiroEnabled } = useFeatures();
 
   const [cliente, setCliente] = useState<ClienteData | null>(null);
@@ -115,6 +116,23 @@ export function ClienteDetailPage() {
   const [docModalOpen, setDocModalOpen] = useState(false);
   const [editDoc, setEditDoc] = useState<DocumentoRow | null>(null);
   const canUpload = can('documentos:upload');
+
+  // Esc returns to list when no modal/dialog is open
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      const active = document.activeElement;
+      const isInput =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement;
+      if (isInput) return;
+      if (editData !== undefined || docModalOpen || viewDocId) return;
+      navigate('/app/clientes', { state: { selectedId: id } });
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, editData, docModalOpen, viewDocId]);
 
   const carregar = useCallback(async () => {
     if (!id) return;

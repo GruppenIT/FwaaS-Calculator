@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Briefcase, Search, Pencil, Trash2, Download, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus, Briefcase, Search, Pencil, Trash2, Download, X, Eye } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
@@ -51,6 +51,7 @@ export function ProcessosPage() {
   const { can } = usePermission();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [modalData, setModalData] = useState<ProcessoEditData | null | undefined>(undefined);
   const [processos, setProcessos] = useState<ProcessoListRow[]>([]);
@@ -61,6 +62,9 @@ export function ProcessosPage() {
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroArea, setFiltroArea] = useState('');
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    (location.state as { selectedId?: string } | null)?.selectedId ?? null,
+  );
 
   const { sortState, setSortState, hiddenColumns, toggleColumn } =
     useTablePreferences('processos');
@@ -82,6 +86,19 @@ export function ProcessosPage() {
       return aVal.localeCompare(bVal) * dir;
     });
   }, [filtrados, sortState]);
+
+  // Auto-select first row when data changes (preserve restored selection)
+  useEffect(() => {
+    if (loading) return;
+    if (sorted.length > 0) {
+      if (!selectedId || !sorted.find((p) => p.id === selectedId)) {
+        setSelectedId(sorted[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, loading]);
 
   const areas = [...new Set(processos.map((p) => p.area))].sort();
   const hasFilters = !!filtroStatus || !!filtroArea;
@@ -226,7 +243,7 @@ export function ProcessosPage() {
       render: (value, row) => (
         <div className="flex items-center gap-1.5">
           <span
-            className="text-[var(--color-primary)] font-medium"
+            className="font-medium"
             style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}
           >
             {String(value ?? '')}
@@ -303,6 +320,14 @@ export function ProcessosPage() {
           className="flex items-center gap-1"
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            type="button"
+            className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+            onClick={() => navigate(`/app/processos/${row.id}`)}
+            title="Ver detalhes"
+          >
+            <Eye size={14} />
+          </button>
           {can('processos:editar') && (
             <button
               type="button"
@@ -417,7 +442,9 @@ export function ProcessosPage() {
         columns={columns as unknown as Column<Record<string, unknown>>[]}
         data={(loading ? [] : sorted) as unknown as Record<string, unknown>[]}
         keyExtractor={(r) => r['id'] as string}
-        onRowClick={(r) => navigate(`/app/processos/${r['id'] as string}`)}
+        selectedKey={selectedId}
+        onSelect={(r) => setSelectedId(r['id'] as string)}
+        onActivate={(r) => navigate(`/app/processos/${r['id'] as string}`)}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
         hiddenColumns={hiddenColumns}

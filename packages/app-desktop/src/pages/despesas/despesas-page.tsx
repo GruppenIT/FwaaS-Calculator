@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Receipt, Trash2, Pencil } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
+import { Plus, Receipt, Trash2, Pencil, Eye } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
 import { DespesaModal } from './despesa-modal';
 import type { DespesaEditData } from './despesa-modal';
 import { usePermission } from '../../hooks/use-permission';
@@ -56,6 +56,7 @@ export function DespesasPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toast } = useToast();
   const { can } = usePermission();
 
@@ -79,6 +80,17 @@ export function DespesasPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (despesas.length > 0) {
+      if (!selectedId || !despesas.find((d) => d.id === selectedId)) {
+        setSelectedId(despesas[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [despesas]);
 
   function handleNew() {
     setEditData(undefined);
@@ -157,6 +169,92 @@ export function DespesasPage() {
     { value: 'cancelado', label: 'Cancelados' },
   ];
 
+  const columns: Column<DespesaRow>[] = [
+    {
+      key: 'descricao',
+      header: 'Descrição',
+      render: (_value, row) => (
+        <div>
+          <div className="font-medium text-[var(--color-text)]">{row.descricao}</div>
+          {row.reembolsavel && (
+            <div className="text-xs text-[var(--color-text-muted)]">Reembolsável</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'tipo',
+      header: 'Tipo',
+      render: (_value, row) => TIPO_LABELS[row.tipo] ?? row.tipo,
+    },
+    {
+      key: 'numeroCnj',
+      header: 'Processo',
+      render: (_value, row) => row.numeroCnj ?? '—',
+    },
+    {
+      key: 'valor',
+      header: 'Valor',
+      align: 'right',
+      render: (_value, row) => (
+        <span className="font-[var(--font-mono)]">{formatCurrency(row.valor)}</span>
+      ),
+    },
+    {
+      key: 'data',
+      header: 'Data',
+      render: (_value, row) => formatDate(row.data),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (_value, row) => (
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[row.status] ?? ''}`}
+        >
+          {STATUS_LABELS[row.status] ?? row.status}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      align: 'right',
+      render: (_value, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-causa-bg transition-causa cursor-pointer"
+              onClick={() => handleEdit(row)}
+              title="Ver detalhes"
+            >
+              <Eye size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleEdit(row)}
+              className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
+              title="Editar"
+            >
+              <Pencil size={16} />
+            </button>
+            {canApprove && (
+              <button
+                type="button"
+                onClick={() => setDeleteId(row.id)}
+                className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
+                title="Excluir"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <PageHeader
@@ -206,95 +304,16 @@ export function DespesasPage() {
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
-        <table className="w-full text-sm-causa">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-bg">
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Descrição
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Tipo
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Processo
-              </th>
-              <th className="text-right px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Valor
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Data
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Status
-              </th>
-              <th className="text-right px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows cols={7} rows={5} />
-            ) : despesas.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
-                  <EmptyState icon={Receipt} message="Nenhuma despesa encontrada" />
-                </td>
-              </tr>
-            ) : (
-              despesas.map((d) => (
-                <tr
-                  key={d.id}
-                  className="border-b border-[var(--color-border)] hover:bg-causa-bg/50 transition-causa"
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-[var(--color-text)]">{d.descricao}</div>
-                    {d.reembolsavel && (
-                      <div className="text-xs text-[var(--color-text-muted)]">Reembolsável</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {TIPO_LABELS[d.tipo] ?? d.tipo}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">{d.numeroCnj ?? '—'}</td>
-                  <td className="px-4 py-3 text-right font-[var(--font-mono)] text-[var(--color-text)]">
-                    {formatCurrency(d.valor)}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">{formatDate(d.data)}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[d.status] ?? ''}`}
-                    >
-                      {STATUS_LABELS[d.status] ?? d.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(d)}
-                        className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
-                        title="Editar"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      {canApprove && (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteId(d.id)}
-                          className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
-                          title="Excluir"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns as unknown as Column<Record<string, unknown>>[]}
+          data={(loading ? [] : despesas) as unknown as Record<string, unknown>[]}
+          keyExtractor={(r) => r['id'] as string}
+          selectedKey={selectedId}
+          onSelect={(r) => setSelectedId(r['id'] as string)}
+          onActivate={(r) => { const d = despesas.find(x => x.id === (r['id'] as string)); if (d) handleEdit(d); }}
+          emptyIcon={Receipt}
+          emptyMessage="Nenhuma despesa encontrada"
+        />
       </div>
 
       {modalOpen && (

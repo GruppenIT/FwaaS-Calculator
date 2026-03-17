@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Users, Trash2, Pencil, Star, Phone } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
+import { Plus, Users, Trash2, Pencil, Star, Phone, Eye } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ContatoModal } from './contato-modal';
@@ -42,6 +42,7 @@ export function ContatosPage() {
   const [deleting, setDeleting] = useState(false);
   const [tipoFilter, setTipoFilter] = useState<string>('');
   const [busca, setBusca] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toast } = useToast();
   const { can } = usePermission();
 
@@ -65,6 +66,17 @@ export function ContatosPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (contatos.length > 0) {
+      if (!selectedId || !contatos.find((c) => c.id === selectedId)) {
+        setSelectedId(contatos[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contatos]);
 
   function handleNew() {
     setEditData(undefined);
@@ -134,6 +146,110 @@ export function ContatosPage() {
     }
   }
 
+  const columns: Column<ContatoRow>[] = [
+    {
+      key: 'nome',
+      header: 'Nome',
+      render: (_value, row) => (
+        <div>
+          <div className="font-medium text-[var(--color-text)]">{row.nome}</div>
+          {row.oabNumero && (
+            <div className="text-xs text-[var(--color-text-muted)]">
+              OAB {row.oabNumero}/{row.oabSeccional}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'tipo',
+      header: 'Tipo',
+      render: (_value, row) => <span>{TIPO_LABELS[row.tipo] ?? row.tipo}</span>,
+    },
+    {
+      key: 'contato',
+      header: 'Contato',
+      render: (_value, row) => (
+        <div className="flex flex-col gap-0.5">
+          {row.telefone && (
+            <span className="flex items-center gap-1 text-xs text-[var(--color-text)]">
+              <Phone size={10} /> {row.telefone}
+            </span>
+          )}
+          {row.email && (
+            <span className="text-xs text-[var(--color-text-muted)]">{row.email}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'especialidade',
+      header: 'Especialidade',
+      render: (_value, row) => <span>{row.especialidade ?? '—'}</span>,
+    },
+    {
+      key: 'avaliacao',
+      header: 'Avaliação',
+      render: (_value, row) =>
+        row.avaliacao ? (
+          <div className="flex gap-0.5">
+            {[1, 2, 3, 4, 5].map((v) => (
+              <Star
+                key={v}
+                size={12}
+                className={
+                  v <= (row.avaliacao ?? 0)
+                    ? 'text-causa-warning fill-causa-warning'
+                    : 'text-[var(--color-text-muted)]'
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <span>—</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      align: 'right',
+      render: (_value, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1">
+            {canManage && (
+              <>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-causa-bg transition-causa cursor-pointer"
+                  onClick={() => handleEdit(row)}
+                  title="Ver detalhes"
+                >
+                  <Eye size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleEdit(row)}
+                  className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
+                  title="Editar"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteId(row.id)}
+                  className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
+                  title="Desativar"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <PageHeader
@@ -175,118 +291,16 @@ export function ContatosPage() {
         />
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
-        <table className="w-full text-sm-causa">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-bg">
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Nome
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Tipo
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Contato
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Especialidade
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Avaliação
-              </th>
-              <th className="text-right px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows cols={6} rows={5} />
-            ) : contatos.length === 0 ? (
-              <tr>
-                <td colSpan={6}>
-                  <EmptyState icon={Users} message="Nenhum contato encontrado" />
-                </td>
-              </tr>
-            ) : (
-              contatos.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-[var(--color-border)] hover:bg-causa-bg/50 transition-causa"
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-[var(--color-text)]">{c.nome}</div>
-                    {c.oabNumero && (
-                      <div className="text-xs text-[var(--color-text-muted)]">
-                        OAB {c.oabNumero}/{c.oabSeccional}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {TIPO_LABELS[c.tipo] ?? c.tipo}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-0.5">
-                      {c.telefone && (
-                        <span className="flex items-center gap-1 text-xs text-[var(--color-text)]">
-                          <Phone size={10} /> {c.telefone}
-                        </span>
-                      )}
-                      {c.email && (
-                        <span className="text-xs text-[var(--color-text-muted)]">{c.email}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">{c.especialidade ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    {c.avaliacao ? (
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((v) => (
-                          <Star
-                            key={v}
-                            size={12}
-                            className={
-                              v <= (c.avaliacao ?? 0)
-                                ? 'text-causa-warning fill-causa-warning'
-                                : 'text-[var(--color-text-muted)]'
-                            }
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {canManage && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(c)}
-                            className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
-                            title="Editar"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteId(c.id)}
-                            className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
-                            title="Desativar"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        data={(loading ? [] : contatos) as unknown as Record<string, unknown>[]}
+        keyExtractor={(r) => r['id'] as string}
+        selectedKey={selectedId}
+        onSelect={(r) => setSelectedId(r['id'] as string)}
+        onActivate={(r) => { const c = contatos.find(x => x.id === (r['id'] as string)); if (c) handleEdit(c); }}
+        emptyIcon={Users}
+        emptyMessage="Nenhum contato encontrado"
+      />
 
       {modalOpen && (
         <ContatoModal

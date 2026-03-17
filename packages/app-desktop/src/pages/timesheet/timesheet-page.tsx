@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Timer, Trash2, Pencil, CheckCircle } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
+import { Plus, Timer, Trash2, Pencil, CheckCircle, Eye } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
 import { TimesheetModal } from './timesheet-modal';
 import type { TimesheetEditData } from './timesheet-modal';
 import { usePermission } from '../../hooks/use-permission';
@@ -40,6 +40,7 @@ function formatCurrency(value: number): string {
 export function TimesheetPage() {
   const [registros, setRegistros] = useState<TimesheetRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editData, setEditData] = useState<TimesheetEditData | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -65,6 +66,17 @@ export function TimesheetPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (registros.length > 0) {
+      if (!selectedId || !registros.find((r) => r.id === selectedId)) {
+        setSelectedId(registros[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registros]);
 
   function handleNew() {
     setEditData(undefined);
@@ -142,6 +154,126 @@ export function TimesheetPage() {
     }
   }
 
+  const columns: Column<TimesheetRow>[] = [
+    {
+      key: 'data',
+      header: 'Data',
+      render: (_value, row) =>
+        new Date(row.data + 'T00:00:00').toLocaleDateString('pt-BR'),
+    },
+    {
+      key: 'tipoAtividade',
+      header: 'Atividade',
+      render: (_value, row) => (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          {TIPO_LABELS[row.tipoAtividade] ?? row.tipoAtividade}
+        </span>
+      ),
+    },
+    {
+      key: 'descricao',
+      header: 'Descrição',
+      render: (_value, row) => (
+        <div>
+          <div className="text-[var(--color-text)] truncate">{row.descricao}</div>
+          <div className="text-xs text-[var(--color-text-muted)]">
+            {row.numeroCnj && <span>{row.numeroCnj}</span>}
+            {row.clienteNome && (
+              <span>
+                {row.numeroCnj ? ' · ' : ''}
+                {row.clienteNome}
+              </span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'duracaoMinutos',
+      header: 'Duração',
+      render: (_value, row) => (
+        <span className="font-medium">{formatDuracao(row.duracaoMinutos)}</span>
+      ),
+    },
+    {
+      key: 'valorCalculado',
+      header: 'Valor',
+      render: (_value, row) =>
+        row.valorCalculado ? formatCurrency(row.valorCalculado) : '—',
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (_value, row) => (
+        <div className="flex items-center gap-1">
+          {row.faturavel && (
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-causa-success/10 text-causa-success">
+              Faturável
+            </span>
+          )}
+          {row.aprovado ? (
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-causa-success/10 text-causa-success">
+              Aprovado
+            </span>
+          ) : (
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-causa-warning/10 text-causa-warning">
+              Pendente
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      align: 'right',
+      render: (_value, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-causa-bg transition-causa cursor-pointer"
+              onClick={() => handleEdit(row)}
+              title="Ver detalhes"
+            >
+              <Eye size={16} />
+            </button>
+            {canAprovar && !row.aprovado && (
+              <button
+                type="button"
+                onClick={() => handleAprovar(row.id)}
+                className="p-1.5 rounded-[var(--radius-md)] text-causa-success hover:bg-causa-success/10 transition-causa cursor-pointer"
+                title="Aprovar"
+              >
+                <CheckCircle size={16} />
+              </button>
+            )}
+            {canRegistrar && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleEdit(row)}
+                  className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
+                  title="Editar"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteId(row.id)}
+                  className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
+                  title="Excluir"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   // Group by date for summary
   const totalMinutos = registros.reduce((s, r) => s + r.duracaoMinutos, 0);
   const totalFaturavel = registros
@@ -189,130 +321,16 @@ export function TimesheetPage() {
       )}
 
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">
-        <table className="w-full text-sm-causa">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-bg">
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Data
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Atividade
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Descrição
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Duração
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Valor
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Status
-              </th>
-              <th className="text-right px-4 py-3 font-medium text-[var(--color-text-muted)]">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows cols={7} rows={5} />
-            ) : registros.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
-                  <EmptyState icon={Timer} message="Nenhum registro encontrado" />
-                </td>
-              </tr>
-            ) : (
-              registros.map((r) => (
-                <tr
-                  key={r.id}
-                  className="border-b border-[var(--color-border)] hover:bg-causa-bg/50 transition-causa"
-                >
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {new Date(r.data + 'T00:00:00').toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-                      {TIPO_LABELS[r.tipoAtividade] ?? r.tipoAtividade}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-[var(--color-text)] max-w-xs truncate">{r.descricao}</div>
-                    <div className="text-xs text-[var(--color-text-muted)]">
-                      {r.numeroCnj && <span>{r.numeroCnj}</span>}
-                      {r.clienteNome && (
-                        <span>
-                          {r.numeroCnj ? ' · ' : ''}
-                          {r.clienteNome}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)] font-medium">
-                    {formatDuracao(r.duracaoMinutos)}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text)]">
-                    {r.valorCalculado ? formatCurrency(r.valorCalculado) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      {r.faturavel && (
-                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-causa-success/10 text-causa-success">
-                          Faturável
-                        </span>
-                      )}
-                      {r.aprovado ? (
-                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-causa-success/10 text-causa-success">
-                          Aprovado
-                        </span>
-                      ) : (
-                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-causa-warning/10 text-causa-warning">
-                          Pendente
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {canAprovar && !r.aprovado && (
-                        <button
-                          type="button"
-                          onClick={() => handleAprovar(r.id)}
-                          className="p-1.5 rounded-[var(--radius-md)] text-causa-success hover:bg-causa-success/10 transition-causa cursor-pointer"
-                          title="Aprovar"
-                        >
-                          <CheckCircle size={16} />
-                        </button>
-                      )}
-                      {canRegistrar && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(r)}
-                            className="p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-muted)] hover:bg-causa-bg transition-causa cursor-pointer"
-                            title="Editar"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteId(r.id)}
-                            className="p-1.5 rounded-[var(--radius-md)] text-causa-danger hover:bg-causa-danger/10 transition-causa cursor-pointer"
-                            title="Excluir"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns as unknown as Column<Record<string, unknown>>[]}
+          data={(loading ? [] : registros) as unknown as Record<string, unknown>[]}
+          keyExtractor={(r) => r['id'] as string}
+          selectedKey={selectedId}
+          onSelect={(r) => setSelectedId(r['id'] as string)}
+          onActivate={(r) => { const t = registros.find(x => x.id === (r['id'] as string)); if (t) handleEdit(t); }}
+          emptyIcon={Timer}
+          emptyMessage="Nenhum registro encontrado"
+        />
       </div>
 
       {modalOpen && (

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, DollarSign, Pencil, Trash2, Download, X } from 'lucide-react';
-import { EmptyState } from '../../components/ui/empty-state';
+import { Plus, DollarSign, Eye, Pencil, Trash2, Download, X } from 'lucide-react';
+import { DataTable } from '../../components/ui/data-table';
+import type { Column } from '../../components/ui/data-table';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
-import { SkeletonTableRows } from '../../components/ui/skeleton';
 import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { HonorarioModal } from './honorario-modal';
@@ -62,6 +62,7 @@ export function FinanceiroPage() {
   const [periodoInicio, setPeriodoInicio] = useState('');
   const [periodoFim, setPeriodoFim] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const showModal = modalData !== undefined;
 
@@ -80,6 +81,18 @@ export function FinanceiroPage() {
   });
 
   const hasFilters = !!filtroStatus || !!periodoInicio || !!periodoFim;
+
+  // Auto-select first row
+  useEffect(() => {
+    if (filtrados.length > 0) {
+      if (!selectedId || !filtrados.find((h) => h.id === selectedId)) {
+        setSelectedId(filtrados[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtrados]);
 
   const carregar = useCallback(async () => {
     try {
@@ -184,6 +197,119 @@ export function FinanceiroPage() {
     .filter((h) => h.status === 'inadimplente')
     .reduce((s, h) => s + h.valor, 0);
 
+  const columns: Column<HonorarioRow>[] = [
+    {
+      key: 'clienteNome',
+      header: 'Cliente',
+      render: (_value, row) => (
+        <span className="text-base-causa text-[var(--color-text)] font-medium">
+          {row.clienteNome ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'numeroCnj',
+      header: 'Processo',
+      render: (_value, row) => (
+        <span className="text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
+          {row.numeroCnj ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'tipo',
+      header: 'Tipo',
+      render: (_value, row) => (
+        <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
+          {TIPO_LABELS[row.tipo] ?? row.tipo}
+          {row.tipo === 'exito' && row.percentualExito ? ` ${row.percentualExito}%` : ''}
+        </span>
+      ),
+    },
+    {
+      key: 'valor',
+      header: 'Valor',
+      align: 'right',
+      render: (_value, row) => (
+        <span className="text-base-causa text-[var(--color-text)] font-medium font-[var(--font-mono)]">
+          {formatCurrency(row.valor)}
+        </span>
+      ),
+    },
+    {
+      key: 'vencimento',
+      header: 'Vencimento',
+      render: (_value, row) => (
+        <span className="text-sm-causa text-[var(--color-text-muted)]">
+          {formatDate(row.vencimento)}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (_value, row) => (
+        <select
+          value={row.status}
+          onChange={(e) =>
+            handleStatusChange(
+              row.id,
+              e.target.value as 'pendente' | 'recebido' | 'inadimplente',
+            )
+          }
+          onClick={(e) => e.stopPropagation()}
+          disabled={!can('financeiro:editar')}
+          className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 ${can('financeiro:editar') ? 'cursor-pointer' : 'cursor-default opacity-75'} ${STATUS_STYLES[row.status] ?? ''}`}
+        >
+          <option value="pendente">Pendente</option>
+          <option value="recebido">Recebido</option>
+          <option value="inadimplente">Inadimplente</option>
+          <option value="proposta">Proposta</option>
+          <option value="contratado">Contratado</option>
+          <option value="em_andamento">Em andamento</option>
+          <option value="encerrado">Encerrado</option>
+        </select>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      width: 'w-20',
+      render: (_value, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+              onClick={() => handleEdit(row)}
+              title="Ver detalhes"
+            >
+              <Eye size={14} />
+            </button>
+            {can('financeiro:editar') && (
+              <button
+                type="button"
+                onClick={() => handleEdit(row)}
+                className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+              >
+                <Pencil size={14} />
+              </button>
+            )}
+            {can('financeiro:excluir') && (
+              <button
+                type="button"
+                onClick={() => setDeleteId(row.id)}
+                className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <PageHeader
@@ -278,113 +404,16 @@ export function FinanceiroPage() {
 
       {/* Tabela */}
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-causa-surface-alt">
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Cliente
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Processo
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Tipo
-              </th>
-              <th className="text-right px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Valor
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Vencimento
-              </th>
-              <th className="text-left px-4 py-3 text-sm-causa font-semibold text-[var(--color-text-muted)]">
-                Status
-              </th>
-              <th className="w-20"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <SkeletonTableRows rows={5} cols={7} />
-            ) : filtrados.length === 0 ? (
-              <EmptyState
-                icon={DollarSign}
-                message="Nenhum honorário cadastrado. Comece registrando seus honorários."
-                colSpan={7}
-              />
-            ) : (
-              filtrados.map((h) => {
-                return (
-                  <tr
-                    key={h.id}
-                    className="border-b border-[var(--color-border)] last:border-0 hover:bg-causa-surface-alt transition-causa"
-                  >
-                    <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium">
-                      {h.clienteNome ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)] font-[var(--font-mono)]">
-                      {h.numeroCnj ?? '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] bg-causa-surface-alt text-xs-causa font-medium text-[var(--color-text-muted)]">
-                        {TIPO_LABELS[h.tipo] ?? h.tipo}
-                        {h.tipo === 'exito' && h.percentualExito ? ` ${h.percentualExito}%` : ''}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-base-causa text-[var(--color-text)] font-medium text-right font-[var(--font-mono)]">
-                      {formatCurrency(h.valor)}
-                    </td>
-                    <td className="px-4 py-3 text-sm-causa text-[var(--color-text-muted)]">
-                      {formatDate(h.vencimento)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={h.status}
-                        onChange={(e) =>
-                          handleStatusChange(
-                            h.id,
-                            e.target.value as 'pendente' | 'recebido' | 'inadimplente',
-                          )
-                        }
-                        disabled={!can('financeiro:editar')}
-                        className={`inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs-causa font-medium border-0 ${can('financeiro:editar') ? 'cursor-pointer' : 'cursor-default opacity-75'} ${STATUS_STYLES[h.status] ?? ''}`}
-                      >
-                        <option value="pendente">Pendente</option>
-                        <option value="recebido">Recebido</option>
-                        <option value="inadimplente">Inadimplente</option>
-                        <option value="proposta">Proposta</option>
-                        <option value="contratado">Contratado</option>
-                        <option value="em_andamento">Em andamento</option>
-                        <option value="encerrado">Encerrado</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        {can('financeiro:editar') && (
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(h)}
-                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-surface-alt text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        )}
-                        {can('financeiro:excluir') && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteId(h.id)}
-                            className="p-1 rounded-[var(--radius-sm)] hover:bg-causa-danger/10 text-[var(--color-text-muted)] hover:text-causa-danger transition-causa cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns as unknown as Column<Record<string, unknown>>[]}
+          data={(loading ? [] : filtrados) as unknown as Record<string, unknown>[]}
+          keyExtractor={(r) => r['id'] as string}
+          selectedKey={selectedId}
+          onSelect={(r) => setSelectedId(r['id'] as string)}
+          onActivate={(r) => { const h = filtrados.find(x => x.id === (r['id'] as string)); if (h) handleEdit(h); }}
+          emptyIcon={DollarSign}
+          emptyMessage="Nenhum honorário cadastrado. Comece registrando seus honorários."
+        />
       </div>
 
       {showModal && (

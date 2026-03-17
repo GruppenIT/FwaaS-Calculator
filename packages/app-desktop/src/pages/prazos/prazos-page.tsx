@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Clock, Trash2, Pencil, CheckCircle2 } from 'lucide-react';
+import { Plus, Clock, Trash2, Pencil, CheckCircle2, Eye } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
@@ -58,6 +58,7 @@ export function PrazosPage() {
   const [filtroStatus, setFiltroStatus] = useState<string>('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { sortState, setSortState, hiddenColumns, toggleColumn } = useTablePreferences('prazos');
 
@@ -101,6 +102,19 @@ export function PrazosPage() {
       return aVal.localeCompare(bVal) * dir;
     });
   }, [filtrados, sortState]);
+
+  // Auto-select first row when data changes (preserve restored selection)
+  useEffect(() => {
+    if (loading) return;
+    if (sorted.length > 0) {
+      if (!selectedId || !sorted.find((p) => p.id === selectedId)) {
+        setSelectedId(sorted[0]!.id);
+      }
+    } else {
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, loading]);
 
   // Keyboard shortcut: N to open create modal
   useEffect(() => {
@@ -249,6 +263,14 @@ export function PrazosPage() {
           className="flex items-center gap-1"
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            type="button"
+            className="p-1 rounded hover:bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-causa cursor-pointer"
+            onClick={() => navigate('/app/processos/' + row.processoId)}
+            title="Ver processo"
+          >
+            <Eye size={14} />
+          </button>
           {can('prazos:cumprido') && row.status === 'pendente' && (
             <button
               type="button"
@@ -335,7 +357,9 @@ export function PrazosPage() {
         columns={columns as unknown as Column<Record<string, unknown>>[]}
         data={(loading ? [] : sorted) as unknown as Record<string, unknown>[]}
         keyExtractor={(r) => r['id'] as string}
-        onRowClick={(r) => navigate('/app/processos/' + (r['processoId'] as string))}
+        selectedKey={selectedId}
+        onSelect={(r) => setSelectedId(r['id'] as string)}
+        onActivate={(r) => navigate('/app/processos/' + (r['processoId'] as string))}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
         hiddenColumns={hiddenColumns}

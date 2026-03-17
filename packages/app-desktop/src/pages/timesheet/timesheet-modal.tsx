@@ -99,6 +99,14 @@ export function TimesheetModal({ open, onClose, onSave, initial }: Props) {
   const taxa = parseFloat(form.taxaHorariaAplicada) || 0;
   const valorCalc = taxa > 0 ? (duracao / 60) * taxa : 0;
 
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-lg w-full max-w-lg">
