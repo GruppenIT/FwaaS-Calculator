@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Search, Pencil, Trash2, Download } from 'lucide-react';
 import { PageHeader, Button, useToast, ConfirmDialog, DataTable } from '../../components/ui';
@@ -6,6 +6,7 @@ import type { Column } from '../../components/ui';
 import { ClienteModal } from './cliente-modal';
 import type { ClienteEditData } from './cliente-modal';
 import { usePermission } from '../../hooks/use-permission';
+import { useTablePreferences } from '../../hooks/use-table-preferences';
 import type { ClienteData } from '../../lib/api';
 import * as api from '../../lib/api';
 
@@ -28,6 +29,7 @@ export function ClientesPage() {
   const { can } = usePermission();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [modalData, setModalData] = useState<ClienteEditData | null | undefined>(undefined);
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [busca, setBusca] = useState('');
@@ -36,9 +38,8 @@ export function ClientesPage() {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [sortState, setSortState] = useState<
-    { key: string; direction: 'asc' | 'desc' | null } | undefined
-  >(undefined);
+
+  const { sortState, setSortState } = useTablePreferences('clientes');
 
   const showModal = modalData !== undefined;
 
@@ -72,6 +73,35 @@ export function ClientesPage() {
       return aVal.localeCompare(bVal) * dir;
     });
   }, [filteredClientes, sortState]);
+
+  // Keyboard shortcuts: N to open create modal, Esc to clear search
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (showModal || !!deleteId) return;
+
+      const active = document.activeElement;
+      const isInput =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement;
+
+      if (e.key === 'Escape' && busca) {
+        setBusca('');
+        searchInputRef.current?.blur();
+        return;
+      }
+
+      if ((e.key === 'n' || e.key === 'N') && !isInput) {
+        if (can('clientes:criar')) {
+          e.preventDefault();
+          setModalData(null);
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showModal, deleteId, busca, can]);
 
   function handleSaved() {
     const isEdit = !!modalData;
@@ -202,6 +232,7 @@ export function ClientesPage() {
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
           />
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Buscar por nome, CPF/CNPJ, email, telefone ou WhatsApp..."
             value={busca}

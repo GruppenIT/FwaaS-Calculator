@@ -7,10 +7,12 @@ import { useToast } from '../../components/ui/toast';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { DataTable } from '../../components/ui/data-table';
 import type { Column } from '../../components/ui/data-table';
+import { ColumnVisibilityToggle } from '../../components/ui/column-visibility-toggle';
 import { PrazoCountdown, diasRestantes } from './prazo-countdown';
 import { PrazoModal } from './prazo-modal';
 import type { PrazoEditData } from './prazo-modal';
 import { usePermission } from '../../hooks/use-permission';
+import { useTablePreferences } from '../../hooks/use-table-preferences';
 import * as api from '../../lib/api';
 import type { PrazoRow } from '../../lib/api';
 
@@ -56,9 +58,8 @@ export function PrazosPage() {
   const [filtroStatus, setFiltroStatus] = useState<string>('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [sortState, setSortState] = useState<
-    { key: string; direction: 'asc' | 'desc' | null } | undefined
-  >(undefined);
+
+  const { sortState, setSortState, hiddenColumns, toggleColumn } = useTablePreferences('prazos');
 
   const carregar = useCallback(async () => {
     try {
@@ -100,6 +101,29 @@ export function PrazosPage() {
       return aVal.localeCompare(bVal) * dir;
     });
   }, [filtrados, sortState]);
+
+  // Keyboard shortcut: N to open create modal
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (showModal || !!deleteId) return;
+
+      const active = document.activeElement;
+      const isInput =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement;
+
+      if ((e.key === 'n' || e.key === 'N') && !isInput) {
+        if (can('processos:editar')) {
+          e.preventDefault();
+          setModalData(null);
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showModal, deleteId, can]);
 
   function handleSaved() {
     const isEdit = !!modalData;
@@ -273,8 +297,8 @@ export function PrazosPage() {
         }
       />
 
-      {/* Filtro por status */}
-      <div className="flex gap-2 mb-4">
+      {/* Filtro por status + Column visibility */}
+      <div className="flex gap-2 mb-4 flex-wrap items-center">
         {[
           { value: '', label: 'Todos' },
           { value: 'pendente', label: 'Pendentes' },
@@ -298,6 +322,13 @@ export function PrazosPage() {
             {f.label}
           </button>
         ))}
+        <ColumnVisibilityToggle
+          columns={columns
+            .filter((c) => c.header)
+            .map((c) => ({ key: String(c.key), header: String(c.header) }))}
+          hiddenColumns={hiddenColumns}
+          onToggle={toggleColumn}
+        />
       </div>
 
       <DataTable
@@ -307,6 +338,7 @@ export function PrazosPage() {
         onRowClick={(r) => navigate('/app/processos/' + (r['processoId'] as string))}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
+        hiddenColumns={hiddenColumns}
         animateFirstLoad={isFirstLoad}
         emptyIcon={Clock}
         emptyMessage="Nenhum prazo encontrado"
