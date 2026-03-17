@@ -255,6 +255,7 @@ export function excluirCliente(id: string) {
 export interface ProcessoListRow {
   id: string;
   numeroCnj: string;
+  clienteId: string | null;
   clienteNome: string | null;
   advogadoNome: string | null;
   tribunalSigla: string;

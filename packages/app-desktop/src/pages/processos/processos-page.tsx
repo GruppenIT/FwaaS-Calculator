@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Briefcase, Search, Pencil, Trash2, Download, X } from 'lucide-react';
 import { PageHeader } from '../../components/ui/page-header';
@@ -9,9 +9,12 @@ import { DataTable } from '../../components/ui/data-table';
 import type { Column } from '../../components/ui/data-table';
 import { Badge } from '../../components/ui/badge';
 import type { BadgeStatus } from '../../components/ui/badge';
+import { ColumnVisibilityToggle } from '../../components/ui/column-visibility-toggle';
+import { ClientHoverCard } from '../../components/ui/client-hover-card';
 import { ProcessoModal } from './processo-modal';
 import type { ProcessoEditData } from './processo-modal';
 import { usePermission } from '../../hooks/use-permission';
+import { useTablePreferences } from '../../hooks/use-table-preferences';
 import * as api from '../../lib/api';
 import type { ProcessoListRow } from '../../lib/api';
 
@@ -48,6 +51,7 @@ export function ProcessosPage() {
   const { can } = usePermission();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [modalData, setModalData] = useState<ProcessoEditData | null | undefined>(undefined);
   const [processos, setProcessos] = useState<ProcessoListRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -57,9 +61,9 @@ export function ProcessosPage() {
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroArea, setFiltroArea] = useState('');
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [sortState, setSortState] = useState<
-    { key: string; direction: 'asc' | 'desc' | null } | undefined
-  >(undefined);
+
+  const { sortState, setSortState, hiddenColumns, toggleColumn } =
+    useTablePreferences('processos');
 
   const showModal = modalData !== undefined;
 
@@ -98,6 +102,36 @@ export function ProcessosPage() {
     const timer = setTimeout(carregar, busca ? 300 : 0);
     return () => clearTimeout(timer);
   }, [carregar, busca]);
+
+  // Keyboard shortcuts: N to open create modal, Esc to clear search
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (showModal || !!deleteId) return;
+
+      const active = document.activeElement;
+      const isInput =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement;
+
+      if (e.key === 'Escape' && busca) {
+        setBusca('');
+        searchInputRef.current?.blur();
+        return;
+      }
+
+      if (e.key === 'n' || e.key === 'N') {
+        if (isInput) return;
+        if (can('processos:criar')) {
+          e.preventDefault();
+          setModalData(null);
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showModal, deleteId, busca, can]);
 
   function handleSaved() {
     const isEdit = !!modalData;
@@ -220,7 +254,17 @@ export function ProcessosPage() {
       header: 'Cliente',
       width: 'w-[200px]',
       sortable: true,
-      render: (value) => <span className="truncate block">{String(value ?? '-')}</span>,
+      render: (value, row) => {
+        const name = String(value ?? '-');
+        if (row.clienteId) {
+          return (
+            <ClientHoverCard clienteId={row.clienteId} clienteNome={name}>
+              <span className="truncate block cursor-default">{name}</span>
+            </ClientHoverCard>
+          );
+        }
+        return <span className="truncate block">{name}</span>;
+      },
     },
     {
       key: 'advogadoNome',
@@ -305,6 +349,7 @@ export function ProcessosPage() {
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
           />
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Buscar por número CNJ, nome do cliente ou comarca..."
             value={busca}
@@ -349,6 +394,13 @@ export function ProcessosPage() {
             <X size={16} />
           </button>
         )}
+        <ColumnVisibilityToggle
+          columns={columns
+            .filter((c) => c.header)
+            .map((c) => ({ key: String(c.key), header: String(c.header) }))}
+          hiddenColumns={hiddenColumns}
+          onToggle={toggleColumn}
+        />
         <button
           type="button"
           onClick={() => exportCsv(filtrados)}
@@ -368,6 +420,7 @@ export function ProcessosPage() {
         onRowClick={(r) => navigate(`/app/processos/${r['id'] as string}`)}
         {...(sortState !== undefined ? { sortState } : {})}
         onSort={setSortState}
+        hiddenColumns={hiddenColumns}
         animateFirstLoad={isFirstLoad}
         emptyIcon={Briefcase}
         emptyMessage={

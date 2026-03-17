@@ -69,6 +69,7 @@ export class ProcessoService {
     return {
       id: this.processos.id,
       numeroCnj: this.processos.numeroCnj,
+      clienteId: this.processos.clienteId,
       clienteNome: this.clientes.nome,
       advogadoNome: this.users.nome,
       tribunalSigla: this.processos.tribunalSigla,
