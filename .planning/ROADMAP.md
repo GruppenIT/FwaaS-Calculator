@@ -67,7 +67,11 @@ Plans:
   1. On screens 1024px or narrower, sidebar automatically collapses to an icon rail; on wider screens, user can toggle collapse manually
   2. Processo detail page shows a chronological timeline combining movimentacoes and prazos, making the process history scannable at a glance
   3. Dashboard KPI stat cards display sparkline charts reflecting actual historical data from the last 30 days of snapshots
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 08-01-PLAN.md — Collapsible sidebar with icon rail mode and responsive media query
+- [ ] 08-02-PLAN.md — Chronological timeline component on processo detail page
+- [ ] 08-03-PLAN.md — KPI sparklines with snapshot table, API endpoint, seed data, and dashboard wiring
 
 ## Progress
 
@@ -79,5 +83,5 @@ Plans:
 | 4. Detail Pages, Auth e Polish | v1.0 | 6/6 | Complete | 2026-03-16 |
 | 5. Critical Integration Fixes | v1.0 | 1/1 | Complete | 2026-03-16 |
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
-| 7. Table Interactions | 2/2 | Complete   | 2026-03-17 | - |
-| 8. Visual Enhancements | v2.1 | 0/? | Not started | - |
+| 7. Table Interactions | v2.1 | 2/2 | Complete | 2026-03-17 |
+| 8. Visual Enhancements | v2.1 | 0/3 | Not started | - |
