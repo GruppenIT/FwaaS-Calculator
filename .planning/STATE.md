@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 Phase: 9 of 9 (Bug Fix, Verification & Tech Debt) — fourth phase of v2.1
 Plan: 2 of 2 complete
 Status: Complete
-Last activity: 2026-03-17 — Phase 9 plan 2 executed (07-VERIFICATION.md, all 12 v2.1 REQUIREMENTS.md checkboxes marked complete)
+Last activity: 2026-03-17 - Completed quick task 1: Fix all 12 v2.1 tech debt items from milestone audit
 
 Progress: [██████████] 100%
 
@@ -71,6 +71,12 @@ None.
 ### Blockers/Concerns
 
 - 5 DS components (Select, Checkbox, Textarea, Card, StatusDot) built but unused from v1.0
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Fix all 12 v2.1 tech debt items from milestone audit | 2026-03-17 | cc7f37b | [1-fix-all-12-v2-1-tech-debt-items-from-mil](./quick/1-fix-all-12-v2-1-tech-debt-items-from-mil/) |
 
 ## Session Continuity
 
