@@ -24,3 +24,5 @@ export { Checkbox } from './checkbox';
 export { Textarea } from './textarea';
 export { ColumnVisibilityToggle } from './column-visibility-toggle';
 export { ClientHoverCard } from './client-hover-card';
+export { Sparkline } from './sparkline';
+export { ProcessoTimeline } from './processo-timeline';

@@ -128,7 +128,7 @@ export function PrazosPage() {
         active instanceof HTMLSelectElement;
 
       if ((e.key === 'n' || e.key === 'N') && !isInput) {
-        if (can('processos:editar')) {
+        if (can('prazos:criar') || can('prazos:editar')) {
           e.preventDefault();
           setModalData(null);
         }
@@ -310,7 +310,7 @@ export function PrazosPage() {
         title="Prazos"
         description="Prazos processuais e alertas"
         action={
-          can('processos:editar') ? (
+          (can('prazos:criar') || can('prazos:editar')) ? (
             <Button onClick={() => setModalData(null)}>
               <Plus size={16} />
               Novo prazo
