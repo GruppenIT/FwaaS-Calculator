@@ -24,7 +24,7 @@ faker.seed(42);
 
 // Cast to typed SQLite for selects, but use any for inserts to bypass strict Drizzle
 // insert types that exclude columns with defaults under exactOptionalPropertyTypes=true.
-const dbTyped = createDatabase({ topologia: 'solo', sqlitePath: 'causa-dev.db' }) as SqliteDatabase;
+const dbTyped = createDatabase({ topologia: 'solo', sqlitePath: 'causa.db' }) as SqliteDatabase;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = dbTyped as any;
 
@@ -37,10 +37,15 @@ function randomDateInLastMonths(months: number): string {
   return new Date(past.getTime() + Math.random() * delta).toISOString();
 }
 
+/** Date-only string (YYYY-MM-DD) for fields that the UI parses with split('-') */
+function randomDateOnly(months: number): string {
+  return randomDateInLastMonths(months).split('T')[0];
+}
+
 function dateFromNow(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0] + 'T00:00:00.000Z';
+  return d.toISOString().split('T')[0];
 }
 
 function randomItem<T>(arr: readonly T[]): T {
@@ -310,7 +315,7 @@ for (let d = 10; d <= 50; d += 10) {
 for (let i = prazosData.length; i < 30; i++) {
   prazosData.push({
     processoId: randomItem(processoIds),
-    dataFatal: randomDateInLastMonths(6),
+    dataFatal: randomDateOnly(6),
     status: 'cumprido',
     fatal: false,
   });
@@ -378,7 +383,7 @@ for (let i = 0; i < 15; i++) {
         honorarioId: id,
         numeroParcela: p,
         valor: valorParcela,
-        vencimento: vencimentoDate.toISOString(),
+        vencimento: vencimentoDate.toISOString().split('T')[0],
         status: isPast
           ? randomItem(['pago', 'pago', 'atrasado', 'pendente'] as const)
           : 'pendente',
@@ -485,7 +490,7 @@ for (let i = 0; i < 12; i++) {
       tipo: randomItem(DESPESA_TIPOS),
       descricao: faker.lorem.sentence(),
       valor: faker.number.float({ min: 50, max: 5000, fractionDigits: 2 }),
-      data: randomDateInLastMonths(6).split('T')[0] + 'T00:00:00.000Z',
+      data: randomDateOnly(6),
       antecipadoPor: randomItem(['escritorio', 'cliente'] as const),
       reembolsavel: Math.random() < 0.8,
       reembolsado: Math.random() < 0.3,
@@ -514,7 +519,7 @@ for (let i = 0; i < 40; i++) {
       id: uuid(),
       userId,
       processoId: randomItem(processoIds),
-      data: randomDateInLastMonths(2),
+      data: randomDateOnly(2),
       duracaoMinutos,
       descricao: faker.lorem.sentence({ min: 3, max: 8 }),
       tipoAtividade: randomItem(TIMESHEET_TIPOS),

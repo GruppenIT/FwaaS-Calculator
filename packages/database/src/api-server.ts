@@ -2972,7 +2972,10 @@ export async function startServer(options: StartServerOptions = {}): Promise<htt
 }
 
 // Execução standalone (tsx src/api-server.ts)
-const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
+const normalizeFileUrl = (p: string) => p.replace(/\\/g, '/').replace(/^file:\/\/\//, '').toLowerCase();
+const metaUrl = normalizeFileUrl(import.meta.url);
+const argUrl = normalizeFileUrl(`file://${process.argv[1]}`);
+const isDirectRun = metaUrl === argUrl || metaUrl.endsWith('api-server.ts');
 if (isDirectRun) {
   startServer();
 }
