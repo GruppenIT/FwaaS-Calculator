@@ -24,9 +24,9 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 
 **Milestone Goal:** Tornar o sistema testavel com dados realistas e adicionar interacoes avancadas (teclado, hover cards, sidebar colapsavel, sparklines)
 
-- [ ] **Phase 6: Data Seed** - CLI que popula todas as entidades com dados falsos realistas e temporalmente distribuidos
+- [x] **Phase 6: Data Seed** - CLI que popula todas as entidades com dados falsos realistas e temporalmente distribuidos
 - [x] **Phase 7: Table Interactions** - Navegacao por teclado, atalhos, visibilidade de colunas, hover cards e sort persistente (completed 2026-03-17)
-- [ ] **Phase 8: Visual Enhancements** - Sidebar colapsavel, audit trail timeline e sparklines reais nos KPIs
+- [x] **Phase 8: Visual Enhancements** - Sidebar colapsavel, audit trail timeline e sparklines reais nos KPIs
 - [x] **Phase 9: Bug Fix, Verification & Tech Debt** - Correcao de bug de permissao, verificacao da Phase 7, atualizacao de docs e tech debt (completed 2026-03-17)
 
 ## Phase Details
@@ -88,7 +88,7 @@ Plans:
 **Plans:** 2/2 plans complete
 Plans:
 - [x] 09-01-PLAN.md — Fix permission bug, implement prazosFatais query, add UI barrel exports
-- [ ] 09-02-PLAN.md — Create Phase 7 VERIFICATION.md and update REQUIREMENTS.md checkboxes
+- [x] 09-02-PLAN.md — Create Phase 7 VERIFICATION.md and update REQUIREMENTS.md checkboxes
 
 ## Progress
 
@@ -99,7 +99,7 @@ Plans:
 | 3. Core Feature Screens | v1.0 | 4/4 | Complete | 2026-03-16 |
 | 4. Detail Pages, Auth e Polish | v1.0 | 6/6 | Complete | 2026-03-16 |
 | 5. Critical Integration Fixes | v1.0 | 1/1 | Complete | 2026-03-16 |
-| 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
+| 6. Data Seed | v2.1 | 2/2 | Complete | 2026-03-17 |
 | 7. Table Interactions | v2.1 | 2/2 | Complete | 2026-03-17 |
 | 8. Visual Enhancements | v2.1 | 3/3 | Complete | 2026-03-17 |
-| 9. Bug Fix, Verification & Tech Debt | 2/2 | Complete   | 2026-03-17 | - |
+| 9. Bug Fix, Verification & Tech Debt | v2.1 | 2/2 | Complete | 2026-03-17 |
