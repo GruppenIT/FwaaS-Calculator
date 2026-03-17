@@ -28,7 +28,7 @@ import { marcarParcelasAtrasadas, atualizarPrioridadePorIdade } from './services
 import { setupDatabase, type SetupInput } from './services/setup.js';
 import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
-import { count, eq, sum, and, lt, gte, lte, sql } from 'drizzle-orm';
+import { count, eq, sum, and, lt, gte, lte, sql, asc } from 'drizzle-orm';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import zlib from 'node:zlib';
@@ -2569,6 +2569,33 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         .from(s.parcelas)
         .where(and(eq(s.parcelas.status, 'pendente'), lt(s.parcelas.vencimento, hoje)));
 
+      // Auto-record daily KPI snapshot (at most once per day)
+      const todayStr = new Date().toISOString().split('T')[0] ?? '';
+      const [existingSnap] = await dbq
+        .select({ id: s.kpiSnapshots.id })
+        .from(s.kpiSnapshots)
+        .where(eq(s.kpiSnapshots.data, todayStr))
+        .limit(1);
+
+      if (!existingSnap) {
+        try {
+          const { v4: snapUuid } = await import('uuid');
+          await dbq.insert(s.kpiSnapshots).values({
+            id: snapUuid(),
+            data: todayStr,
+            processosAtivos: Number(processosAtivos?.count ?? 0),
+            clientes: Number(totalClientes?.count ?? 0),
+            prazosPendentes: Number(prazosPendentes?.count ?? 0),
+            prazosFatais: 0,
+            tarefasPendentes: Number(tarefasPendentes?.count ?? 0),
+            movimentacoesNaoLidas: Number(movNaoLidas?.count ?? 0),
+            honorariosPendentes: Number(honorariosPendentes?.total ?? 0),
+          });
+        } catch {
+          // Non-critical — don't fail dashboard if snapshot recording errors
+        }
+      }
+
       return json(res, {
         processosAtivos: processosAtivos?.count ?? 0,
         clientes: totalClientes?.count ?? 0,
@@ -2674,6 +2701,24 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         });
       }
       return json(res, produtividade);
+    }
+
+    // --- Dashboard Sparklines (last 30 days of KPI snapshots) ---
+    if (path === '/api/dashboard/sparklines' && method === 'GET') {
+      const s = getAppSchema();
+      const dbq = getDb();
+      const hoje = new Date();
+      const inicio = new Date(hoje);
+      inicio.setDate(hoje.getDate() - 29);
+      const inicioStr = inicio.toISOString().split('T')[0] ?? '';
+
+      const rows = await dbq
+        .select()
+        .from(s.kpiSnapshots)
+        .where(gte(s.kpiSnapshots.data, inicioStr))
+        .orderBy(asc(s.kpiSnapshots.data));
+
+      return json(res, rows);
     }
 
     // 404

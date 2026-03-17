@@ -1167,6 +1167,22 @@ export function getDashboardProdutividade() {
   return request<ProdutividadeEntry[]>('/api/dashboard/produtividade');
 }
 
+export interface KpiSnapshot {
+  id: string;
+  data: string;
+  processosAtivos: number;
+  clientes: number;
+  prazosPendentes: number;
+  prazosFatais: number;
+  tarefasPendentes: number;
+  movimentacoesNaoLidas: number;
+  honorariosPendentes: number;
+}
+
+export function getDashboardSparklines() {
+  return request<KpiSnapshot[]>('/api/dashboard/sparklines');
+}
+
 // === Google Drive ===
 export interface GoogleDriveConfig {
   authMode: 'oauth' | 'service_account';

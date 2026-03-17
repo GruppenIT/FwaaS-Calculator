@@ -13,3 +13,4 @@ export * from './parcelas.js';
 export * from './despesas.js';
 export * from './contatos.js';
 export * from './timesheets.js';
+export * from './kpi-snapshots.js';
