@@ -2,138 +2,90 @@
 phase: 06-data-seed
 plan: 02
 subsystem: database
-tags: [seed, sqlite, better-sqlite3, verification, idempotency]
+tags: [seed, sqlite, verification, idempotency, date-format-fix]
 
 # Dependency graph
 requires:
   - phase: 06-data-seed/06-01
     provides: "seed-demo.ts script with 13 entity factories, pnpm db:seed:demo command"
 provides:
-  - Verified idempotent demo seed (pending human environment verification)
-  - Documented environment constraint: Node 24 + better-sqlite3 incompatibility
+  - Verified idempotent demo seed with all entity types rendering in UI
+  - Date format fixes for dataFatal, vencimento, timesheet, despesas
+  - api-server.ts Windows path fix for standalone execution
 affects: [07-interacao, 08-polish, demo-presentations]
 
 # Tech tracking
 tech-stack:
   added: []
   patterns:
-    - "Verification plan pattern: auto-verification tasks blocked by environment constraints require human-action checkpoint"
+    - "Date-only strings (YYYY-MM-DD) for fields parsed by UI with split('-') or + 'T00:00:00'"
+    - "Windows import.meta.url normalization for isDirectRun detection"
 
 key-files:
   created: []
-  modified: []
+  modified:
+    - packages/database/src/seeds/seed-demo.ts
+    - packages/database/src/api-server.ts
 
 key-decisions:
-  - "Node 24 + better-sqlite3 v11.10.0 incompatibility is a known pre-existing env constraint requiring Node 22 or Electron runtime to execute seed"
-  - "Verification deferred to user running pnpm db:seed:demo in compatible environment (Node 22 or via Electron dev)"
+  - "Date fields consumed by UI formatters must be date-only (YYYY-MM-DD), not full ISO"
+  - "seed-demo.ts writes to causa.db (same as api-server), not causa-dev.db"
+  - "api-server isDirectRun uses normalized path comparison for Windows compatibility"
 
-patterns-established: []
+patterns-established:
+  - "randomDateOnly() helper for seed fields that feed UI date formatters"
 
 requirements-completed: [SEED-02, SEED-03]
 
 # Metrics
-duration: 5min
-completed: 2026-03-16
+duration: 25min
+completed: 2026-03-17
 ---
 
 # Phase 6 Plan 02: Seed Verification Summary
 
-**Seed verification plan blocked by Node 24/better-sqlite3 incompatibility — human action required to run seed and confirm dashboard, listings, and urgency heat map display**
+**Seed data verified across all app pages — date format bugs fixed during visual verification checkpoint**
 
 ## Performance
 
-- **Duration:** 5 min
-- **Started:** 2026-03-16T23:22:35Z
-- **Completed:** 2026-03-16T23:27:00Z (checkpoint reached)
-- **Tasks:** 0/2 completed (paused at human-action gate)
-- **Files modified:** 0
+- **Duration:** 25 min (includes human verification loop)
+- **Completed:** 2026-03-17
+- **Tasks:** 2/2 completed (human-verified)
 
 ## Accomplishments
 
-- Confirmed seed-demo.ts code is complete and correct (reviewed all 533 lines)
-- Confirmed clear-then-insert idempotency logic is sound (reverse FK order delete, then faker.seed(42) for determinism)
-- Identified and documented environment constraint preventing automated verification
+- Verified seed idempotency: two consecutive runs produce identical counts, no duplicates
+- Verified all 13 entity types display correctly in the app UI
+- Fixed 3 date format bugs discovered during visual verification:
+  - `dataFatal` stored as full ISO → UI `split('-')` and `+ 'T00:00:00'` patterns broke
+  - `vencimento` in parcelas stored as full ISO
+  - Timesheet `data` and despesa `data` stored as full ISO
+- Fixed api-server.ts `isDirectRun` detection failing on Windows due to path format mismatch
+- Fixed seed writing to `causa-dev.db` instead of `causa.db` (API reads `causa.db`)
 
 ## Task Commits
 
-No code changes were made — this is a verification-only plan.
-
-## Files Created/Modified
-
-None — this plan verifies work from 06-01, no new code.
-
-## Decisions Made
-
-- **No code changes needed:** The seed script from 06-01 is structurally correct. The verification failure is an environment constraint (Node 24 vs better-sqlite3 prebuilt binary requirement), not a code defect.
-- **Verification deferred to human:** The user must run `pnpm db:seed:demo` in a Node 22 environment or via `pnpm dev:desktop` (Electron, which bundles its own Node runtime).
-
-## Deviations from Plan
-
-None - no code was written. Task 1 auto-verification was attempted but blocked by pre-existing environment constraint documented in 06-01-SUMMARY.
+| Commit | Description |
+|--------|-------------|
+| 9f221af | fix(06-02): correct date formats in seed and api-server startup |
 
 ## Issues Encountered
 
-**better-sqlite3 Node 24 incompatibility (pre-existing, documented in 06-01)**
+**Date format mismatch (fixed)**
+UI date formatters expected date-only strings (`YYYY-MM-DD`) but seed generated full ISO (`YYYY-MM-DDTHH:mm:ss.sssZ`). The UI concatenates `+ 'T00:00:00'` which breaks on full ISO, producing "Invalid Date" and "NaNd restantes". Fixed by adding `randomDateOnly()` helper and using date-only strings for all UI-consumed date fields.
 
-The seed cannot be executed from the command line on this machine because:
-- System Node version: v24.13.0
-- better-sqlite3 v11.10.0 has no prebuilt binary for Node v137 ABI (Node 24)
-- node-gyp compilation fails: no Visual Studio C++ workload found
-- This is identical to the blocker documented in 06-01-SUMMARY under "Issues Encountered"
+**api-server standalone startup (fixed)**
+`import.meta.url` on Windows uses forward slashes while `process.argv[1]` uses backslashes, causing `isDirectRun` to always be false. Fixed with normalized path comparison.
 
-**Impact:** Task 1 (automated count verification) and Task 2 (visual verification) both require the user to run the seed in a compatible environment.
-
-**Resolution path:** User must run verification in one of:
-1. Node 22 environment via nvm/fnm: `fnm use 22 && pnpm db:seed:demo`
-2. Via Electron app: `pnpm dev:desktop` (Electron bundles its own Node runtime)
-3. CI environment (configured for Node 22)
-
-## User Setup Required
-
-**Human verification required.** See checkpoint instructions below.
-
-### Verification Steps
-
-1. Switch to Node 22 if available:
-   ```cmd
-   fnm use 22
-   ```
-   Or skip if using Electron to run the app.
-
-2. Run seed twice (idempotency check):
-   ```cmd
-   pnpm db:seed:demo
-   pnpm db:seed:demo
-   ```
-   Both runs should complete with identical "OK" messages.
-
-3. Start the app:
-   ```cmd
-   pnpm dev:desktop
-   ```
-
-4. Visual verification checklist:
-   - Dashboard: KPI cards show non-zero values (Processos ativos, Prazos pendentes, Clientes, Tarefas pendentes)
-   - Dashboard: Urgency heat map shows at least 1 Fatal (red) and 3 Urgente
-   - Dashboard: "Atividade (30 dias)" chart shows non-flat lines
-   - Processos listing: 25 processos with CNJ numbers
-   - Clientes listing: 15 clientes (mix of PF/PJ)
-   - Prazos listing: Prazos across urgency tiers, some overdue
-
-5. Run seed again after visual check — no duplicates should appear.
-
-## Next Phase Readiness
-
-- Phase 7 (Interacao) can proceed once seed verification is confirmed
-- Seed script itself is code-complete and correct — only runtime execution remains to verify
+**better-sqlite3 Node 24 incompatibility (resolved)**
+Required `nvm install 22` + `nvm use 22` + `pnpm install` to rebuild native binary for Node 22.
 
 ## Self-Check: PASSED
 
 - SUMMARY.md: FOUND at `.planning/phases/06-data-seed/06-02-SUMMARY.md`
-- STATE.md: Updated with checkpoint position and decisions
-- ROADMAP.md: Phase 6 updated to 2/2 plans, Checkpoint status
-- REQUIREMENTS.md: SEED-02, SEED-03 marked complete
+- Commits: 1 fix commit for date format and api-server bugs
+- Human verification: APPROVED
 
 ---
 *Phase: 06-data-seed*
-*Completed: 2026-03-16*
+*Completed: 2026-03-17*
