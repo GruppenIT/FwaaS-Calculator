@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 CAUSA Revisao UX/UI** — Phases 1-5 (shipped 2026-03-16)
-- 🚧 **v2.1 Interacao e Dados** — Phases 6-8 (in progress)
+- 🚧 **v2.1 Interacao e Dados** — Phases 6-9 (in progress)
 
 ## Phases
 
@@ -27,6 +27,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 - [ ] **Phase 6: Data Seed** - CLI que popula todas as entidades com dados falsos realistas e temporalmente distribuidos
 - [x] **Phase 7: Table Interactions** - Navegacao por teclado, atalhos, visibilidade de colunas, hover cards e sort persistente (completed 2026-03-17)
 - [ ] **Phase 8: Visual Enhancements** - Sidebar colapsavel, audit trail timeline e sparklines reais nos KPIs
+- [ ] **Phase 9: Bug Fix, Verification & Tech Debt** - Correcao de bug de permissao, verificacao da Phase 7, atualizacao de docs e tech debt
 
 ## Phase Details
 
@@ -73,6 +74,20 @@ Plans:
 - [x] 08-02-PLAN.md — Chronological timeline component on processo detail page
 - [x] 08-03-PLAN.md — KPI sparklines with snapshot table, API endpoint, seed data, and dashboard wiring
 
+### Phase 9: Bug Fix, Verification & Tech Debt
+**Goal**: Fechar todos os gaps identificados no audit v2.1 — corrigir bug de permissao, verificar Phase 7, atualizar docs e resolver tech debt
+**Depends on**: Phase 8 (all prior phases complete)
+**Requirements**: INT-01, INT-02, INT-03, INT-04, INT-05, VIS-01, VIS-03
+**Gap Closure:** Closes gaps from v2.1 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. PrazosPage N shortcut and header button use correct prazos permission guards (not processos)
+  2. Phase 7 has a VERIFICATION.md confirming all 5 INT requirements pass
+  3. REQUIREMENTS.md checkboxes for VIS-01 and VIS-03 are checked
+  4. Sparkline and ProcessoTimeline exported from UI barrel index.ts
+  5. prazosFatais in api-server.ts queries actual fatal prazo count instead of hardcoded 0
+Plans:
+- [ ] 09-01-PLAN.md — Fix permission bug, resolve tech debt, update docs, and verify Phase 7
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -85,3 +100,4 @@ Plans:
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
 | 7. Table Interactions | v2.1 | 2/2 | Complete | 2026-03-17 |
 | 8. Visual Enhancements | v2.1 | 3/3 | Complete | 2026-03-17 |
+| 9. Bug Fix, Verification & Tech Debt | v2.1 | 0/1 | Pending | - |
