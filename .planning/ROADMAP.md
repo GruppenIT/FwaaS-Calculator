@@ -27,7 +27,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 - [ ] **Phase 6: Data Seed** - CLI que popula todas as entidades com dados falsos realistas e temporalmente distribuidos
 - [x] **Phase 7: Table Interactions** - Navegacao por teclado, atalhos, visibilidade de colunas, hover cards e sort persistente (completed 2026-03-17)
 - [ ] **Phase 8: Visual Enhancements** - Sidebar colapsavel, audit trail timeline e sparklines reais nos KPIs
-- [ ] **Phase 9: Bug Fix, Verification & Tech Debt** - Correcao de bug de permissao, verificacao da Phase 7, atualizacao de docs e tech debt
+- [x] **Phase 9: Bug Fix, Verification & Tech Debt** - Correcao de bug de permissao, verificacao da Phase 7, atualizacao de docs e tech debt (completed 2026-03-17)
 
 ## Phase Details
 
@@ -85,7 +85,7 @@ Plans:
   3. REQUIREMENTS.md checkboxes for VIS-01 and VIS-03 are checked
   4. Sparkline and ProcessoTimeline exported from UI barrel index.ts
   5. prazosFatais in api-server.ts queries actual fatal prazo count instead of hardcoded 0
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 09-01-PLAN.md — Fix permission bug, implement prazosFatais query, add UI barrel exports
 - [ ] 09-02-PLAN.md — Create Phase 7 VERIFICATION.md and update REQUIREMENTS.md checkboxes
@@ -102,4 +102,4 @@ Plans:
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
 | 7. Table Interactions | v2.1 | 2/2 | Complete | 2026-03-17 |
 | 8. Visual Enhancements | v2.1 | 3/3 | Complete | 2026-03-17 |
-| 9. Bug Fix, Verification & Tech Debt | v2.1 | 1/2 | In Progress | - |
+| 9. Bug Fix, Verification & Tech Debt | 2/2 | Complete   | 2026-03-17 | - |
