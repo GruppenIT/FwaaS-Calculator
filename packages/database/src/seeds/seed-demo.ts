@@ -17,6 +17,7 @@ import {
   despesas,
   contatos,
   timesheets,
+  kpiSnapshots,
 } from '../schema/index.js';
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
@@ -92,6 +93,7 @@ db.delete(honorarios).run();
 db.delete(processos).run();
 db.delete(contatos).run();
 db.delete(clientes).run();
+db.delete(kpiSnapshots).run();
 
 console.log('  OK tabelas limpas');
 
@@ -533,6 +535,45 @@ for (let i = 0; i < 40; i++) {
 }
 
 console.log('  OK 40 timesheets criados');
+
+// ─── KPI Snapshots (30 days of historical data) ──────────────────────────────
+console.log('Seeding KPI snapshots...');
+
+const today = new Date();
+for (let i = 29; i >= 0; i--) {
+  const d = new Date(today);
+  d.setDate(d.getDate() - i);
+  const dateStr = d.toISOString().split('T')[0];
+
+  // Base values with realistic daily fluctuation
+  // Processos grow slowly over time (trending up)
+  const processosBase = 35 + Math.floor((30 - i) * 0.3);
+  // Prazos fluctuate around a base
+  const prazosBase = 12 + Math.floor(Math.sin(i * 0.5) * 3);
+  // Fatais are rare, 0-3
+  const fataisBase = Math.max(0, Math.floor(Math.random() * 3 + Math.sin(i * 0.3)));
+  // Clientes grow steadily
+  const clientesBase = 20 + Math.floor((30 - i) * 0.2);
+  // Tarefas fluctuate
+  const tarefasBase = 8 + Math.floor(Math.random() * 5);
+  // Mov nao lidas spike and drop
+  const movBase = Math.floor(Math.random() * 8 + 2);
+  // Honorarios pendentes fluctuate
+  const honBase = Math.floor(Math.random() * 4 + 1);
+
+  db.insert(kpiSnapshots).values({
+    id: uuid(),
+    data: dateStr,
+    processosAtivos: processosBase + Math.floor(Math.random() * 3),
+    clientes: clientesBase + Math.floor(Math.random() * 2),
+    prazosPendentes: Math.max(0, prazosBase + Math.floor(Math.random() * 3 - 1)),
+    prazosFatais: Math.max(0, fataisBase),
+    tarefasPendentes: Math.max(0, tarefasBase),
+    movimentacoesNaoLidas: Math.max(0, movBase),
+    honorariosPendentes: Math.max(0, honBase),
+  }).run();
+}
+console.log('  30 KPI snapshots created');
 
 // ─── Done ─────────────────────────────────────────────────────────────────────
 console.log('Seed demo concluido com sucesso!');
