@@ -58,7 +58,7 @@ Plans:
 **Plans:** 2/2 plans complete
 Plans:
 - [x] 07-01-PLAN.md — Create useTablePreferences hook, enhance DataTable with arrow keys + hiddenColumns, build ColumnVisibilityToggle and ClientHoverCard components
-- [ ] 07-02-PLAN.md — Wire all interactions into ProcessosPage, PrazosPage, and ClientesPage with keyboard shortcuts and visual verification
+- [x] 07-02-PLAN.md — Wire all interactions into ProcessosPage, PrazosPage, and ClientesPage with keyboard shortcuts and visual verification
 
 ### Phase 8: Visual Enhancements
 **Goal**: Interface adapts to smaller screens, shows process history visually, and displays real trend data in dashboard KPIs
@@ -85,8 +85,10 @@ Plans:
   3. REQUIREMENTS.md checkboxes for VIS-01 and VIS-03 are checked
   4. Sparkline and ProcessoTimeline exported from UI barrel index.ts
   5. prazosFatais in api-server.ts queries actual fatal prazo count instead of hardcoded 0
+**Plans:** 2 plans
 Plans:
-- [ ] 09-01-PLAN.md — Fix permission bug, resolve tech debt, update docs, and verify Phase 7
+- [ ] 09-01-PLAN.md — Fix permission bug, implement prazosFatais query, add UI barrel exports
+- [ ] 09-02-PLAN.md — Create Phase 7 VERIFICATION.md and update REQUIREMENTS.md checkboxes
 
 ## Progress
 
@@ -100,4 +102,4 @@ Plans:
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
 | 7. Table Interactions | v2.1 | 2/2 | Complete | 2026-03-17 |
 | 8. Visual Enhancements | v2.1 | 3/3 | Complete | 2026-03-17 |
-| 9. Bug Fix, Verification & Tech Debt | v2.1 | 0/1 | Pending | - |
+| 9. Bug Fix, Verification & Tech Debt | v2.1 | 0/2 | Pending | - |
