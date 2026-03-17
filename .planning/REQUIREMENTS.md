@@ -16,11 +16,11 @@ Requirements para seed de dados, interacoes avancadas e melhorias visuais. Cada 
 
 ### Interacao Avancada
 
-- [ ] **INT-01**: Navegacao por teclado em tabelas (arrow keys para mover entre rows, Enter para abrir detalhe, Esc para limpar busca)
+- [x] **INT-01**: Navegacao por teclado em tabelas (arrow keys para mover entre rows, Enter para abrir detalhe, Esc para limpar busca)
 - [ ] **INT-02**: Atalho N para criar novo registro na pagina de listagem ativa
-- [ ] **INT-03**: Toggle de visibilidade de colunas em tabelas (processos e prazos) com preferencia persistida em localStorage
-- [ ] **INT-04**: Hover card com resumo do cliente ao passar mouse sobre nome em tabelas de processos
-- [ ] **INT-05**: Preferencia de ordenacao persistente em localStorage por tabela
+- [x] **INT-03**: Toggle de visibilidade de colunas em tabelas (processos e prazos) com preferencia persistida em localStorage
+- [x] **INT-04**: Hover card com resumo do cliente ao passar mouse sobre nome em tabelas de processos
+- [x] **INT-05**: Preferencia de ordenacao persistente em localStorage por tabela
 
 ### Visual Avancado
 
@@ -50,11 +50,11 @@ Nenhum deferido neste milestone.
 | SEED-02 | Phase 6 | Complete |
 | SEED-03 | Phase 6 | Complete |
 | SEED-04 | Phase 6 | Complete |
-| INT-01 | Phase 7 | Pending |
+| INT-01 | Phase 7 | Complete |
 | INT-02 | Phase 7 | Pending |
-| INT-03 | Phase 7 | Pending |
-| INT-04 | Phase 7 | Pending |
-| INT-05 | Phase 7 | Pending |
+| INT-03 | Phase 7 | Complete |
+| INT-04 | Phase 7 | Complete |
+| INT-05 | Phase 7 | Complete |
 | VIS-01 | Phase 8 | Pending |
 | VIS-02 | Phase 8 | Pending |
 | VIS-03 | Phase 8 | Pending |

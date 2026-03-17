@@ -56,7 +56,7 @@ Plans:
   5. User can sort any table column, leave the page, return, and find the same sort order applied automatically
 **Plans:** 2 plans
 Plans:
-- [ ] 07-01-PLAN.md — Create useTablePreferences hook, enhance DataTable with arrow keys + hiddenColumns, build ColumnVisibilityToggle and ClientHoverCard components
+- [x] 07-01-PLAN.md — Create useTablePreferences hook, enhance DataTable with arrow keys + hiddenColumns, build ColumnVisibilityToggle and ClientHoverCard components
 - [ ] 07-02-PLAN.md — Wire all interactions into ProcessosPage, PrazosPage, and ClientesPage with keyboard shortcuts and visual verification
 
 ### Phase 8: Visual Enhancements
@@ -79,5 +79,5 @@ Plans:
 | 4. Detail Pages, Auth e Polish | v1.0 | 6/6 | Complete | 2026-03-16 |
 | 5. Critical Integration Fixes | v1.0 | 1/1 | Complete | 2026-03-16 |
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
-| 7. Table Interactions | v2.1 | 0/2 | Planned | - |
+| 7. Table Interactions | v2.1 | 1/2 | In Progress | - |
 | 8. Visual Enhancements | v2.1 | 0/? | Not started | - |

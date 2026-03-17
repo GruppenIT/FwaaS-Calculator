@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Interacao e Dados
-status: Checkpoint — human-action required
-stopped_at: 06-02-PLAN.md checkpoint — awaiting human seed verification
-last_updated: "2026-03-17T12:03:00.212Z"
-last_activity: 2026-03-16 — 06-02 seed verification paused at checkpoint (Node 24 env constraint)
+status: In Progress
+stopped_at: 07-01-PLAN.md complete — table interactions infrastructure built
+last_updated: "2026-03-17T12:41:00Z"
+last_activity: 2026-03-17 — 07-01 table interactions infrastructure complete (hook, DataTable nav, ColumnVisibilityToggle, ClientHoverCard)
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 50
+  total_plans: 3
+  completed_plans: 3
+  percent: 55
 ---
 
 # Project State
@@ -21,25 +21,25 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Interface que transmite seriedade juridica com modernidade — advogados confiam no sistema desde o primeiro contato visual
-**Current focus:** v2.1 Interacao e Dados — Phase 6 ready to plan
+**Current focus:** v2.1 Interacao e Dados — Phase 7 plan 01 complete, ready for 07-02 page wiring
 
 ## Current Position
 
-Phase: 6 of 8 (Data Seed) — first phase of v2.1
-Plan: 2 of 2 (Seed Verification) — awaiting human verification
-Status: Checkpoint — human-action required
-Last activity: 2026-03-16 — 06-02 seed verification paused at checkpoint (Node 24 env constraint)
+Phase: 7 of 8 (Table Interactions) — second phase of v2.1
+Plan: 1 of 2 (Infrastructure) — complete
+Status: In Progress
+Last activity: 2026-03-17 — 07-01 table interactions infrastructure complete
 
-Progress: [█████░░░░░] 50%
+Progress: [█████▒░░░░] 55%
 
 ## Performance Metrics
 
 **Velocity (from v1.0):**
-- Total plans completed: 19
+- Total plans completed: 20
 - Average duration: ~30 min
-- Total execution time: ~9.5 hours
+- Total execution time: ~9.8 hours
 
-**v2.1:** 2 plans completed (06-01 seed script, 06-02 verification checkpoint).
+**v2.1:** 3 plans completed (06-01 seed script, 06-02 verification checkpoint, 07-01 table infrastructure).
 
 ## Accumulated Context
 
@@ -49,6 +49,10 @@ See PROJECT.md Key Decisions table for full history.
 - [Phase 06-data-seed]: Demo seed casts db to any for inserts: Drizzle strict types under exactOptionalPropertyTypes exclude .default() columns — seed-script pattern
 - [Phase 06-data-seed]: faker.seed(42) used for deterministic seed output — idempotency is clear+reinsert, not conflict-skip
 - [Phase 06-02]: Node 24 + better-sqlite3 v11.10.0 incompatibility prevents seed execution from CLI — requires Node 22 or Electron runtime
+- [Phase 07-01]: Arrow key nav on tbody (not individual rows) avoids conflict with existing Enter/Space handleRowKeyDown
+- [Phase 07-01]: ColumnVisibilityToggle uses native checkbox (not Radix) to keep it simple — plan specified explicitly
+- [Phase 07-01]: ClientHoverCard caches fetch in useRef — subsequent hovers instant, no redundant API calls
+- [Phase 07-01]: useTablePreferences stores sortState and hiddenColumns together in causa-table-{tableId} localStorage key
 
 ### Pending Todos
 
@@ -60,7 +64,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:27:00.000Z
-Stopped at: 06-02-PLAN.md checkpoint — awaiting human seed verification
+Last session: 2026-03-17T12:41:00Z
+Stopped at: 07-01-PLAN.md complete — awaiting 07-02 page wiring plan
 Resume file: None
-Next action: User runs `pnpm db:seed:demo` in Node 22 env and confirms visual verification, then `/gsd:plan-phase 7`
+Next action: Execute 07-02 plan to wire useTablePreferences, ColumnVisibilityToggle, and ClientHoverCard into individual pages
