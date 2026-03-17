@@ -2505,6 +2505,11 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         .from(s.prazos)
         .where(eq(s.prazos.status, 'pendente'));
 
+      const [prazosFataisCount] = await dbq
+        .select({ count: count() })
+        .from(s.prazos)
+        .where(and(eq(s.prazos.status, 'pendente'), eq(s.prazos.fatal, true)));
+
       const [honorariosPendentes] = await dbq
         .select({ total: sum(s.honorarios.valor) })
         .from(s.honorarios)
@@ -2586,7 +2591,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
             processosAtivos: Number(processosAtivos?.count ?? 0),
             clientes: Number(totalClientes?.count ?? 0),
             prazosPendentes: Number(prazosPendentes?.count ?? 0),
-            prazosFatais: 0,
+            prazosFatais: Number(prazosFataisCount?.count ?? 0),
             tarefasPendentes: Number(tarefasPendentes?.count ?? 0),
             movimentacoesNaoLidas: Number(movNaoLidas?.count ?? 0),
             honorariosPendentes: Number(honorariosPendentes?.total ?? 0),
@@ -2600,7 +2605,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
         processosAtivos: processosAtivos?.count ?? 0,
         clientes: totalClientes?.count ?? 0,
         prazosPendentes: prazosPendentes?.count ?? 0,
-        prazosFatais: 0,
+        prazosFatais: prazosFataisCount?.count ?? 0,
         honorariosPendentes: Number(honorariosPendentes?.total ?? 0),
         tarefasPendentes: tarefasPendentes?.count ?? 0,
         parcelasAtrasadas: parcelasAtrasadas?.count ?? 0,
