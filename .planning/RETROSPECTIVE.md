@@ -49,6 +49,51 @@
 
 ---
 
+## Milestone: v2.1 — Interacao e Dados
+
+**Shipped:** 2026-03-17
+**Phases:** 4 | **Plans:** 9
+
+### What Was Built
+- Demo seed CLI (`pnpm db:seed:demo`) populating 12+ entity types with realistic Brazilian legal data across 12 months
+- Table keyboard navigation (arrow keys, Enter, Esc) and N shortcut for new records on all listing pages
+- Column visibility toggles and persistent sort preferences via localStorage (useTablePreferences hook)
+- Client hover cards with Radix HoverCard showing summary popup on mouse-over
+- Collapsible sidebar with 64px icon rail mode and responsive media query (<=1024px)
+- Audit trail timeline on processo detail page combining movimentacoes and prazos chronologically
+- KPI sparklines with kpi_snapshots table, API endpoint, and SVG component wired into dashboard
+
+### What Worked
+- Phase 9 gap closure pattern (from v1.0) worked again — audit found permission bug, missing query, and doc gaps that phase-level work missed
+- Quick task workflow for tech debt cleanup avoided full phase ceremony for documentation fixes
+- useTablePreferences hook centralizing localStorage persistence prevented scattered storage logic
+- Seed-first approach (Phase 6 before interactions) made all subsequent testing meaningful
+
+### What Was Inefficient
+- SUMMARY frontmatter requirements_completed still left empty (same v1.0 debt carried forward — quick task fixed it retroactively)
+- Nyquist validation still not adopted — all 8 phases across 2 milestones lack VALIDATION.md
+- Node 24 + better-sqlite3 incompatibility discovered late (Phase 06-02) — requires Node 22 for seed CLI
+- Phase 8 VERIFICATION missing from initial execution — had to be created in Phase 9
+
+### Patterns Established
+- Arrow key nav on tbody (not individual rows) to avoid handleRowKeyDown conflicts
+- ClientHoverCard useRef cache for fetch deduplication — subsequent hovers instant
+- Keyboard shortcut guard: check isInput + showModal before handling document-level keydown
+- kpi_snapshots table pattern for sparkline historical data (vs computed aggregations)
+- Permission guard pattern: `can('entity:criar') || can('entity:editar')` for N shortcut
+
+### Key Lessons
+1. SUMMARY frontmatter debt compounds — must be filled during execution, not retroactively
+2. Milestone audit is now a verified essential step (caught real bugs in both v1.0 and v2.1)
+3. Seed data should be the first phase in any milestone that involves UI interaction work
+4. Quick task workflow is effective for documentation/cosmetic cleanup without overhead
+
+### Cost Observations
+- Model mix: ~70% opus, ~30% sonnet (balanced profile)
+- Notable: 2-day turnaround for 4 phases (seed + interactions + visuals + gap closure)
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -56,7 +101,10 @@
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
 | v1.0 | 5 | 19 | First milestone — established phase/plan/verify/audit workflow |
+| v2.1 | 4 | 9 | Added quick task workflow, gap closure pattern confirmed |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. (First milestone — lessons to verify in future milestones)
+1. **Milestone audit catches real bugs** — confirmed in both v1.0 (integration gaps) and v2.1 (permission bug, missing query)
+2. **SUMMARY frontmatter debt compounds** — unfilled in v1.0, still unfilled in v2.1, required retroactive quick task to fix
+3. **Nyquist validation consistently skipped** — 0/9 phases across 2 milestones have VALIDATION.md
