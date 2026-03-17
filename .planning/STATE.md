@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Interacao e Dados
-status: planning
-stopped_at: Completed 06-02-PLAN.md (seed verification — human action checkpoint)
-last_updated: "2026-03-16T23:27:00.000Z"
-last_activity: 2026-03-16 — 06-02 verification plan reached human-action checkpoint (Node 24/better-sqlite3 env constraint)
+status: Checkpoint — human-action required
+stopped_at: 06-02-PLAN.md checkpoint — awaiting human seed verification
+last_updated: "2026-03-17T12:03:00.212Z"
+last_activity: 2026-03-16 — 06-02 seed verification paused at checkpoint (Node 24 env constraint)
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
   completed_plans: 2
   percent: 50
