@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Interacao e Dados
 status: executing
-stopped_at: 07-02-PLAN.md complete — awaiting human verification checkpoint
-last_updated: "2026-03-17T12:37:08.046Z"
-last_activity: 2026-03-17 — 07-01 table interactions infrastructure complete
+stopped_at: Phase 8 complete — all visual enhancement plans executed
+last_updated: "2026-03-17T18:30:00Z"
+last_activity: 2026-03-17 — Phase 8 all 3 plans complete (sidebar, timeline, sparklines)
 progress:
   total_phases: 3
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 55
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Interface que transmite seriedade juridica com modernidade — advogados confiam no sistema desde o primeiro contato visual
-**Current focus:** v2.1 Interacao e Dados — Phase 7 plan 01 complete, ready for 07-02 page wiring
+**Current focus:** v2.1 Interacao e Dados — Phase 8 complete, all visual enhancements shipped
 
 ## Current Position
 
-Phase: 7 of 8 (Table Interactions) — second phase of v2.1
-Plan: 1 of 2 (Infrastructure) — complete
-Status: In Progress
-Last activity: 2026-03-17 — 07-01 table interactions infrastructure complete
+Phase: 8 of 8 (Visual Enhancements) — third phase of v2.1
+Plan: 3 of 3 — all complete
+Status: Complete
+Last activity: 2026-03-17 — Phase 8 all plans executed (collapsible sidebar, timeline, sparklines)
 
-Progress: [█████▒░░░░] 55%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -39,7 +39,7 @@ Progress: [█████▒░░░░] 55%
 - Average duration: ~30 min
 - Total execution time: ~9.8 hours
 
-**v2.1:** 3 plans completed (06-01 seed script, 06-02 verification checkpoint, 07-01 table infrastructure).
+**v2.1:** 7 plans completed (06-01, 06-02, 07-01, 07-02, 08-01, 08-02, 08-03).
 
 ## Accumulated Context
 
@@ -56,6 +56,9 @@ See PROJECT.md Key Decisions table for full history.
 - [Phase 07-02]: clienteId added to ProcessoListRow and listSelect() — hover card requires it and it was missing from the list query
 - [Phase 07-02]: Keyboard shortcut guard pattern: check isInput (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) and showModal to prevent conflicts
 - [Phase 07-02]: ClientesPage intentionally has no ColumnVisibilityToggle — INT-03 specifies processos and prazos only
+- [Phase 08-02]: Timeline uses date column + circle node + content card layout with absolute vertical line through nodes
+- [Phase 08-02]: Prazo node color derived from status (pendente=warning, cumprido=success, perdido=danger) — matches PRAZO_STATUS_STYLES convention
+- [Phase 08-02]: var(--color-tier-warning) used for prazo pending color via inline style
 
 ### Pending Todos
 
@@ -67,7 +70,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:37:00.376Z
-Stopped at: 07-02-PLAN.md complete — awaiting human verification checkpoint
+Last session: 2026-03-17T18:30:00Z
+Stopped at: Phase 8 complete — all visual enhancement plans executed
 Resume file: None
-Next action: Execute 07-02 plan to wire useTablePreferences, ColumnVisibilityToggle, and ClientHoverCard into individual pages
+Next action: Phase verification → milestone completion
