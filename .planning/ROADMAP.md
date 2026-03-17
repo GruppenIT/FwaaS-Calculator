@@ -54,7 +54,10 @@ Plans:
   3. User can toggle column visibility in processos and prazos tables, and the preference survives page reload (localStorage)
   4. Hovering over a client name in the processos table shows a card with client summary (without navigating away)
   5. User can sort any table column, leave the page, return, and find the same sort order applied automatically
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — Create useTablePreferences hook, enhance DataTable with arrow keys + hiddenColumns, build ColumnVisibilityToggle and ClientHoverCard components
+- [ ] 07-02-PLAN.md — Wire all interactions into ProcessosPage, PrazosPage, and ClientesPage with keyboard shortcuts and visual verification
 
 ### Phase 8: Visual Enhancements
 **Goal**: Interface adapts to smaller screens, shows process history visually, and displays real trend data in dashboard KPIs
@@ -76,5 +79,5 @@ Plans:
 | 4. Detail Pages, Auth e Polish | v1.0 | 6/6 | Complete | 2026-03-16 |
 | 5. Critical Integration Fixes | v1.0 | 1/1 | Complete | 2026-03-16 |
 | 6. Data Seed | v2.1 | 2/2 | Checkpoint | - |
-| 7. Table Interactions | v2.1 | 0/? | Not started | - |
+| 7. Table Interactions | v2.1 | 0/2 | Planned | - |
 | 8. Visual Enhancements | v2.1 | 0/? | Not started | - |
