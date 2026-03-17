@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UrgencyHeatMap } from './urgency-heat-map';
 import { useChartTheme } from '../../hooks/use-chart-theme';
+import { Sparkline } from '../../components/ui/sparkline';
 import {
   Briefcase,
   Clock,
@@ -38,6 +39,7 @@ import type {
   DashboardStats,
   TimelineEntry,
   ProdutividadeEntry,
+  KpiSnapshot,
 } from '../../lib/api';
 import { useFeatures } from '../../lib/auth-context';
 
@@ -48,9 +50,11 @@ interface StatCardProps {
   borderColor: string;
   iconColor: string;
   onClick?: () => void;
+  sparklineData?: number[] | undefined;
+  sparklineColor?: string | undefined;
 }
 
-function StatCard({ icon: Icon, label, value, borderColor, iconColor, onClick }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, borderColor, iconColor, onClick, sparklineData, sparklineColor }: StatCardProps) {
   return (
     <div
       className={`bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-5 overflow-hidden ${onClick ? 'cursor-pointer hover:border-[var(--color-primary)]/30 transition-causa' : ''}`}
@@ -68,6 +72,11 @@ function StatCard({ icon: Icon, label, value, borderColor, iconColor, onClick }:
           <Icon size={18} />
         </div>
       </div>
+      {sparklineData && sparklineData.length > 1 && (
+        <div className="mt-2">
+          <Sparkline data={sparklineData} color={sparklineColor ?? borderColor} width={100} height={28} />
+        </div>
+      )}
     </div>
   );
 }
@@ -109,6 +118,13 @@ function diasAtraso(vencimento: string): number {
   return Math.ceil((hoje.getTime() - venc.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function extractSparkline(
+  snapshots: KpiSnapshot[],
+  key: keyof Omit<KpiSnapshot, 'id' | 'data' | 'createdAt'>,
+): number[] {
+  return snapshots.map((s) => s[key] as number);
+}
+
 export function DashboardPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -131,20 +147,23 @@ export function DashboardPage() {
   const [honorarios, setHonorarios] = useState<HonorarioRow[]>([]);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [produtividade, setProdutividade] = useState<ProdutividadeEntry[]>([]);
+  const [sparklines, setSparklines] = useState<KpiSnapshot[]>([]);
 
   useEffect(() => {
     async function load() {
       try {
-        const [dashStats, prazosData, honData, timelineData, prodData] = await Promise.all([
+        const [dashStats, prazosData, honData, timelineData, prodData, sparklinesData] = await Promise.all([
           api.getDashboardStats(),
           api.listarPrazos({ status: 'pendente' }),
           financeiroEnabled ? api.listarHonorarios() : Promise.resolve([]),
           api.getDashboardTimeline(),
           api.getDashboardProdutividade(),
+          api.getDashboardSparklines(),
         ]);
         setStats(dashStats);
         setTimeline(timelineData);
         setProdutividade(prodData);
+        setSparklines(sparklinesData);
 
         // All pending prazos sorted by date — UrgencyHeatMap computes tiers internally
         const urgentes = prazosData.sort((a, b) => a.dataFatal.localeCompare(b.dataFatal));
@@ -203,6 +222,8 @@ export function DashboardPage() {
               borderColor="var(--color-tier-info)"
               iconColor="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
               onClick={() => navigate('/app/processos')}
+              sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'processosAtivos') : undefined}
+              sparklineColor="var(--color-tier-info)"
             />
             <StatCard
               icon={Clock}
@@ -211,6 +232,8 @@ export function DashboardPage() {
               borderColor="var(--color-tier-warning)"
               iconColor="bg-causa-warning/10 text-causa-warning"
               onClick={() => navigate('/app/prazos')}
+              sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'prazosPendentes') : undefined}
+              sparklineColor="var(--color-tier-warning)"
             />
             <StatCard
               icon={AlertTriangle}
@@ -219,6 +242,8 @@ export function DashboardPage() {
               borderColor="var(--color-tier-fatal)"
               iconColor="bg-causa-danger/10 text-causa-danger"
               onClick={() => navigate('/app/prazos')}
+              sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'prazosFatais') : undefined}
+              sparklineColor="var(--color-tier-fatal)"
             />
             <StatCard
               icon={Users}
@@ -227,6 +252,8 @@ export function DashboardPage() {
               borderColor="var(--color-success)"
               iconColor="bg-causa-success/10 text-causa-success"
               onClick={() => navigate('/app/clientes')}
+              sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'clientes') : undefined}
+              sparklineColor="var(--color-success)"
             />
             <StatCard
               icon={CheckSquare}
@@ -235,6 +262,8 @@ export function DashboardPage() {
               borderColor="var(--color-tier-info)"
               iconColor="bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
               onClick={() => navigate('/app/tarefas')}
+              sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'tarefasPendentes') : undefined}
+              sparklineColor="var(--color-tier-info)"
             />
             {/* 4.2.3 - Movimentacoes nao lidas */}
             <StatCard
@@ -244,6 +273,8 @@ export function DashboardPage() {
               borderColor="var(--color-tier-warning)"
               iconColor="bg-causa-warning/10 text-causa-warning"
               onClick={() => navigate('/app/processos')}
+              sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'movimentacoesNaoLidas') : undefined}
+              sparklineColor="var(--color-tier-warning)"
             />
             {financeiroEnabled ? (
               <StatCard
@@ -253,6 +284,8 @@ export function DashboardPage() {
                 borderColor="var(--color-success)"
                 iconColor="bg-causa-success/10 text-causa-success"
                 onClick={() => navigate('/app/financeiro')}
+                sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'honorariosPendentes') : undefined}
+                sparklineColor="var(--color-success)"
               />
             ) : (
               <StatCard
@@ -261,6 +294,8 @@ export function DashboardPage() {
                 value={stats.parcelasAtrasadas}
                 borderColor="var(--color-success)"
                 iconColor="bg-causa-success/10 text-causa-success"
+                sparklineData={sparklines.length > 0 ? extractSparkline(sparklines, 'honorariosPendentes') : undefined}
+                sparklineColor="var(--color-success)"
               />
             )}
           </>
