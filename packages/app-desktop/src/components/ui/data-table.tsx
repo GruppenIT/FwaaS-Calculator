@@ -1,4 +1,5 @@
 import type { ElementType, ReactNode, KeyboardEvent } from 'react';
+import { useRef, useMemo } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-react';
 import { EmptyState } from './empty-state';
 
@@ -29,6 +30,7 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   className?: string;
   animateFirstLoad?: boolean;
+  hiddenColumns?: string[];
 }
 
 function SortIcon({
@@ -74,7 +76,15 @@ export function DataTable<T extends Record<string, unknown>>({
   emptyMessage = 'Nenhum registro encontrado',
   className = '',
   animateFirstLoad,
+  hiddenColumns,
 }: DataTableProps<T>) {
+  const tbodyRef = useRef<HTMLTableSectionElement>(null);
+
+  const visibleColumns = useMemo(() => {
+    if (!hiddenColumns || hiddenColumns.length === 0) return columns;
+    return columns.filter((col) => !hiddenColumns.includes(col.key));
+  }, [columns, hiddenColumns]);
+
   function handleHeaderClick(column: Column<T>) {
     if (!column.sortable || !onSort) return;
     onSort(nextSortState(column.key, sortState));
@@ -87,12 +97,25 @@ export function DataTable<T extends Record<string, unknown>>({
     }
   }
 
+  function handleTbodyKeyDown(e: KeyboardEvent<HTMLTableSectionElement>) {
+    if (!onRowClick) return;
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const currentRow = (e.target as HTMLElement).closest('tr');
+    if (!currentRow) return;
+    const targetRow =
+      e.key === 'ArrowDown'
+        ? (currentRow.nextElementSibling as HTMLElement | null)
+        : (currentRow.previousElementSibling as HTMLElement | null);
+    if (targetRow) targetRow.focus();
+  }
+
   return (
     <div className={`w-full overflow-hidden ${className}`}>
       <table className="table-fixed w-full border-collapse">
         <thead>
           <tr className="border-b border-[var(--color-border)]">
-            {columns.map((col) => {
+            {visibleColumns.map((col) => {
               const alignClass = ALIGN_MAP[col.align ?? 'left'];
               return (
                 <th
@@ -113,9 +136,9 @@ export function DataTable<T extends Record<string, unknown>>({
             })}
           </tr>
         </thead>
-        <tbody>
+        <tbody ref={tbodyRef} onKeyDown={handleTbodyKeyDown}>
           {data.length === 0 ? (
-            <EmptyState icon={emptyIcon} message={emptyMessage} colSpan={columns.length} />
+            <EmptyState icon={emptyIcon} message={emptyMessage} colSpan={visibleColumns.length} />
           ) : (
             data.map((row, idx) => {
               const rowKey = keyExtractor(row);
@@ -143,7 +166,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   onClick={clickable ? () => onRowClick(row) : undefined}
                   onKeyDown={clickable ? (e) => handleRowKeyDown(e, row) : undefined}
                 >
-                  {columns.map((col) => {
+                  {visibleColumns.map((col) => {
                     const alignClass = ALIGN_MAP[col.align ?? 'left'];
                     const rawValue = row[col.key];
                     const cellContent = col.render
