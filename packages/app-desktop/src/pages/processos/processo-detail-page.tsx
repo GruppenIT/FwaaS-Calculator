@@ -35,6 +35,7 @@ import { usePermission } from '../../hooks/use-permission';
 import * as api from '../../lib/api';
 import type { PrazoRow, HonorarioRow, MovimentacaoRow, DocumentoRow, TarefaRow } from '../../lib/api';
 import { useFeatures } from '../../lib/auth-context';
+import { ProcessoTimeline } from '../../components/ui/processo-timeline';
 
 const PREVIEWABLE_MIMES = new Set([
   'application/pdf',
@@ -314,6 +315,7 @@ export function ProcessoDetailPage() {
 
   const allTabs: TabDef[] = [
     { key: 'dados-gerais', label: 'Dados Gerais' },
+    { key: 'timeline', label: 'Timeline', count: movimentacoes.length + prazos.length },
     { key: 'prazos', label: 'Prazos', count: prazos.length },
     { key: 'movimentacoes', label: 'Movimentações', count: movimentacoes.length },
     { key: 'documentos', label: 'Documentos', count: documentos.length },
@@ -531,6 +533,10 @@ export function ProcessoDetailPage() {
                     </div>
                   )}
                 </div>
+              )}
+
+              {tab.key === 'timeline' && (
+                <ProcessoTimeline movimentacoes={movimentacoes} prazos={prazos} />
               )}
 
               {tab.key === 'prazos' && (
