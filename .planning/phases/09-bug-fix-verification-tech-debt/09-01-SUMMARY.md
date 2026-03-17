@@ -43,7 +43,7 @@ patterns-established:
   - "Permission guards on prazos pages use prazos:(criar|editar), not processos permissions"
   - "All UI barrel exports belong in packages/app-desktop/src/components/ui/index.ts"
 
-requirements-completed: [INT-02, VIS-01, VIS-03]
+requirements-completed: [INT-02, VIS-03]
 
 # Metrics
 duration: 10min

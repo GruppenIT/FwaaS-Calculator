@@ -35,7 +35,7 @@ key-decisions:
 patterns-established:
   - "randomDateOnly() helper for seed fields that feed UI date formatters"
 
-requirements-completed: [SEED-02, SEED-03]
+requirements-completed: [SEED-01, SEED-02, SEED-03, SEED-04]
 
 # Metrics
 duration: 25min

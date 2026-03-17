@@ -40,7 +40,7 @@ patterns-established:
   - "Entity insert order follows FK dependency graph: contatos -> clientes -> processos -> movimentacoes/prazos -> honorarios/parcelas -> tarefas/agenda/documentos/despesas/timesheets"
   - "Urgency tiers defined by offset from today: use dateFromNow(n) for deterministic relative dates"
 
-requirements-completed: [SEED-01, SEED-04]
+requirements-completed: [SEED-01, SEED-02, SEED-03, SEED-04]
 
 # Metrics
 duration: 14min

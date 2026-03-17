@@ -35,7 +35,7 @@ key-decisions:
 patterns-established:
   - "Verification score per observable behavior, not per requirement — captures more precise evidence"
 
-requirements-completed: [INT-01, INT-03, INT-04, INT-05]
+requirements-completed: [INT-01, INT-02, INT-03, INT-04, INT-05, VIS-01, VIS-03]
 
 # Metrics
 duration: 15min
@@ -95,6 +95,15 @@ None — no external service configuration required.
 - All 12 v2.1 requirements are now traceable as complete
 - Phase 9 Plan 01 (09-01) can run independently — it addresses permission guard audit and prazosFatais query fix
 - v2.1 milestone completion depends only on 09-01 execution
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/07-table-interactions/07-VERIFICATION.md` (162 lines, 29 VERIFIED/SATISFIED occurrences)
+- FOUND: `.planning/REQUIREMENTS.md` (12 `[x]` checkboxes, 0 `[ ]`)
+- FOUND: `.planning/phases/09-bug-fix-verification-tech-debt/09-02-SUMMARY.md`
+- FOUND: commit `3e9ee88` (Task 1 — 07-VERIFICATION.md)
+- FOUND: commit `ba544da` (Task 2 — REQUIREMENTS.md checkboxes)
+- FOUND: commit `64898a2` (Plan metadata — SUMMARY.md + STATE.md + ROADMAP.md)
 
 ---
 *Phase: 09-bug-fix-verification-tech-debt*
